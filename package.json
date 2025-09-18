@@ -1,0 +1,51 @@
+{
+	"name": "integrations-worker-app",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"pages:build": "npx @cloudflare/next-on-pages",
+		"preview": "npm run pages:build && wrangler pages dev",
+		"deploy": "npm run pages:build && wrangler pages deploy",
+		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts"
+	},
+	"dependencies": {
+		"@hookform/resolvers": "^5.2.2",
+		"@linear/sdk": "^60.0.0",
+		"@radix-ui/react-label": "^2.1.7",
+		"@radix-ui/react-select": "^2.2.6",
+		"@radix-ui/react-slot": "^1.2.3",
+		"@supabase/supabase-js": "^2.57.4",
+		"@types/crypto-js": "^4.2.2",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"crypto-js": "^4.2.0",
+		"encoding": "^0.1.13",
+		"framer-motion": "^12.23.13",
+		"lucide-react": "^0.544.0",
+		"react": "19.1.0",
+		"react-dom": "19.1.0",
+		"react-hook-form": "^7.62.0",
+		"tailwind-merge": "^3.3.1",
+		"zod": "^4.1.9"
+	},
+	"devDependencies": {
+		"@cloudflare/next-on-pages": "1",
+		"@eslint/eslintrc": "^3",
+		"@tailwindcss/postcss": "^4",
+		"@types/node": "^20.19.16",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"eslint": "^9",
+		"eslint-config-next": "15.4.6",
+		"next": "15.5.2",
+		"tailwindcss": "^4",
+		"tw-animate-css": "^1.3.8",
+		"typescript": "^5",
+		"vercel": "47.0.4",
+		"wrangler": "^4.37.1"
+	}
+}
