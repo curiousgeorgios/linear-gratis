@@ -230,14 +230,64 @@ export default function FormsPage() {
     <div className="min-h-screen">
       <Navigation />
       <div className="max-w-6xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Customer request forms</h1>
-            <p className="text-gray-600">Create custom forms for different projects and use cases</p>
+        <div className="mb-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-4">Shareable customer forms</h1>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Create branded forms for specific Linear projects that your customers can use to submit feedback directly.
+              Perfect for support tickets, feature requests, or bug reports.
+            </p>
           </div>
-          <Button onClick={() => setShowCreateForm(true)} disabled={projects.length === 0}>
-            Create new form
-          </Button>
+
+          {/* How it works */}
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                  1
+                </div>
+                <CardTitle className="text-lg">Create a form</CardTitle>
+                <CardDescription>
+                  Choose a Linear project and customise the form title and description
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                  2
+                </div>
+                <CardTitle className="text-lg">Share the link</CardTitle>
+                <CardDescription>
+                  Send the unique form URL to your customers via email, chat, or website
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                  3
+                </div>
+                <CardTitle className="text-lg">Issues appear in Linear</CardTitle>
+                <CardDescription>
+                  Customer submissions automatically create issues in your chosen Linear project
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              disabled={projects.length === 0}
+              size="lg"
+              className="h-12 px-8 font-semibold"
+            >
+              {forms.length === 0 ? 'Create your first form' : 'Create new form'}
+            </Button>
+          </div>
         </div>
 
         {message && (
@@ -261,83 +311,126 @@ export default function FormsPage() {
         )}
 
         {showCreateForm && (
-          <Card className="mb-6">
+          <Card className="mb-8 border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Create new form</CardTitle>
-              <CardDescription>
-                Set up a custom customer request form with pre-defined project and title
+              <CardTitle className="text-xl">Create a new customer form</CardTitle>
+              <CardDescription className="text-base">
+                Set up a custom form that your customers can use to submit requests directly to your Linear project
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="form-name">Form name</Label>
-                  <Input
-                    id="form-name"
-                    placeholder="Support requests"
-                    value={formName}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                  />
-                </div>
+            <CardContent className="space-y-6">
+              {/* Step 1: Basic Info */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    1
+                  </div>
+                  Basic information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="form-name">Form name *</Label>
+                    <Input
+                      id="form-name"
+                      placeholder="e.g., Support requests, Feature requests"
+                      value={formName}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Internal name for your reference
+                    </p>
+                  </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="form-slug">URL slug *</Label>
+                    <Input
+                      id="form-slug"
+                      placeholder="support-requests"
+                      value={formSlug}
+                      onChange={(e) => setFormSlug(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Form will be available at: <code className="bg-muted px-1 py-0.5 rounded">/form/{formSlug || '[slug]'}</code>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Linear Integration */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    2
+                  </div>
+                  Linear integration
+                </h3>
                 <div className="space-y-2">
-                  <Label htmlFor="form-slug">URL slug</Label>
-                  <Input
-                    id="form-slug"
-                    placeholder="support-requests"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                  />
-                  <p className="text-xs text-gray-500">
-                    This will be accessible at: /form/{formSlug}
+                  <Label htmlFor="project">Target Linear project *</Label>
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose where customer submissions will go" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    All submissions from this form will create issues in the selected project
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="project">Linear project</Label>
-                <Select value={selectedProject} onValueChange={setSelectedProject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Step 3: Customer Experience */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    3
+                  </div>
+                  Customer experience
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="form-title">Form title *</Label>
+                    <Input
+                      id="form-title"
+                      placeholder="e.g., Submit a support request, Report a bug, Request a feature"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This is what your customers will see at the top of the form
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="form-description">Instructions (optional)</Label>
+                    <Textarea
+                      id="form-description"
+                      placeholder="e.g., Please provide as much detail as possible to help us resolve your issue quickly..."
+                      value={formDescription}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional instructions to help your customers provide better information
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="form-title">Form title</Label>
-                <Input
-                  id="form-title"
-                  placeholder="Submit a support request"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="form-description">Description (optional)</Label>
-                <Textarea
-                  id="form-description"
-                  placeholder="Help us resolve your issue quickly by providing detailed information..."
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-3 pt-4 border-t">
                 <Button
                   onClick={createForm}
                   disabled={submitting || !formName || !formSlug || !selectedProject || !formTitle}
+                  className="h-11 px-6 font-semibold"
                 >
-                  {submitting ? 'Creating...' : 'Create form'}
+                  {submitting ? 'Creating form...' : 'Create form'}
                 </Button>
-                <Button variant="outline" onClick={resetForm}>
+                <Button variant="outline" onClick={resetForm} className="h-11 px-6">
                   Cancel
                 </Button>
               </div>
@@ -364,49 +457,65 @@ export default function FormsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {forms.map((form) => (
-              <Card key={form.id}>
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-lg">{form.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{form.form_title}</p>
-                      <p className="text-sm text-gray-500">
-                        Project: {form.project_name} • Created {new Date(form.created_at).toLocaleDateString()}
-                      </p>
-                      {form.description && (
-                        <p className="text-sm text-gray-600 mt-2">{form.description}</p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-2">
-                        URL: /form/{form.slug}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyFormLink(form.slug)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Link href={`/form/${form.slug}`} target="_blank">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Your forms</h2>
+              <span className="text-sm text-muted-foreground">{forms.length} form{forms.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            <div className="grid gap-4">
+              {forms.map((form) => (
+                <Card key={form.id} className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{form.name}</h3>
+                          <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                            {form.project_name}
+                          </span>
+                        </div>
+                        <p className="text-base text-foreground mb-2">{form.form_title}</p>
+                        {form.description && (
+                          <p className="text-sm text-muted-foreground mb-3">{form.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Created {new Date(form.created_at).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1">
+                            <code className="bg-muted px-1 py-0.5 rounded text-xs">/form/{form.slug}</code>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyFormLink(form.slug)}
+                          className="flex items-center gap-2"
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copy link
                         </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteForm(form.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Link href={`/form/${form.slug}`} target="_blank">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Preview
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteForm(form.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -143,10 +143,10 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>Linear integration</CardTitle>
             <CardDescription>
-              Save your Linear API token to avoid entering it each time. Get your token from Linear Settings → API.
+              Connect your Linear workspace to start collecting customer feedback directly in your issues.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {loading && (
               <div className="text-center py-4">
                 <p className="text-gray-600">Loading profile...</p>
@@ -155,36 +155,66 @@ export default function ProfilePage() {
 
             {!loading && (
               <>
+                {/* Instructions */}
+                <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
+                  <h3 className="font-semibold mb-3">How to get your Linear API token:</h3>
+                  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                    <li>
+                      <span className="font-medium">Open Linear</span> and go to{' '}
+                      <span className="bg-muted px-2 py-1 rounded text-xs font-mono">Settings → API</span>
+                    </li>
+                    <li>
+                      <span className="font-medium">Click "Create personal API key"</span>
+                    </li>
+                    <li>
+                      <span className="font-medium">Give it a name</span> like "Linear Integration" or "Customer Feedback"
+                    </li>
+                    <li>
+                      <span className="font-medium">Copy the generated token</span> and paste it below
+                    </li>
+                  </ol>
+                  <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800/30 rounded text-xs text-yellow-800 dark:text-yellow-400">
+                    <strong>Important:</strong> Keep this token secure. It provides access to your Linear workspace.
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="linear-token">Linear API token</Label>
                   <Input
                     id="linear-token"
                     type="password"
-                    placeholder="Enter your Linear API token"
+                    placeholder={linearToken ? "Token is configured" : "Paste your Linear API token here"}
                     value={linearToken}
                     onChange={(e) => setLinearToken(e.target.value)}
                   />
-                  <p className="text-sm text-gray-600">
-                    This token will be stored securely and used for creating customer requests.
+                  <p className="text-sm text-muted-foreground">
+                    This token will be encrypted and stored securely. It's used to create customer requests in your Linear workspace.
                   </p>
                 </div>
 
                 {message && (
                   <div className={`p-3 rounded-lg text-sm ${
                     message.type === 'success'
-                      ? 'bg-green-50 border border-green-200 text-green-800'
-                      : 'bg-red-50 border border-red-200 text-red-800'
+                      ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800/30 dark:text-green-400'
+                      : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800/30 dark:text-red-400'
                   }`}>
                     {message.text}
+                    {message.type === 'success' && (
+                      <div className="mt-2">
+                        <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.push('/')}>
+                          → Go to Linear integration
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <Button
                   onClick={saveProfile}
-                  disabled={saving}
+                  disabled={saving || !linearToken.trim()}
                   className="w-full"
                 >
-                  {saving ? 'Saving...' : 'Save profile'}
+                  {saving ? 'Saving token...' : linearToken ? 'Save Linear token' : 'Enter token to continue'}
                 </Button>
               </>
             )}
