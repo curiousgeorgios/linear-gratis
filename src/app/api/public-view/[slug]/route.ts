@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
 import bcrypt from 'bcryptjs';
 
-// export const runtime = 'edge';
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
