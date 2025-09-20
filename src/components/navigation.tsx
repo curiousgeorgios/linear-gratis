@@ -28,11 +28,13 @@ export function Navigation() {
 
         {/* Center navigation */}
         <div className="flex items-center gap-2">
-          <Link href="/features">
-            <Button variant="ghost" size="sm" className="font-medium">
-              Features
-            </Button>
-          </Link>
+          {!user && (
+            <Link href="/features">
+              <Button variant="ghost" size="sm" className="font-medium">
+                Features
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -46,6 +48,11 @@ export function Navigation() {
                 <Link href="/forms">
                   <Button variant="ghost" size="sm" className="font-medium">
                     Forms
+                  </Button>
+                </Link>
+                <Link href="/views">
+                  <Button variant="ghost" size="sm" className="font-medium">
+                    Public views
                   </Button>
                 </Link>
                 <Link href="/profile">

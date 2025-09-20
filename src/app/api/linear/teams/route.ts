@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+export type Team = {
+  id: string
+  name: string
+  key: string
+  description?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { apiToken } = await request.json() as { apiToken: string };
@@ -13,17 +20,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Projects API - Token length:', apiToken.length, 'First 20 chars:', apiToken.substring(0, 20));
+    console.log('Teams API - Token length:', apiToken.length, 'First 20 chars:', apiToken.substring(0, 20));
 
-    // Get projects from Linear using direct GraphQL request
+    // Get teams from Linear using GraphQL
     const query = `
-      query Projects {
-        projects {
+      query Teams {
+        teams {
           nodes {
             id
             name
+            key
             description
-            createdAt
           }
         }
       }
@@ -51,12 +58,12 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json() as {
       data?: {
-        projects: {
+        teams: {
           nodes: Array<{
             id: string
             name: string
+            key: string
             description?: string
-            createdAt: string
           }>
         }
       }
@@ -73,15 +80,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      projects: result.data.projects.nodes.map(project => ({
-        id: project.id,
-        name: project.name,
-        description: project.description
+      teams: result.data.teams.nodes.map(team => ({
+        id: team.id,
+        name: team.name,
+        key: team.key,
+        description: team.description
       }))
     });
 
   } catch (error) {
-    console.error('Projects API error:', error);
+    console.error('Teams API error:', error);
     return NextResponse.json(
       {
         success: false,

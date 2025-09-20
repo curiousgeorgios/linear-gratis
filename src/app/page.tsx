@@ -42,6 +42,35 @@ export default function Home() {
       "Our team would love to see dark mode support in the dashboard. This would help reduce eye strain during late-night work sessions and align with our design system.",
   });
 
+  // Check if user has Linear API token set up
+  const [hasLinearToken, setHasLinearToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const checkLinearToken = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("linear_api_token")
+          .eq("id", user.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading profile:", error);
+          setHasLinearToken(false);
+        } else {
+          setHasLinearToken(!!data?.linear_api_token);
+        }
+      } catch (error) {
+        console.error("Error checking Linear token:", error);
+        setHasLinearToken(false);
+      }
+    };
+
+    checkLinearToken();
+  }, [user]);
+
   if (loading) {
     return (
       <div className="min-h-screen gradient-bg">
@@ -107,8 +136,8 @@ export default function Home() {
                     size="lg"
                     className="h-14 px-10 text-lg font-semibold"
                   >
-                    <Github className="mr-2 h-5 w-5" />
-                    View on GitHub
+                    <Star className="mr-2 h-5 w-5" />
+                    Star on GitHub
                   </Button>
                 </Link>
               </div>
@@ -254,7 +283,7 @@ export default function Home() {
             <div className="text-center">
               <Link href="/login">
                 <Button size="lg" className="h-12 px-8 font-semibold">
-                  Try it now – it's free
+                  Try it now – it&apos;s free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -291,7 +320,7 @@ export default function Home() {
                       What your customers see
                     </h3>
                     <p className="text-muted-foreground">
-                      A clean, branded form that's easy to fill out
+                      A clean, branded form that&apos;s easy to fill out
                     </p>
                   </div>
 
@@ -731,8 +760,8 @@ export default function Home() {
                   variant="outline"
                   className="h-12 px-8 font-semibold"
                 >
-                  <Github className="mr-2 h-5 w-5" />
-                  Contribute on GitHub
+                  <Star className="mr-2 h-5 w-5" />
+                  Star on GitHub
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -781,35 +810,6 @@ export default function Home() {
     );
   }
 
-  // Check if user has Linear API token set up
-  const [hasLinearToken, setHasLinearToken] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const checkLinearToken = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("linear_api_token")
-          .eq("id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading profile:", error);
-          setHasLinearToken(false);
-        } else {
-          setHasLinearToken(!!data?.linear_api_token);
-        }
-      } catch (error) {
-        console.error("Error checking Linear token:", error);
-        setHasLinearToken(false);
-      }
-    };
-
-    checkLinearToken();
-  }, [user]);
-
   if (hasLinearToken === null) {
     return (
       <div className="min-h-screen gradient-bg">
@@ -837,7 +837,7 @@ export default function Home() {
                 Welcome to Linear integration
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Let's get you set up to start collecting customer feedback
+                Let&apos;s get you set up to start collecting customer feedback
                 directly in Linear.
               </p>
             </div>
@@ -863,8 +863,8 @@ export default function Home() {
                   </h3>
                   <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
                     <li>Go to Linear → Settings → API</li>
-                    <li>Click "Create personal API key"</li>
-                    <li>Give it a name like "Linear Integration"</li>
+                    <li>Click &quot;Create personal API key&quot;</li>
+                    <li>Give it a name like &quot;Linear Integration&quot;</li>
                     <li>Copy the generated token</li>
                   </ol>
                 </div>
@@ -884,7 +884,7 @@ export default function Home() {
                   <div className="w-8 h-8 bg-muted-foreground text-background rounded-full flex items-center justify-center text-sm font-bold">
                     2
                   </div>
-                  What you'll be able to do next
+                  What you&apos;ll be able to do next
                 </CardTitle>
               </CardHeader>
               <CardContent>

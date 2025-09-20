@@ -1,0 +1,28 @@
+# Ignore OG generation route (development only)
+src/app/api/og/
+
+# Ignore scripts directory
+scripts/
+
+# Ignore development files
+*.log
+.env.local
+.env.development
+
+# Ignore build artifacts
+.next/
+node_modules/
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
