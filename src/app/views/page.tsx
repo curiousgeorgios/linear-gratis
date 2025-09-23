@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ export default function PublicViewsPage() {
   const [password, setPassword] = useState("");
   const [editingView, setEditingView] = useState<PublicView | null>(null);
   const [showEditView, setShowEditView] = useState(false);
+  const [allowIssueCreation, setAllowIssueCreation] = useState(false);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -237,6 +239,7 @@ export default function PublicViewsPage() {
         password_protected: passwordProtected,
         password_hash: passwordHash,
         is_active: true,
+        allow_issue_creation: allowIssueCreation,
         ...sourceData,
       });
 
@@ -317,6 +320,7 @@ export default function PublicViewsPage() {
     setSourceType("project");
     setPasswordProtected(false);
     setPassword("");
+    setAllowIssueCreation(false);
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
@@ -330,6 +334,7 @@ export default function PublicViewsPage() {
     setViewDescription(view.description || "");
     setPasswordProtected(view.password_protected || false);
     setPassword("");
+    setAllowIssueCreation(view.allow_issue_creation || false);
     setShowEditView(true);
     setShowCreateView(false);
   };
@@ -357,6 +362,7 @@ export default function PublicViewsPage() {
           description: viewDescription || null,
           password_protected: passwordProtected,
           password_hash: passwordHash,
+          allow_issue_creation: allowIssueCreation,
         })
         .eq("id", editingView.id);
 
@@ -666,23 +672,53 @@ export default function PublicViewsPage() {
                 </div>
               </div>
 
-              {/* Step 4: Security Options */}
+              {/* Step 4: Interaction Settings */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     4
                   </div>
+                  Interaction settings
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={allowIssueCreation}
+                        onChange={() => setAllowIssueCreation(!allowIssueCreation)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="allow-issue-creation"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Allow viewers to create issues
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enable a &quot;Create issue&quot; button in the public board view
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 5: Security Options */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    5
+                  </div>
                   Security options
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
-                    <input
-                      type="checkbox"
-                      id="password-protected"
-                      checked={passwordProtected}
-                      onChange={(e) => setPasswordProtected(e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/50"
-                    />
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={passwordProtected}
+                        onChange={() => setPasswordProtected(!passwordProtected)}
+                      />
+                    </div>
                     <div className="flex-1">
                       <Label
                         htmlFor="password-protected"
@@ -818,23 +854,53 @@ export default function PublicViewsPage() {
                 </div>
               </div>
 
-              {/* Security Options */}
+              {/* Interaction Settings */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     3
                   </div>
+                  Interaction settings
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={allowIssueCreation}
+                        onChange={() => setAllowIssueCreation(!allowIssueCreation)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="edit-allow-issue-creation"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Allow viewers to create issues
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enable a &quot;Create issue&quot; button in the public board view
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Options */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    4
+                  </div>
                   Security options
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
-                    <input
-                      type="checkbox"
-                      id="edit-password-protected"
-                      checked={passwordProtected}
-                      onChange={(e) => setPasswordProtected(e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/50"
-                    />
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={passwordProtected}
+                        onChange={() => setPasswordProtected(!passwordProtected)}
+                      />
+                    </div>
                     <div className="flex-1">
                       <Label
                         htmlFor="edit-password-protected"

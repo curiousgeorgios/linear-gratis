@@ -67,14 +67,20 @@ const features = [
         lindie: "check"
       },
       {
+        feature: "Public kanban view boards",
+        linearGratis: "check",
+        steelSync: "check",
+        lindie: "check"
+      },
+      {
         feature: "Public roadmap sharing",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },
       {
         feature: "Private project sharing",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },
@@ -86,7 +92,7 @@ const features = [
       },
       {
         feature: "Stakeholder read-only access",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },

@@ -108,6 +108,7 @@ export async function GET(
         show_labels: viewData.show_labels,
         show_priorities: viewData.show_priorities,
         show_descriptions: viewData.show_descriptions,
+        allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
       issues: issuesData.issues || []
@@ -242,6 +243,7 @@ export async function POST(
         show_priorities: viewData.show_priorities,
         show_descriptions: viewData.show_descriptions,
         password_protected: viewData.password_protected,
+        allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
       issues: issuesData.issues || []

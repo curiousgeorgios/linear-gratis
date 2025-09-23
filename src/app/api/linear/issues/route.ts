@@ -19,8 +19,6 @@ export type LinearIssue = {
   assignee?: {
     id: string;
     name: string;
-    email: string;
-    avatarUrl?: string;
   };
   labels: Array<{
     id: string;
@@ -79,13 +77,13 @@ export async function POST(request: NextRequest) {
         : statusFilter;
     }
 
-    // Get issues from Linear using GraphQL
+    // Get issues from Linear using GraphQL - simplified to reduce complexity
     const query = `
       query Issues {
         issues(
           filter: { ${filterCondition} }
           orderBy: updatedAt
-          first: 100
+          first: 50
         ) {
           nodes {
             id
@@ -104,8 +102,6 @@ export async function POST(request: NextRequest) {
             assignee {
               id
               name
-              email
-              avatarUrl
             }
             labels {
               nodes {
@@ -156,8 +152,6 @@ export async function POST(request: NextRequest) {
             assignee?: {
               id: string;
               name: string;
-              email: string;
-              avatarUrl?: string;
             };
             labels: {
               nodes: Array<{

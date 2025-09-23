@@ -2,17 +2,14 @@
 
 export const runtime = 'edge';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { notFound } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { KanbanBoard } from '@/components/kanban-board'
+import { FilterDropdown, FilterState, generateFilterOptions, FilterOptions } from '@/components/filter-dropdown'
+import { IssueCreationModal } from '@/components/issue-creation-modal'
 import { PublicView } from '@/lib/supabase'
 import { LinearIssue } from '@/app/api/linear/issues/route'
-import { RefreshCw, Globe, Calendar, ExternalLink, Lock } from 'lucide-react'
+import { RefreshCw, Lock } from 'lucide-react'
 
 interface PublicViewPageProps {
   params: Promise<{
@@ -31,6 +28,25 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [password, setPassword] = useState('')
   const [authenticating, setAuthenticating] = useState(false)
   const [slug, setSlug] = useState<string>('')
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    statuses: [],
+    assignees: [],
+    priorities: [],
+    labels: [],
+    creators: [],
+  })
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    statuses: [],
+    assignees: [],
+    priorities: [],
+    labels: [],
+    creators: [],
+  })
+  const [showIssueModal, setShowIssueModal] = useState(false)
+  const [selectedColumn, setSelectedColumn] = useState<string>('')
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const initParams = async () => {
@@ -71,7 +87,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       }
 
       setView(data.view as PublicView)
-      setIssues(data.issues as LinearIssue[] || [])
+      const issuesData = data.issues as LinearIssue[] || []
+      setIssues(issuesData)
+      setFilterOptions(generateFilterOptions(issuesData))
       setLastUpdated(new Date())
       setRequiresPassword(false)
 
@@ -101,7 +119,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       const data = await response.json() as { issues?: LinearIssue[] }
 
       if (response.ok) {
-        setIssues(data.issues || [])
+        const issuesData = data.issues || []
+        setIssues(issuesData)
+        setFilterOptions(generateFilterOptions(issuesData))
         setLastUpdated(new Date())
       }
     } catch (err) {
@@ -111,11 +131,69 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     }
   }
 
+  const handleCreateIssue = (columnName: string) => {
+    setSelectedColumn(columnName)
+    setShowIssueModal(true)
+  }
+
+  const handleSubmitIssue = async (issueData: {
+    title: string;
+    description: string;
+    stateId?: string;
+    priority: number;
+    assigneeId?: string;
+    projectId?: string;
+    teamId?: string;
+    labelIds: string[];
+  }) => {
+    try {
+      const response = await fetch(`/api/public-view/${slug}/create-issue`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: issueData.title,
+          description: issueData.description,
+          stateId: issueData.stateId,
+          priority: issueData.priority,
+          assigneeId: issueData.assigneeId,
+          labelIds: issueData.labelIds,
+        }),
+      })
+
+      const result = await response.json() as { success?: boolean; issue?: unknown; error?: string }
+
+      if (result.success) {
+        console.log('Issue created successfully:', result.issue)
+        setShowIssueModal(false)
+        setSelectedColumn('')
+        // Refresh to show the new issue
+        await handleRefresh()
+      } else {
+        console.error('Failed to create issue:', result.error)
+        // You could show an error message to the user here
+      }
+    } catch (error) {
+      console.error('Error creating issue:', error)
+      // You could show an error message to the user here
+    }
+  }
+
   useEffect(() => {
     if (slug) {
       loadView()
     }
   }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const hasActiveFilters = () => {
+    return filters.search ||
+      filters.statuses.length > 0 ||
+      filters.assignees.length > 0 ||
+      filters.priorities.length > 0 ||
+      filters.labels.length > 0 ||
+      filters.creators.length > 0
+  }
 
   if (loading) {
     return (
@@ -249,13 +327,64 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
 
         {/* Filters bar - Linear style */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-t border-border/30">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+          <div className="flex items-center gap-2 sm:gap-4 relative">
+            <button
+              ref={filterButtonRef}
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className={`flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm rounded-md transition-colors ${
+                showFilterDropdown || hasActiveFilters()
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
               <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
                 <path fillRule="evenodd" clipRule="evenodd" d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"/>
               </svg>
               <span className="hidden sm:inline">Filter</span>
+              {hasActiveFilters() && (
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+              )}
             </button>
+
+            <FilterDropdown
+              isOpen={showFilterDropdown}
+              onClose={() => setShowFilterDropdown(false)}
+              filters={filters}
+              onFiltersChange={setFilters}
+              filterOptions={filterOptions}
+              triggerRef={filterButtonRef}
+            />
+
+            {/* Active filter indicators */}
+            {hasActiveFilters() && (
+              <div className="flex items-center gap-2 text-xs">
+                {filters.search && (
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    Search: &quot;{filters.search}&quot;
+                  </span>
+                )}
+                {filters.statuses.length > 0 && (
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    {filters.statuses.length} status{filters.statuses.length !== 1 ? 'es' : ''}
+                  </span>
+                )}
+                {filters.assignees.length > 0 && (
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    {filters.assignees.length} assignee{filters.assignees.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {filters.priorities.length > 0 && (
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    {filters.priorities.length} priorit{filters.priorities.length !== 1 ? 'ies' : 'y'}
+                  </span>
+                )}
+                {filters.labels.length > 0 && (
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    {filters.labels.length} label{filters.labels.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -294,6 +423,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               showPriorities={view.show_priorities}
               showDescriptions={view.show_descriptions}
               className="w-full"
+              filters={filters}
+              allowIssueCreation={view.allow_issue_creation}
+              onCreateIssue={handleCreateIssue}
             />
           </div>
         )}
@@ -320,6 +452,22 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           </div>
         </footer>
       )}
+
+      {/* Issue Creation Modal */}
+      <IssueCreationModal
+        isOpen={showIssueModal}
+        onClose={() => {
+          setShowIssueModal(false)
+          setSelectedColumn('')
+        }}
+        onSubmit={handleSubmitIssue}
+        teamName={view?.team_name}
+        projectName={view?.project_name}
+        teamId={view?.team_id}
+        projectId={view?.project_id}
+        apiToken="dummy"
+        viewSlug={slug}
+      />
     </div>
   )
 }
