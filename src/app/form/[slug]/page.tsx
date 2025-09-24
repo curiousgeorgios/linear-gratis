@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -11,17 +11,33 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase, CustomerRequestForm } from '@/lib/supabase'
-import { decryptToken } from '@/lib/encryption'
 import { LinearCustomerRequestManager } from '@/lib/linear'
 
 export const runtime = 'edge';
 
-const emailSchema = z.object({
-  customerEmail: z.string().email('Valid email is required'),
-})
+// Helper function to decrypt tokens via API
+async function decryptTokenViaAPI(encryptedToken: string): Promise<string> {
+  const response = await fetch('/api/decrypt-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ encryptedToken })
+  })
 
-const fullFormSchema = z.object({
-  customerName: z.string().optional(),
+  if (!response.ok) {
+    throw new Error('Failed to decrypt token')
+  }
+
+  const data = await response.json() as { success: boolean; token?: string; error?: string }
+
+  if (!data.success || !data.token) {
+    throw new Error(data.error || 'Token decryption failed')
+  }
+
+  return data.token
+}
+
+const formSchema = z.object({
+  customerName: z.string().min(1, 'Your name is required'),
   customerEmail: z.string().email('Valid email is required'),
   externalId: z.string().optional(),
   issueTitle: z.string().min(1, 'Issue title is required'),
@@ -29,19 +45,16 @@ const fullFormSchema = z.object({
   attachmentUrl: z.string().url().optional().or(z.literal('')),
 })
 
-type EmailFormData = z.infer<typeof emailSchema>
-type FullFormData = z.infer<typeof fullFormSchema>
+type FormData = z.infer<typeof formSchema>
 
 export default function PublicFormPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const slug = params.slug as string
 
   const [formConfig, setFormConfig] = useState<CustomerRequestForm | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [checkingCustomer, setCheckingCustomer] = useState(false)
-  const [step, setStep] = useState<'email' | 'form'>('email')
-  const [existingCustomer, setExistingCustomer] = useState<{ id: string; name: string; email: string } | null>(null)
   const [result, setResult] = useState<{
     success: boolean
     message: string
@@ -51,22 +64,31 @@ export default function PublicFormPage() {
     }
   } | null>(null)
 
-  const emailForm = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      customerEmail: '',
-    },
-  })
+  // Parse URL parameters for prefilling
+  const getUrlPrefillData = useCallback((): Partial<FormData> => {
+    if (!searchParams) return {}
 
-  const fullForm = useForm<FullFormData>({
-    resolver: zodResolver(fullFormSchema),
+    return {
+      customerName: searchParams.get('name') || '',
+      customerEmail: searchParams.get('email') || '',
+      externalId: searchParams.get('ref') || '',
+      issueTitle: searchParams.get('title') || '',
+      issueBody: searchParams.get('body') || '',
+      attachmentUrl: searchParams.get('attachment') || '',
+    }
+  }, [searchParams])
+
+  const prefillData = getUrlPrefillData()
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      customerName: '',
-      customerEmail: '',
-      externalId: '',
-      issueTitle: '',
-      issueBody: '',
-      attachmentUrl: '',
+      customerName: prefillData.customerName || '',
+      customerEmail: prefillData.customerEmail || '',
+      externalId: prefillData.externalId || '',
+      issueTitle: prefillData.issueTitle || '',
+      issueBody: prefillData.issueBody || '',
+      attachmentUrl: prefillData.attachmentUrl || '',
     },
   })
 
@@ -95,103 +117,8 @@ export default function PublicFormPage() {
     loadFormConfig()
   }, [loadFormConfig])
 
-  const checkCustomer = async (email: string) => {
+  const onFormSubmit = async (values: FormData) => {
     if (!formConfig) return
-
-    setCheckingCustomer(true)
-
-    try {
-      // Get the user's encrypted Linear token
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('linear_api_token')
-        .eq('id', formConfig.user_id)
-        .single()
-
-      if (profileError || !profile?.linear_api_token) {
-        console.error('Error loading profile:', profileError)
-        return
-      }
-
-      // Decrypt the token
-      let linearToken: string
-      try {
-        linearToken = decryptToken(profile.linear_api_token)
-      } catch (error) {
-        console.error('Error decrypting token:', error)
-        return
-      }
-
-      // Check if customer exists
-      const response = await fetch('/api/linear/customer-lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiToken: linearToken, email })
-      })
-
-      if (response.ok) {
-        const data = await response.json() as {
-          success: boolean
-          exists: boolean
-          customer?: { id: string; name: string; email: string }
-        }
-
-        if (data.success) {
-          setExistingCustomer(data.customer || null)
-
-          // Always reset the form first to clear any previous data
-          fullForm.reset({
-            customerEmail: email,
-            customerName: '',
-            externalId: '',
-            issueTitle: '',
-            issueBody: '',
-            attachmentUrl: '',
-          })
-
-          // Pre-fill the full form with email and customer name if exists
-          fullForm.setValue('customerEmail', email)
-          if (data.customer) {
-            fullForm.setValue('customerName', data.customer.name)
-          }
-
-          setStep('form')
-        }
-      }
-    } catch (error) {
-      console.error('Error checking customer:', error)
-
-      // If there's an error, treat as new customer and clear existing state
-      setExistingCustomer(null)
-      fullForm.reset({
-        customerEmail: email,
-        customerName: '',
-        externalId: '',
-        issueTitle: '',
-        issueBody: '',
-        attachmentUrl: '',
-      })
-      setStep('form')
-    } finally {
-      setCheckingCustomer(false)
-    }
-  }
-
-  const onEmailSubmit = async (values: EmailFormData) => {
-    await checkCustomer(values.customerEmail)
-  }
-
-  const onFullFormSubmit = async (values: FullFormData) => {
-    if (!formConfig) return
-
-    // Validate that we have a customer name if no existing customer
-    if (!existingCustomer && (!values.customerName || values.customerName.trim() === '')) {
-      setResult({
-        success: false,
-        message: 'Please enter your name.',
-      })
-      return
-    }
 
     setSubmitting(true)
     setResult(null)
@@ -215,7 +142,7 @@ export default function PublicFormPage() {
       // Decrypt the token
       let linearToken: string
       try {
-        linearToken = decryptToken(profile.linear_api_token)
+        linearToken = await decryptTokenViaAPI(profile.linear_api_token)
       } catch (error) {
         console.error('Error decrypting token:', error)
         setResult({
@@ -229,7 +156,7 @@ export default function PublicFormPage() {
       const linearManager = new LinearCustomerRequestManager(linearToken)
 
       const customerData = {
-        name: existingCustomer ? existingCustomer.name : values.customerName || 'Customer',
+        name: values.customerName,
         email: values.customerEmail,
         ...(values.externalId && { externalId: values.externalId }),
       }
@@ -255,11 +182,8 @@ export default function PublicFormPage() {
             request: response.request
           }
         })
-        // Reset forms and go back to email step
-        emailForm.reset()
-        fullForm.reset()
-        setStep('email')
-        setExistingCustomer(null)
+        // Reset form
+        form.reset()
       } else {
         setResult({
           success: false,
@@ -276,21 +200,6 @@ export default function PublicFormPage() {
     }
   }
 
-  const goBackToEmail = () => {
-    setStep('email')
-    setExistingCustomer(null)
-    setResult(null)
-
-    // Clear the full form to remove any pre-filled data
-    fullForm.reset({
-      customerEmail: '',
-      customerName: '',
-      externalId: '',
-      issueTitle: '',
-      issueBody: '',
-      attachmentUrl: '',
-    })
-  }
 
   if (loading) {
     return (
@@ -319,7 +228,7 @@ export default function PublicFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen linear-gradient-bg py-8">
       <div className="max-w-2xl mx-auto p-6">
         <Card>
           <CardHeader>
@@ -332,11 +241,25 @@ export default function PublicFormPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {step === 'email' ? (
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
-                    control={emailForm.control}
+                    control={form.control}
+                    name="customerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Your name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="customerEmail"
                     render={({ field }) => (
                       <FormItem>
@@ -352,122 +275,77 @@ export default function PublicFormPage() {
                       </FormItem>
                     )}
                   />
-
-                  <Button type="submit" disabled={checkingCustomer} className="w-full">
-                    {checkingCustomer ? 'Continuing...' : 'Continue'}
-                  </Button>
-                </form>
-              </Form>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    {existingCustomer ? (
-                      <div className="text-sm">
-                        <p className="text-green-600 font-medium">Welcome back, {existingCustomer.name}!</p>
-                        <p className="text-gray-600">{existingCustomer.email}</p>
-                      </div>
-                    ) : (
-                      <div className="text-sm">
-                        <p className="text-blue-600 font-medium">Customer information</p>
-                        <p className="text-gray-600">{fullForm.watch('customerEmail')}</p>
-                      </div>
-                    )}
-                  </div>
-                  <Button variant="outline" size="sm" onClick={goBackToEmail}>
-                    Change email
-                  </Button>
                 </div>
 
-                <Form {...fullForm}>
-                  <form onSubmit={fullForm.handleSubmit(onFullFormSubmit)} className="space-y-6">
-                    {!existingCustomer && (
-                      <FormField
-                        control={fullForm.control}
-                        name="customerName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                <FormField
+                  control={form.control}
+                  name="externalId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reference ID (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your internal reference ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <FormField
-                      control={fullForm.control}
-                      name="externalId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Reference ID (optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your internal reference ID" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <FormField
+                  control={form.control}
+                  name="issueTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Issue title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Brief description of the issue" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <FormField
-                      control={fullForm.control}
-                      name="issueTitle"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Issue title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Brief description of the issue" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <FormField
+                  control={form.control}
+                  name="issueBody"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Please provide a detailed description of your issue or request..."
+                          className="min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <FormField
-                      control={fullForm.control}
-                      name="issueBody"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Please provide a detailed description of your issue or request..."
-                              className="min-h-[120px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <FormField
+                  control={form.control}
+                  name="attachmentUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Attachment URL (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="url"
+                          placeholder="https://example.com/screenshot.png"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <FormField
-                      control={fullForm.control}
-                      name="attachmentUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Attachment URL (optional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="url"
-                              placeholder="https://example.com/screenshot.png"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button type="submit" disabled={submitting} className="w-full">
-                      {submitting ? 'Submitting...' : 'Submit request'}
-                    </Button>
-                  </form>
-                </Form>
-              </div>
-            )}
+                <Button type="submit" disabled={submitting} className="w-full">
+                  {submitting ? 'Submitting...' : 'Submit request'}
+                </Button>
+              </form>
+            </Form>
 
             {result && (
               <div className={`mt-6 p-4 rounded-lg ${

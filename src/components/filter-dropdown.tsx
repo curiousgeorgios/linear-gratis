@@ -296,7 +296,7 @@ export function FilterDropdown({
               data-list-row="true"
               data-focused="false"
               aria-disabled="false"
-              aria-expanded={hoverSections.has('status')}
+              aria-selected={hoverSections.has('status')}
               className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
               onMouseEnter={(e) => handleSectionMouseEnter('status', e)}
               onMouseLeave={() => handleSectionMouseLeave('status')}
@@ -321,6 +321,7 @@ export function FilterDropdown({
             <li
               role="option"
               data-list-row="true"
+              aria-selected={hoverSections.has('assignee')}
               className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
               onMouseEnter={(e) => handleSectionMouseEnter('assignee', e)}
               onMouseLeave={() => handleSectionMouseLeave('assignee')}
@@ -345,6 +346,7 @@ export function FilterDropdown({
           <li
             role="option"
             data-list-row="true"
+            aria-selected={hoverSections.has('priority')}
             className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
             onMouseEnter={(e) => handleSectionMouseEnter('priority', e)}
             onMouseLeave={() => handleSectionMouseLeave('priority')}
@@ -370,6 +372,7 @@ export function FilterDropdown({
             <li
               role="option"
               data-list-row="true"
+              aria-selected={hoverSections.has('labels')}
               className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
               onMouseEnter={(e) => handleSectionMouseEnter('labels', e)}
               onMouseLeave={() => handleSectionMouseLeave('labels')}
@@ -397,6 +400,7 @@ export function FilterDropdown({
               <li
                 role="option"
                 data-list-row="true"
+                aria-selected={false}
                 className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
                 onClick={clearAllFilters}
               >

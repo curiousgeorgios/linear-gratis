@@ -43,7 +43,7 @@ type Team = {
 };
 
 export default function PublicViewsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [views, setViews] = useState<PublicView[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -120,12 +120,14 @@ export default function PublicViewsPage() {
   }, [user]);
 
   useEffect(() => {
+    if (authLoading) return // Wait for auth to finish loading
+
     if (!user) {
       router.push("/login");
       return;
     }
     loadUserData();
-  }, [user, router, loadUserData]);
+  }, [user, authLoading, router, loadUserData]);
 
   const fetchProjects = async (token: string) => {
     try {
@@ -387,6 +389,10 @@ export default function PublicViewsPage() {
       setSubmitting(false);
     }
   };
+
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!user) {
     return <div>Loading...</div>;

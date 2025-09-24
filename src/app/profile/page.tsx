@@ -11,7 +11,7 @@ import { encryptTokenClient, decryptTokenClient } from '@/lib/client-encryption'
 import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading: authLoading } = useAuth()
   const [linearToken, setLinearToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -48,6 +48,8 @@ export default function ProfilePage() {
   }, [user])
 
   useEffect(() => {
+    if (authLoading) return // Wait for auth to finish loading
+
     if (!user) {
       router.push('/login')
       return
@@ -55,7 +57,7 @@ export default function ProfilePage() {
 
     // Load existing token
     loadProfile()
-  }, [user, router, loadProfile])
+  }, [user, authLoading, router, loadProfile])
 
   const saveProfile = async () => {
     if (!user) return
@@ -102,6 +104,16 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut()
     router.push('/login')
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+        </div>
+      </div>
+    )
   }
 
   if (!user) {
