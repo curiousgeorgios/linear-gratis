@@ -305,13 +305,14 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                           />
                         ),
                         // Code blocks
-                        code: ({ node, inline, ...props }) => (
-                          inline ? (
+                        code: ({ node, className, ...props }) => {
+                          const isInline = !className || !className.includes('language-');
+                          return isInline ? (
                             <code {...props} className="bg-accent/60 px-1.5 py-0.5 rounded text-sm font-mono" />
                           ) : (
                             <code {...props} className="block bg-accent/60 p-3 rounded-md text-sm font-mono overflow-x-auto" />
                           )
-                        ),
+                        },
                         // Lists
                         ul: ({ node, ...props }) => (
                           <ul {...props} className="list-disc list-inside space-y-1 my-2" />
