@@ -4,8 +4,39 @@ export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
-    // For development, we'll use a simple HTML generation approach
-    // In production, you'd want to use @vercel/og or puppeteer
+    const { searchParams } = new URL(request.url)
+
+    // Get parameters from URL
+    const title = searchParams.get('title') || 'Stop losing customer feedback in Slack and email'
+    const subtitle = searchParams.get('subtitle') || 'Give your customers a direct line to your Linear workspace with free, open source forms.'
+    const type = searchParams.get('type') || 'default'
+    const category = searchParams.get('category') || ''
+
+    // Different styles based on type
+    const getGradient = (type: string) => {
+      switch (type) {
+        case 'comparison':
+          return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        case 'use-case':
+          return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+        case 'template':
+          return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+        case 'integration':
+          return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+        default:
+          return 'linear-gradient(135deg, hsl(262.1 90% 50% / 0.03) 0%, hsl(240 4.8% 95.9% / 0.01) 50%, hsl(262.1 90% 50% / 0.02) 100%)'
+      }
+    }
+
+    const getIcon = (type: string) => {
+      switch (type) {
+        case 'comparison': return '⚖️'
+        case 'use-case': return '🎯'
+        case 'template': return '📝'
+        case 'integration': return '🔗'
+        default: return '💜'
+      }
+    }
 
     const html = `
 <!DOCTYPE html>
@@ -36,10 +67,7 @@ export async function GET(request: NextRequest) {
             width: 1200px;
             height: 630px;
             font-family: 'Geist', sans-serif;
-            background: linear-gradient(135deg,
-                hsl(262.1 90% 50% / 0.03) 0%,
-                hsl(240 4.8% 95.9% / 0.01) 50%,
-                hsl(262.1 90% 50% / 0.02) 100%);
+            background: ${getGradient(type)};
             background-color: var(--background);
             display: flex;
             align-items: center;
@@ -163,16 +191,17 @@ export async function GET(request: NextRequest) {
 <body>
     <div class="container">
         <div class="badge">
-            <svg class="github-icon" viewBox="0 0 24 24">
-                <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-            </svg>
-            Free & Open Source
+            ${type !== 'default' ? getIcon(type) : '<svg class="github-icon" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>'}
+            ${category || 'Free & Open Source'}
         </div>
 
         <h1 class="title">
-            Stop losing customer feedback in<br>
-            <span class="title-highlight">Slack and email</span>
+            ${title}
         </h1>
+
+        <p class="subtitle">
+            ${subtitle}
+        </p>
 
         <div class="cta-buttons">
             <div class="btn-primary">

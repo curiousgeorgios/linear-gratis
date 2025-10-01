@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { X, Maximize2, ChevronDown } from 'lucide-react'
 
@@ -122,23 +123,7 @@ function TodoIcon() {
   )
 }
 
-function InProgressIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-      <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="6.094689747964199" transform="rotate(-90 7 7)"></circle>
-    </svg>
-  )
-}
 
-function DoneIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" fill="#22c55e" stroke="#22c55e" strokeWidth="1.5"></circle>
-      <path d="M4.5 7l2 2 3-3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-    </svg>
-  )
-}
 
 export function IssueCreationModal({
   isOpen,
@@ -148,7 +133,6 @@ export function IssueCreationModal({
   projectName,
   teamId,
   projectId,
-  apiToken,
   viewSlug
 }: IssueCreationModalProps) {
   const [formData, setFormData] = useState<IssueFormData>({
@@ -185,11 +169,6 @@ export function IssueCreationModal({
     }
   }, [isOpen])
 
-  useEffect(() => {
-    if (isOpen && viewSlug) {
-      loadMetadata()
-    }
-  }, [isOpen, viewSlug])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -218,7 +197,7 @@ export function IssueCreationModal({
     }
   }, [isOpen, showStateDropdown, showPriorityDropdown, showAssigneeDropdown, showLabelsDropdown])
 
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     if (!viewSlug) return
 
     setLoadingMetadata(true)
@@ -241,7 +220,13 @@ export function IssueCreationModal({
     } finally {
       setLoadingMetadata(false)
     }
-  }
+  }, [viewSlug])
+
+  useEffect(() => {
+    if (isOpen && viewSlug) {
+      loadMetadata()
+    }
+  }, [isOpen, viewSlug, loadMetadata])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -505,9 +490,11 @@ export function IssueCreationModal({
                   {selectedAssignee ? (
                     <>
                       {selectedAssignee.avatarUrl ? (
-                        <img
+                        <Image
                           src={selectedAssignee.avatarUrl}
                           alt={selectedAssignee.displayName}
+                          width={20}
+                          height={20}
                           className="w-5 h-5 rounded-full"
                         />
                       ) : (
@@ -563,9 +550,11 @@ export function IssueCreationModal({
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
                       >
                         {user.avatarUrl ? (
-                          <img
+                          <Image
                             src={user.avatarUrl}
                             alt={user.displayName}
+                            width={20}
+                            height={20}
                             className="w-5 h-5 rounded-full"
                           />
                         ) : (

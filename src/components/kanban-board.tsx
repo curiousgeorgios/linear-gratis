@@ -13,6 +13,7 @@ interface KanbanBoardProps {
   filters?: FilterState
   allowIssueCreation?: boolean
   onCreateIssue?: (columnName: string) => void
+  onIssueClick?: (issueId: string) => void
 }
 
 const getPriorityIcon = (priority: number) => {
@@ -79,7 +80,8 @@ export function KanbanBoard({
   className = '',
   filters,
   allowIssueCreation = false,
-  onCreateIssue
+  onCreateIssue,
+  onIssueClick
 }: KanbanBoardProps) {
   // Filter issues based on provided filters
   const filteredIssues = filters ? issues.filter(issue => {
@@ -141,7 +143,22 @@ export function KanbanBoard({
     return acc
   }, {} as Record<string, { issues: LinearIssue[], color: string, type: string }>)
 
-  const columns = Object.keys(groupedIssues).sort()
+  // Sort columns by workflow order: backlog -> to do -> in progress -> done
+  const stateTypeOrder: Record<string, number> = {
+    'backlog': 0,
+    'unstarted': 1,
+    'started': 2,
+    'completed': 3,
+    'canceled': 4
+  }
+
+  const columns = Object.keys(groupedIssues).sort((a, b) => {
+    const typeA = groupedIssues[a].type
+    const typeB = groupedIssues[b].type
+    const orderA = stateTypeOrder[typeA] ?? 999
+    const orderB = stateTypeOrder[typeB] ?? 999
+    return orderA - orderB
+  })
 
   const getInitials = (name: string) => {
     return name
@@ -230,7 +247,10 @@ export function KanbanBoard({
                     {column.issues.map((issue) => (
                       <div key={issue.id} className="linear-hover-lift">
                           {/* Issue Card - matching Linear's exact structure */}
-                          <div className="bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group">
+                          <button
+                            onClick={() => onIssueClick?.(issue.id)}
+                            className="w-full bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group cursor-pointer text-left"
+                          >
                             <div className="relative p-3">
                               {/* Top row: Issue ID, Status Icon, and Assignee */}
                               <div className="flex items-center justify-between mb-2">
@@ -307,7 +327,7 @@ export function KanbanBoard({
                                 ))}
                               </div>
                             </div>
-                          </div>
+                          </button>
                       </div>
                     ))}
 
