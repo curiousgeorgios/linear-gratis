@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import { KanbanBoard } from '@/components/kanban-board'
 import { FilterDropdown, FilterState, generateFilterOptions, FilterOptions } from '@/components/filter-dropdown'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
+import { IssueDetailModal } from '@/components/issue-detail-modal'
 import { PublicView } from '@/lib/supabase'
 import { LinearIssue } from '@/app/api/linear/issues/route'
 import { RefreshCw, Lock } from 'lucide-react'
@@ -45,7 +46,8 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     creators: [],
   })
   const [showIssueModal, setShowIssueModal] = useState(false)
-  const [selectedColumn, setSelectedColumn] = useState<string>('')
+  const [showIssueDetail, setShowIssueDetail] = useState(false)
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const filterButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -131,9 +133,18 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     }
   }
 
-  const handleCreateIssue = (columnName: string) => {
-    setSelectedColumn(columnName)
+  const handleCreateIssue = (_columnName: string) => {
     setShowIssueModal(true)
+  }
+
+  const handleIssueClick = (issueId: string) => {
+    setSelectedIssueId(issueId)
+    setShowIssueDetail(true)
+  }
+
+  const handleCloseIssueDetail = () => {
+    setShowIssueDetail(false)
+    setSelectedIssueId(null)
   }
 
   const handleSubmitIssue = async (issueData: {
@@ -167,7 +178,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       if (result.success) {
         console.log('Issue created successfully:', result.issue)
         setShowIssueModal(false)
-        setSelectedColumn('')
         // Refresh to show the new issue
         await handleRefresh()
       } else {
@@ -426,6 +436,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               filters={filters}
               allowIssueCreation={view.allow_issue_creation}
               onCreateIssue={handleCreateIssue}
+              onIssueClick={handleIssueClick}
             />
           </div>
         )}
@@ -458,7 +469,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         isOpen={showIssueModal}
         onClose={() => {
           setShowIssueModal(false)
-          setSelectedColumn('')
         }}
         onSubmit={handleSubmitIssue}
         teamName={view?.team_name}
@@ -468,6 +478,16 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         apiToken="dummy"
         viewSlug={slug}
       />
+
+      {/* Issue Detail Modal */}
+      {selectedIssueId && (
+        <IssueDetailModal
+          isOpen={showIssueDetail}
+          onClose={handleCloseIssueDetail}
+          issueId={selectedIssueId}
+          viewSlug={slug}
+        />
+      )}
     </div>
   )
 }

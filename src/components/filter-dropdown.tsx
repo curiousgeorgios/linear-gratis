@@ -98,7 +98,6 @@ export function FilterDropdown({
 }: FilterDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [search, setSearch] = useState(filters.search)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [hoverSections, setHoverSections] = useState<Set<string>>(new Set())
   const [submenuPosition, setSubmenuPosition] = useState<{ top: number; left: number } | null>(null)
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
@@ -153,15 +152,6 @@ export function FilterDropdown({
     onFiltersChange({ ...filters, [category]: newValues })
   }
 
-  const toggleSection = (section: string) => {
-    const newExpanded = new Set(expandedSections)
-    if (newExpanded.has(section)) {
-      newExpanded.delete(section)
-    } else {
-      newExpanded.add(section)
-    }
-    setExpandedSections(newExpanded)
-  }
 
   const handleSectionMouseEnter = (section: string, event: React.MouseEvent) => {
     const newHover = new Set(hoverSections)
