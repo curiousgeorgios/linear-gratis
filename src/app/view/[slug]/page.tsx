@@ -8,9 +8,11 @@ import { KanbanBoard } from '@/components/kanban-board'
 import { FilterDropdown, FilterState, generateFilterOptions, FilterOptions } from '@/components/filter-dropdown'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
 import { IssueDetailModal } from '@/components/issue-detail-modal'
+import { ProjectUpdatesModal } from '@/components/project-updates-modal'
 import { PublicView } from '@/lib/supabase'
 import { LinearIssue } from '@/app/api/linear/issues/route'
 import { RefreshCw, Lock } from 'lucide-react'
+import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 
 interface PublicViewPageProps {
   params: Promise<{
@@ -47,8 +49,13 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   })
   const [showIssueModal, setShowIssueModal] = useState(false)
   const [showIssueDetail, setShowIssueDetail] = useState(false)
+  const [showProjectUpdates, setShowProjectUpdates] = useState(false)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+  const [defaultStateName, setDefaultStateName] = useState<string | undefined>(undefined)
   const filterButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Load branding settings for this view's owner
+  const { branding } = useBrandingSettings(view?.user_id || null)
 
   useEffect(() => {
     const initParams = async () => {
@@ -133,7 +140,8 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     }
   }
 
-  const handleCreateIssue = (_columnName: string) => {
+  const handleCreateIssue = (columnName: string) => {
+    setDefaultStateName(columnName)
     setShowIssueModal(true)
   }
 
@@ -176,17 +184,12 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       const result = await response.json() as { success?: boolean; issue?: unknown; error?: string }
 
       if (result.success) {
-        console.log('Issue created successfully:', result.issue)
         setShowIssueModal(false)
         // Refresh to show the new issue
         await handleRefresh()
-      } else {
-        console.error('Failed to create issue:', result.error)
-        // You could show an error message to the user here
       }
     } catch (error) {
       console.error('Error creating issue:', error)
-      // You could show an error message to the user here
     }
   }
 
@@ -195,6 +198,13 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       loadView()
     }
   }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply branding when it loads
+  useEffect(() => {
+    if (branding) {
+      applyBrandingToPage(branding)
+    }
+  }, [branding])
 
   const hasActiveFilters = () => {
     return filters.search ||
@@ -287,17 +297,34 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background linear-gradient-bg flex flex-col">
+    <div className="min-h-screen bg-background linear-gradient-bg flex flex-col" style={getBrandingStyles(branding)}>
       {/* Linear-style Header */}
       <header className="border-b border-border bg-card/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-          {/* Left side - Team name and navigation */}
+          {/* Left side - Brand logo or team name */}
           <div className="flex items-center gap-3 sm:gap-6 max-w-[50%] min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center flex-shrink-0">
-                <span className="text-sm">👤</span>
-              </div>
-              <h2 className="text-base sm:text-lg font-medium tracking-tight truncate">{view.project_name || view.team_name || 'Public View'}</h2>
+              {branding?.logo_url ? (
+                <img
+                  src={branding.logo_url}
+                  alt={branding.brand_name || 'Logo'}
+                  style={{
+                    width: `${branding.logo_width || 120}px`,
+                    height: `${branding.logo_height || 40}px`,
+                    objectFit: 'contain',
+                  }}
+                  className="flex-shrink-0"
+                />
+              ) : (
+                <>
+                  <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm">👤</span>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-medium tracking-tight truncate">
+                    {branding?.brand_name || view.project_name || view.team_name || 'Public View'}
+                  </h2>
+                </>
+              )}
             </div>
 
             {/* Navigation tabs - Linear style */}
@@ -314,6 +341,18 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               <div className="hidden sm:block text-xs text-muted-foreground">
                 Updated {lastUpdated.toLocaleTimeString()}
               </div>
+            )}
+
+            {view.project_id && (
+              <button
+                onClick={() => setShowProjectUpdates(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M2.5 2.5h11v11h-11v-11zM2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm3.5 4a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1H6z"/>
+                </svg>
+                <span className="hidden sm:inline">Updates</span>
+              </button>
             )}
 
             <button
@@ -442,24 +481,32 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         )}
       </div>
 
-      {/* Linear-style Footer - always at bottom */}
+      {/* Custom Footer */}
       {!error && (
         <footer className="px-4 sm:px-6 pb-6 mt-auto">
           <div className="text-center py-8 border-t border-border/30">
-            <p className="text-sm text-muted-foreground mb-1">
-              Read-only view of Linear issues
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Create your own at{' '}
-              <a
-                href="https://linear.gratis"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline transition-colors"
-              >
-                linear.gratis
-              </a>
-            </p>
+            {branding?.footer_text ? (
+              <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
+                {branding.footer_text}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-1">
+                Read-only view of Linear issues
+              </p>
+            )}
+            {(branding?.show_powered_by !== false) && (
+              <p className="text-xs text-muted-foreground">
+                {branding?.footer_text ? 'Powered by ' : 'Create your own at '}
+                <a
+                  href="https://linear.gratis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline transition-colors"
+                >
+                  linear.gratis
+                </a>
+              </p>
+            )}
           </div>
         </footer>
       )}
@@ -469,6 +516,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         isOpen={showIssueModal}
         onClose={() => {
           setShowIssueModal(false)
+          setDefaultStateName(undefined)
         }}
         onSubmit={handleSubmitIssue}
         teamName={view?.team_name}
@@ -477,6 +525,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         projectId={view?.project_id}
         apiToken="dummy"
         viewSlug={slug}
+        defaultStateName={defaultStateName}
       />
 
       {/* Issue Detail Modal */}
@@ -485,6 +534,15 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           isOpen={showIssueDetail}
           onClose={handleCloseIssueDetail}
           issueId={selectedIssueId}
+          viewSlug={slug}
+        />
+      )}
+
+      {/* Project Updates Modal */}
+      {view?.project_id && (
+        <ProjectUpdatesModal
+          isOpen={showProjectUpdates}
+          onClose={() => setShowProjectUpdates(false)}
           viewSlug={slug}
         />
       )}
