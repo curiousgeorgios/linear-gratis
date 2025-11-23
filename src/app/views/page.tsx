@@ -337,6 +337,23 @@ export default function PublicViewsPage() {
     setPasswordProtected(view.password_protected || false);
     setPassword("");
     setAllowIssueCreation(view.allow_issue_creation || false);
+
+    // Set source type and selection based on existing view
+    if (view.project_id) {
+      setSourceType("project");
+      setSelectedProject(view.project_id);
+      setSelectedTeam("");
+    } else if (view.team_id) {
+      setSourceType("team");
+      setSelectedTeam(view.team_id);
+      setSelectedProject("");
+    } else {
+      // No project or team set - default to project
+      setSourceType("project");
+      setSelectedProject("");
+      setSelectedTeam("");
+    }
+
     setShowEditView(true);
     setShowCreateView(false);
   };
@@ -348,6 +365,42 @@ export default function PublicViewsPage() {
     setMessage(null);
 
     try {
+      // Determine source data (project or team)
+      let sourceData: {
+        project_id?: string | null;
+        project_name?: string | null;
+        team_id?: string | null;
+        team_name?: string | null;
+      } = {};
+
+      if (sourceType === "project") {
+        const selectedProjectData = projects.find((p) => p.id === selectedProject);
+        if (!selectedProjectData) {
+          setMessage({ type: "error", text: "Please select a project" });
+          setSubmitting(false);
+          return;
+        }
+        sourceData = {
+          project_id: selectedProject,
+          project_name: selectedProjectData.name,
+          team_id: null,
+          team_name: null,
+        };
+      } else {
+        const selectedTeamData = teams.find((t) => t.id === selectedTeam);
+        if (!selectedTeamData) {
+          setMessage({ type: "error", text: "Please select a team" });
+          setSubmitting(false);
+          return;
+        }
+        sourceData = {
+          team_id: selectedTeam,
+          team_name: selectedTeamData.name,
+          project_id: null,
+          project_name: null,
+        };
+      }
+
       // Hash password if protection is enabled and password is provided
       let passwordHash: string | null = editingView.password_hash || null;
       if (passwordProtected && password.trim()) {
@@ -365,6 +418,7 @@ export default function PublicViewsPage() {
           password_protected: passwordProtected,
           password_hash: passwordHash,
           allow_issue_creation: allowIssueCreation,
+          ...sourceData,
         })
         .eq("id", editingView.id);
 
@@ -826,11 +880,80 @@ export default function PublicViewsPage() {
                 </div>
               </div>
 
-              {/* Public Experience */}
+              {/* Source Selection */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     2
+                  </div>
+                  Data source
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Source type *</Label>
+                    <Select
+                      value={sourceType}
+                      onValueChange={(value) =>
+                        setSourceType(value as "project" | "team")
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose data source type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="project">Project</SelectItem>
+                        <SelectItem value="team">Team</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {sourceType === "project" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-project">Linear project *</Label>
+                      <Select
+                        value={selectedProject}
+                        onValueChange={setSelectedProject}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose which project to share" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-team">Linear team *</Label>
+                      <Select
+                        value={selectedTeam}
+                        onValueChange={setSelectedTeam}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose which team to share" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {teams.map((team) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Public Experience */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    3
                   </div>
                   Public view settings
                 </h3>
@@ -864,7 +987,7 @@ export default function PublicViewsPage() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                    3
+                    4
                   </div>
                   Interaction settings
                 </h3>
@@ -895,7 +1018,7 @@ export default function PublicViewsPage() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                    4
+                    5
                   </div>
                   Security options
                 </h3>

@@ -18,7 +18,7 @@ async function generateOGImage() {
     const page = await browser.newPage();
 
     // Navigate to the OG API route
-    await page.goto("http://localhost:3006/api/og", {
+    await page.goto("http://localhost:3003/api/og", {
       waitUntil: "networkidle0",
     });
 

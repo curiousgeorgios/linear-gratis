@@ -62,6 +62,16 @@ export function Navigation() {
                     Public views
                   </Button>
                 </Link>
+                <Link href="/profile/branding">
+                  <Button variant="ghost" size="sm" className="font-medium">
+                    Branding
+                  </Button>
+                </Link>
+                <Link href="/profile/domains">
+                  <Button variant="ghost" size="sm" className="font-medium">
+                    Domains
+                  </Button>
+                </Link>
                 <Link href="/profile">
                   <Button variant="ghost" size="sm" className="font-medium">
                     Profile

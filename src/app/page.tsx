@@ -105,15 +105,13 @@ export default function Home() {
               </Badge>
 
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent leading-tight">
-                Stop losing customer feedback in
+                Make Linear accessible to
                 <br />
-                <span className="text-primary">Slack and email</span>
+                <span className="text-primary">everyone</span>
               </h1>
 
               <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
-                Give your customers a direct line to your Linear workspace.
-                Create shareable forms that automatically turn feedback into
-                trackable issues – no more copy-pasting from scattered messages.
+                Share live Linear boards with clients and collect feedback through custom forms – all without giving away Linear seats. Stop sending status updates and copy-pasting feedback.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -171,21 +169,20 @@ export default function Home() {
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
                     <p>
-                      Customer feedback scattered across Slack, email, and
-                      support tools
+                      Clients constantly ask &quot;what&apos;s the status?&quot; - wasting hours on status update emails
                     </p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Manual copy-pasting wastes developer time</p>
+                    <p>Customer feedback scattered across Slack, email, and support tools</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Important requests get lost or forgotten</p>
+                    <p>Manual copy-pasting from messages into Linear is tedious</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Customers have no visibility into progress</p>
+                    <p>Can&apos;t afford Linear seats for every client and stakeholder</p>
                   </div>
                 </CardContent>
               </Card>
@@ -200,19 +197,19 @@ export default function Home() {
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Direct customer-to-Linear pipeline</p>
+                    <p>Share live Linear boards - clients see real-time progress without seats</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Automatic issue creation with full context</p>
+                    <p>Feedback forms automatically create Linear issues with full context</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Shareable forms for different use cases</p>
+                    <p>Password-protect sensitive views for client privacy</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Zero manual work for your team</p>
+                    <p>Zero manual work - everything is automated and real-time</p>
                   </div>
                 </CardContent>
               </Card>
@@ -225,57 +222,87 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                How it works
+                Two ways to make Linear accessible
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Get set up in 2 minutes and start collecting structured customer
-                feedback directly in Linear
+                Share your Linear workspace with the world in minutes - no technical setup required
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm text-center">
-                <CardContent className="pt-8 pb-6">
-                  <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
-                    1
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              {/* Public Views */}
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400">
+                      Live now
+                    </Badge>
+                    <Share2 className="h-8 w-8 text-blue-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">
-                    Connect your Linear
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Add your Linear API token to connect your workspace. Takes
-                    30 seconds and your token is encrypted.
-                  </p>
+                  <CardTitle className="text-2xl mb-2">Public read-only views</CardTitle>
+                  <CardDescription className="text-base">
+                    Share live Linear boards with clients, stakeholders, and users
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Beautiful Kanban board view of your Linear projects or teams</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Real-time updates - no manual refreshing needed</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Filter by status, assignee, priority, and labels</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Optional password protection for sensitive projects</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Allow viewers to create issues directly from the board</p>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm text-center">
-                <CardContent className="pt-8 pb-6">
-                  <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
-                    2
+              {/* Feedback Forms */}
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400">
+                      Live now
+                    </Badge>
+                    <MessageSquare className="h-8 w-8 text-green-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">
-                    Create feedback forms
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Set up custom forms for different projects. Each form gets a
-                    unique URL you can share anywhere.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm text-center">
-                <CardContent className="pt-8 pb-6">
-                  <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
-                    3
+                  <CardTitle className="text-2xl mb-2">Customer feedback forms</CardTitle>
+                  <CardDescription className="text-base">
+                    Let anyone submit feedback directly to your Linear projects
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Custom forms for different Linear projects and use cases</p>
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">
-                    Feedback becomes issues
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Customer submissions automatically create Linear issues with
-                    all the context your team needs.
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Submissions automatically create Linear issues with full context</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Support for attachments, reference IDs, and custom fields</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Prefill form fields via URL for specific customers</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Perfect for support requests, bug reports, and feature requests</p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -283,7 +310,7 @@ export default function Home() {
             <div className="text-center">
               <Link href="/login">
                 <Button size="lg" className="h-12 px-8 font-semibold">
-                  Try it now – it&apos;s free
+                  Start sharing your Linear - it&apos;s free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -296,11 +323,10 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                See the magic happen
+                See it in action
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Watch how customer feedback transforms from a simple form
-                submission into a trackable Linear issue
+                Watch how a customer form submission automatically becomes a trackable Linear issue - zero manual work required
               </p>
             </div>
 
@@ -499,32 +525,30 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">
-                Make Linear accessible
+                Everything you need for client transparency
               </h2>
               <p className="text-muted-foreground text-lg">
-                Break down barriers between your team and your clients
+                From live progress tracking to feedback collection - all in one place
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <Zap className="h-10 w-10 text-primary mb-4" />
-                  <CardTitle>No more email chaos</CardTitle>
+                  <Share2 className="h-10 w-10 text-primary mb-4" />
+                  <CardTitle>Live board sharing</CardTitle>
                   <CardDescription>
-                    Client feedback goes directly into Linear - no copy-pasting
-                    from scattered messages
+                    Share real-time Kanban views of your Linear projects - no more &quot;what&apos;s the status?&quot; emails
                   </CardDescription>
                 </CardHeader>
               </Card>
 
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <Settings className="h-10 w-10 text-primary mb-4" />
-                  <CardTitle>Shareable forms</CardTitle>
+                  <MessageSquare className="h-10 w-10 text-primary mb-4" />
+                  <CardTitle>Feedback forms</CardTitle>
                   <CardDescription>
-                    Create branded feedback forms your clients actually want to
-                    use
+                    Custom forms that automatically create Linear issues - stop copy-pasting from Slack and email
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -532,10 +556,39 @@ export default function Home() {
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
                   <Shield className="h-10 w-10 text-primary mb-4" />
+                  <CardTitle>Secure & private</CardTitle>
+                  <CardDescription>
+                    Password-protect sensitive views, encrypted API tokens, and full control over what&apos;s shared
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <Settings className="h-10 w-10 text-primary mb-4" />
+                  <CardTitle>Powerful filtering</CardTitle>
+                  <CardDescription>
+                    Filter public views by status, assignee, priority, labels - give stakeholders exactly what they need
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <Zap className="h-10 w-10 text-primary mb-4" />
+                  <CardTitle>Zero setup time</CardTitle>
+                  <CardDescription>
+                    Connect your Linear API token and start sharing in under 2 minutes - no complex configuration
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <Heart className="h-10 w-10 text-primary mb-4" />
                   <CardTitle>Always free</CardTitle>
                   <CardDescription>
-                    No premium tiers, no usage limits. Making Linear accessible
-                    shouldn&apos;t cost anything
+                    No premium tiers, no usage limits, no credit card. Making Linear accessible shouldn&apos;t cost anything
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -543,89 +596,71 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Coming Soon Section */}
+        {/* Use Cases Section */}
         <section className="container mx-auto px-6 py-16">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <Badge
-                variant="secondary"
-                className="mb-4 px-4 py-2 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-400"
-              >
-                Coming Soon
-              </Badge>
-              <h2 className="text-3xl font-bold mb-4">True transparency</h2>
+              <h2 className="text-3xl font-bold mb-4">Perfect for</h2>
               <p className="text-muted-foreground text-lg">
-                Let your clients see exactly where their feedback stands
+                Whether you&apos;re an agency, indie hacker, or product team - make Linear work for your needs
               </p>
             </div>
 
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Share2 className="h-8 w-8 text-blue-500" />
-                  <div>
-                    <CardTitle>Shareable Linear views</CardTitle>
-                    <CardDescription>
-                      Share your Linear boards directly with clients - no more
-                      status update emails
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/50 rounded-lg p-6 border border-border/50">
-                  <div className="text-sm text-muted-foreground mb-4">
-                    Preview: What your clients will see
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-card rounded border">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <span className="font-medium">Dark mode support</span>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400"
-                      >
-                        In Progress
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-card rounded border">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-medium">
-                          Mobile responsive design
-                        </span>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400"
-                      >
-                        Completed
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-card rounded border">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-medium">
-                          Better search functionality
-                        </span>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400"
-                      >
-                        Planned
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-border/50 text-xs text-muted-foreground">
-                    Public board • Updated 2 hours ago •
-                    linear.gratis/board/acme-feedback
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <Users className="h-10 w-10 text-blue-500 mb-3" />
+                  <CardTitle className="text-xl">Agencies & consultancies</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Share project progress</strong> with clients in real-time without endless status emails
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Collect client feedback</strong> directly into your Linear workspace
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Professional client portal</strong> without building custom software
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <Heart className="h-10 w-10 text-red-500 mb-3" />
+                  <CardTitle className="text-xl">Solo devs & indie hackers</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Public roadmaps</strong> to keep your users in the loop
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Feature request forms</strong> that go directly to Linear
+                  </p>
+                  <p>
+                    <strong className="text-foreground">$0 cost</strong> - because you can&apos;t afford enterprise pricing yet
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <Zap className="h-10 w-10 text-yellow-500 mb-3" />
+                  <CardTitle className="text-xl">Product & engineering teams</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Customer support portal</strong> for direct feedback submission
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Stakeholder dashboards</strong> for non-technical team members
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Bug report forms</strong> that skip the support ticket queue
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
@@ -637,7 +672,7 @@ export default function Home() {
                 Why choose linear.gratis?
               </h2>
               <p className="text-muted-foreground text-lg">
-                The free, open source alternative to paid Linear feedback tools
+                The complete Linear transparency platform - free, open source, and built for everyone
               </p>
             </div>
 
@@ -649,8 +684,8 @@ export default function Home() {
                   </div>
                   <h3 className="font-semibold mb-2">$0 forever</h3>
                   <p className="text-sm text-muted-foreground">
-                    Unlike SteelSync ($29/month) or Lindie ($0-99/month),
-                    linear.gratis is completely free
+                    Unlike paid alternatives (SteelSync, Lindie, etc.),
+                    linear.gratis gives you everything for free - forms, views, and transparency
                   </p>
                 </CardContent>
               </Card>

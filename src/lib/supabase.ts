@@ -62,3 +62,59 @@ export type PublicView = {
   created_at: string
   updated_at: string
 }
+
+export type BrandingSettings = {
+  id: string
+  user_id: string
+  logo_url?: string
+  logo_width?: number
+  logo_height?: number
+  favicon_url?: string
+  brand_name?: string
+  tagline?: string
+  primary_color?: string
+  secondary_color?: string
+  accent_color?: string
+  background_color?: string
+  text_color?: string
+  border_color?: string
+  font_family?: string
+  heading_font_family?: string
+  footer_text?: string
+  footer_links?: {
+    label: string
+    url: string
+  }[]
+  show_powered_by?: boolean
+  social_links?: {
+    [key: string]: string
+  }
+  custom_css?: string
+  created_at: string
+  updated_at: string
+}
+
+export type CustomDomain = {
+  id: string
+  user_id: string
+  domain: string
+  subdomain?: string
+  verification_token: string
+  verification_status: 'pending' | 'verified' | 'failed'
+  verified_at?: string
+  dns_records?: {
+    type: string
+    name: string
+    value: string
+  }[]
+  ssl_status: 'pending' | 'active' | 'failed'
+  ssl_issued_at?: string
+  redirect_to_https?: boolean
+  is_active: boolean
+  target_type?: 'form' | 'view'
+  target_slug?: string
+  last_checked_at?: string
+  error_message?: string
+  created_at: string
+  updated_at: string
+}

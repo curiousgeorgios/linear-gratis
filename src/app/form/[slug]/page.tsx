@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase, CustomerRequestForm } from '@/lib/supabase'
 import { LinearCustomerRequestManager } from '@/lib/linear'
+import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 
 export const runtime = 'edge';
 
@@ -63,6 +64,9 @@ export default function PublicFormPage() {
       request?: { id: string }
     }
   } | null>(null)
+
+  // Load branding settings for this form's owner
+  const { branding } = useBrandingSettings(formConfig?.user_id || null)
 
   // Parse URL parameters for prefilling
   const getUrlPrefillData = useCallback((): Partial<FormData> => {
@@ -116,6 +120,13 @@ export default function PublicFormPage() {
   useEffect(() => {
     loadFormConfig()
   }, [loadFormConfig])
+
+  // Apply branding when it loads
+  useEffect(() => {
+    if (branding) {
+      applyBrandingToPage(branding)
+    }
+  }, [branding])
 
   const onFormSubmit = async (values: FormData) => {
     if (!formConfig) return
@@ -228,17 +239,42 @@ export default function PublicFormPage() {
   }
 
   return (
-    <div className="min-h-screen linear-gradient-bg py-8">
+    <div className="min-h-screen linear-gradient-bg py-8" style={getBrandingStyles(branding)}>
       <div className="max-w-2xl mx-auto p-6">
+        {/* Custom header with logo if branding is set */}
+        {branding && (branding.logo_url || branding.brand_name) && (
+          <div className="mb-6 text-center">
+            {branding.logo_url ? (
+              <img
+                src={branding.logo_url}
+                alt={branding.brand_name || 'Logo'}
+                style={{
+                  width: `${branding.logo_width || 120}px`,
+                  height: `${branding.logo_height || 40}px`,
+                  objectFit: 'contain',
+                }}
+                className="mx-auto mb-4"
+              />
+            ) : branding.brand_name ? (
+              <h1 className="text-2xl font-bold mb-2">{branding.brand_name}</h1>
+            ) : null}
+            {branding.tagline && (
+              <p className="text-muted-foreground">{branding.tagline}</p>
+            )}
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>{formConfig.form_title}</CardTitle>
             {formConfig.description && (
               <CardDescription>{formConfig.description}</CardDescription>
             )}
-            <div className="text-sm text-gray-600">
-              Project: {formConfig.project_name}
-            </div>
+            {!branding?.brand_name && (
+              <div className="text-sm text-gray-600">
+                Project: {formConfig.project_name}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -367,8 +403,24 @@ export default function PublicFormPage() {
           </CardContent>
         </Card>
 
+        {/* Custom footer */}
         <div className="text-center mt-6 text-sm text-gray-500">
-          Powered by Linear Integration
+          {branding?.footer_text ? (
+            <p className="whitespace-pre-wrap mb-2">{branding.footer_text}</p>
+          ) : null}
+          {(branding?.show_powered_by !== false) && (
+            <p>
+              {branding?.footer_text ? 'Powered by ' : 'Powered by '}
+              <a
+                href="https://linear.gratis"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                linear.gratis
+              </a>
+            </p>
+          )}
         </div>
       </div>
     </div>
