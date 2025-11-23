@@ -15,6 +15,7 @@ interface IssueCreationModalProps {
   projectId?: string
   apiToken?: string
   viewSlug?: string
+  defaultStateName?: string
 }
 
 interface IssueFormData {
@@ -133,7 +134,8 @@ export function IssueCreationModal({
   projectName,
   teamId,
   projectId,
-  viewSlug
+  viewSlug,
+  defaultStateName
 }: IssueCreationModalProps) {
   const [formData, setFormData] = useState<IssueFormData>({
     title: '',
@@ -210,7 +212,15 @@ export function IssueCreationModal({
 
         // Set defaults
         if (data.metadata.states?.length > 0) {
-          const defaultState = data.metadata.states.find((s: WorkflowState) => s.type === 'unstarted') || data.metadata.states[0]
+          // If a default state name is provided, try to find it
+          let defaultState: WorkflowState | undefined
+          if (defaultStateName) {
+            defaultState = data.metadata.states.find((s: WorkflowState) => s.name === defaultStateName)
+          }
+          // Fall back to unstarted type or first state if not found
+          if (!defaultState) {
+            defaultState = data.metadata.states.find((s: WorkflowState) => s.type === 'unstarted') || data.metadata.states[0]
+          }
           setSelectedState(defaultState)
           setFormData(prev => ({ ...prev, stateId: defaultState.id }))
         }
@@ -220,7 +230,7 @@ export function IssueCreationModal({
     } finally {
       setLoadingMetadata(false)
     }
-  }, [viewSlug])
+  }, [viewSlug, defaultStateName])
 
   useEffect(() => {
     if (isOpen && viewSlug) {
@@ -270,6 +280,13 @@ export function IssueCreationModal({
   const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const text = e.currentTarget.textContent || ''
     setFormData(prev => ({ ...prev, description: text }))
+  }
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      descriptionRef.current?.focus()
+    }
   }
 
   if (!isOpen) return null
@@ -340,12 +357,20 @@ export function IssueCreationModal({
 
             {/* Title and description */}
             <div className="p-4">
+              <style jsx>{`
+                [contenteditable][data-placeholder]:empty:before {
+                  content: attr(data-placeholder);
+                  color: lch(64.892% 1.933 272 / 0.5);
+                  pointer-events: none;
+                }
+              `}</style>
               <div className="mb-4">
                 <div
                   ref={titleRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={handleTitleInput}
+                  onKeyDown={handleTitleKeyDown}
                   className="w-full p-3 text-lg font-medium bg-transparent border-none outline-none resize-none text-foreground placeholder-muted-foreground"
                   style={{
                     minHeight: '44px',
