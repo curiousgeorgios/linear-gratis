@@ -19,13 +19,15 @@ import { supabase, BrandingSettings } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Palette, Upload, Trash2, Save, RefreshCw } from "lucide-react";
 
+// These match the actual CSS theme defaults in globals.css (light theme)
+// Used for display placeholders only - not saved to database when reset
 const DEFAULT_COLORS = {
-  primary_color: "#5E6AD2",
-  secondary_color: "#8B95A5",
-  accent_color: "#4C9AFF",
-  background_color: "#FFFFFF",
-  text_color: "#1F2937",
-  border_color: "#E5E7EB",
+  primary_color: "#5e6ad2",
+  secondary_color: "#6f7177",
+  accent_color: "#f1f2f4",
+  background_color: "#fcfcfc",
+  text_color: "#0c0d0e",
+  border_color: "#e6e6e8",
 };
 
 export default function BrandingPage() {
@@ -39,10 +41,8 @@ export default function BrandingPage() {
     text: string;
   } | null>(null);
 
-  // Branding state
+  // Branding state - start with minimal defaults, let CSS theme handle colours
   const [branding, setBranding] = useState<Partial<BrandingSettings>>({
-    ...DEFAULT_COLORS,
-    font_family: "Inter, system-ui, sans-serif",
     show_powered_by: true,
     logo_width: 120,
     logo_height: 40,
@@ -179,11 +179,21 @@ export default function BrandingPage() {
   const handleResetToDefaults = () => {
     if (confirm("Are you sure you want to reset all branding to defaults?")) {
       setBranding({
-        ...DEFAULT_COLORS,
-        font_family: "Inter, system-ui, sans-serif",
+        // Clear all colours so pages use their natural CSS theme
+        primary_color: undefined,
+        secondary_color: undefined,
+        accent_color: undefined,
+        background_color: undefined,
+        text_color: undefined,
+        border_color: undefined,
+        // Clear typography
+        font_family: undefined,
+        heading_font_family: undefined,
+        // Reset display settings
         show_powered_by: true,
         logo_width: 120,
         logo_height: 40,
+        // Clear assets and content
         logo_url: undefined,
         favicon_url: undefined,
         brand_name: undefined,
