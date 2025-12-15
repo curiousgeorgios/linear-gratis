@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch branding settings
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('branding_settings')
       .select('*')
       .eq('user_id', user.id)
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as BrandingSettings;
 
     // Check if branding settings already exist
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('branding_settings')
       .select('id')
       .eq('user_id', user.id)
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     let result;
     if (existing) {
       // Update existing settings
-      result = await supabase
+      result = await supabaseAdmin
         .from('branding_settings')
         .update({
           logo_url: body.logo_url,
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         .single();
     } else {
       // Create new settings
-      result = await supabase
+      result = await supabaseAdmin
         .from('branding_settings')
         .insert({
           user_id: user.id,
@@ -175,7 +175,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('branding_settings')
       .delete()
       .eq('user_id', user.id);
