@@ -57,6 +57,8 @@ interface Metadata {
   states: WorkflowState[]
   users: User[]
   labels: Label[]
+  triageEnabled?: boolean
+  triageIssueState?: WorkflowState
 }
 
 const priorities = [
@@ -210,19 +212,28 @@ export function IssueCreationModal({
       if (data.success && data.metadata) {
         setMetadata(data.metadata)
 
-        // Set defaults
-        if (data.metadata.states?.length > 0) {
-          // If a default state name is provided, try to find it
-          let defaultState: WorkflowState | undefined
+        // Set default state
+        // For public views, prioritise triage state if enabled
+        let defaultState: WorkflowState | undefined
+
+        if (data.metadata.triageEnabled && data.metadata.triageIssueState) {
+          // Use triage state for public views when triage is enabled
+          defaultState = data.metadata.triageIssueState
+        } else if (data.metadata.states?.length > 0) {
+          // If a default state name is provided (e.g. from Kanban column), try to find it
+          // Note: This is overridden by backend for public views anyway
           if (defaultStateName) {
             defaultState = data.metadata.states.find((s: WorkflowState) => s.name === defaultStateName)
           }
-          // Fall back to unstarted type or first state if not found
+          // Fall back to unstarted type or first state
           if (!defaultState) {
             defaultState = data.metadata.states.find((s: WorkflowState) => s.type === 'unstarted') || data.metadata.states[0]
           }
+        }
+
+        if (defaultState) {
           setSelectedState(defaultState)
-          setFormData(prev => ({ ...prev, stateId: defaultState.id }))
+          setFormData(prev => ({ ...prev, stateId: defaultState!.id }))
         }
       }
     } catch (error) {
@@ -401,16 +412,17 @@ export function IssueCreationModal({
 
             {/* Issue properties */}
             <div className="flex items-center gap-2 px-4 py-3 border-t flex-wrap" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
-              {/* Status */}
-              <div className="relative" ref={stateDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowStateDropdown(!showStateDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+              {/* Status - Read-only for public views, interactive for authenticated users */}
+              {viewSlug ? (
+                // Read-only status display for public views
+                <div
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded"
                   style={{
                     border: '0.5px solid lch(24.833 4.707 272)',
                     backgroundColor: 'lch(8.3 1.867 272)',
+                    opacity: 0.75,
                   }}
+                  title="Status is automatically assigned for public submissions"
                 >
                   {selectedState ? (
                     <>
@@ -426,173 +438,205 @@ export function IssueCreationModal({
                       <span>Status</span>
                     </>
                   )}
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
-
-                {showStateDropdown && metadata?.states && (
-                  <div
-                    className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px]"
+                </div>
+              ) : (
+                // Interactive status dropdown for authenticated users
+                <div className="relative" ref={stateDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowStateDropdown(!showStateDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
                     style={{
-                      backgroundColor: 'lch(10.633 1.867 272)',
                       border: '0.5px solid lch(24.833 4.707 272)',
+                      backgroundColor: 'lch(8.3 1.867 272)',
                     }}
                   >
-                    {metadata.states.map((state) => (
-                      <button
-                        key={state.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedState(state)
-                          setFormData(prev => ({ ...prev, stateId: state.id }))
-                          setShowStateDropdown(false)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
-                      >
+                    {selectedState ? (
+                      <>
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: state.color }}
+                          style={{ backgroundColor: selectedState.color }}
                         />
-                        <span>{state.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <span>{selectedState.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <TodoIcon />
+                        <span>Status</span>
+                      </>
+                    )}
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </button>
 
-              {/* Priority */}
-              <div className="relative" ref={priorityDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
-                  style={{
-                    border: '0.5px solid lch(24.833 4.707 272)',
-                    backgroundColor: 'lch(8.3 1.867 272)',
-                  }}
-                >
-                  {React.createElement(priorities[formData.priority].icon)}
-                  <span>{priorities[formData.priority].label}</span>
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
-
-                {showPriorityDropdown && (
-                  <div
-                    className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[150px]"
-                    style={{
-                      backgroundColor: 'lch(10.633 1.867 272)',
-                      border: '0.5px solid lch(24.833 4.707 272)',
-                    }}
-                  >
-                    {priorities.map((priority) => (
-                      <button
-                        key={priority.value}
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, priority: priority.value }))
-                          setShowPriorityDropdown(false)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
-                      >
-                        {React.createElement(priority.icon)}
-                        <span>{priority.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Assignee */}
-              <div className="relative" ref={assigneeDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
-                  style={{
-                    border: '0.5px solid lch(24.833 4.707 272)',
-                    backgroundColor: 'lch(8.3 1.867 272)',
-                  }}
-                >
-                  {selectedAssignee ? (
-                    <>
-                      {selectedAssignee.avatarUrl ? (
-                        <Image
-                          src={selectedAssignee.avatarUrl}
-                          alt={selectedAssignee.displayName}
-                          width={20}
-                          height={20}
-                          className="w-5 h-5 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                          {selectedAssignee.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                      )}
-                      <span>{selectedAssignee.displayName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-xs">?</span>
-                      </div>
-                      <span>Assignee</span>
-                    </>
-                  )}
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
-
-                {showAssigneeDropdown && metadata?.users && (
-                  <div
-                    className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
-                    style={{
-                      backgroundColor: 'lch(10.633 1.867 272)',
-                      border: '0.5px solid lch(24.833 4.707 272)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAssignee(null)
-                        setFormData(prev => ({ ...prev, assigneeId: undefined }))
-                        setShowAssigneeDropdown(false)
+                  {showStateDropdown && metadata?.states && (
+                    <div
+                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px]"
+                      style={{
+                        backgroundColor: 'lch(10.633 1.867 272)',
+                        border: '0.5px solid lch(24.833 4.707 272)',
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors border-b"
-                      style={{ borderColor: 'lch(24.833 4.707 272)' }}
                     >
-                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-xs">?</span>
-                      </div>
-                      <span>Unassigned</span>
-                    </button>
-                    {metadata.users.map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedAssignee(user)
-                          setFormData(prev => ({ ...prev, assigneeId: user.id }))
-                          setShowAssigneeDropdown(false)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
-                      >
-                        {user.avatarUrl ? (
+                      {metadata.states.map((state) => (
+                        <button
+                          key={state.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedState(state)
+                            setFormData(prev => ({ ...prev, stateId: state.id }))
+                            setShowStateDropdown(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: state.color }}
+                          />
+                          <span>{state.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Priority - Hidden for public views */}
+              {!viewSlug && (
+                <div className="relative" ref={priorityDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+                    style={{
+                      border: '0.5px solid lch(24.833 4.707 272)',
+                      backgroundColor: 'lch(8.3 1.867 272)',
+                    }}
+                  >
+                    {React.createElement(priorities[formData.priority].icon)}
+                    <span>{priorities[formData.priority].label}</span>
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </button>
+
+                  {showPriorityDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[150px]"
+                      style={{
+                        backgroundColor: 'lch(10.633 1.867 272)',
+                        border: '0.5px solid lch(24.833 4.707 272)',
+                      }}
+                    >
+                      {priorities.map((priority) => (
+                        <button
+                          key={priority.value}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, priority: priority.value }))
+                            setShowPriorityDropdown(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                        >
+                          {React.createElement(priority.icon)}
+                          <span>{priority.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Assignee - Hidden for public views */}
+              {!viewSlug && (
+                <div className="relative" ref={assigneeDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+                    style={{
+                      border: '0.5px solid lch(24.833 4.707 272)',
+                      backgroundColor: 'lch(8.3 1.867 272)',
+                    }}
+                  >
+                    {selectedAssignee ? (
+                      <>
+                        {selectedAssignee.avatarUrl ? (
                           <Image
-                            src={user.avatarUrl}
-                            alt={user.displayName}
+                            src={selectedAssignee.avatarUrl}
+                            alt={selectedAssignee.displayName}
                             width={20}
                             height={20}
                             className="w-5 h-5 rounded-full"
                           />
                         ) : (
                           <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                            {user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            {selectedAssignee.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
                           </div>
                         )}
-                        <span>{user.displayName}</span>
+                        <span>{selectedAssignee.displayName}</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-xs">?</span>
+                        </div>
+                        <span>Assignee</span>
+                      </>
+                    )}
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </button>
+
+                  {showAssigneeDropdown && metadata?.users && (
+                    <div
+                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
+                      style={{
+                        backgroundColor: 'lch(10.633 1.867 272)',
+                        border: '0.5px solid lch(24.833 4.707 272)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAssignee(null)
+                          setFormData(prev => ({ ...prev, assigneeId: undefined }))
+                          setShowAssigneeDropdown(false)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors border-b"
+                        style={{ borderColor: 'lch(24.833 4.707 272)' }}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-xs">?</span>
+                        </div>
+                        <span>Unassigned</span>
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      {metadata.users.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAssignee(user)
+                            setFormData(prev => ({ ...prev, assigneeId: user.id }))
+                            setShowAssigneeDropdown(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                        >
+                          {user.avatarUrl ? (
+                            <Image
+                              src={user.avatarUrl}
+                              alt={user.displayName}
+                              width={20}
+                              height={20}
+                              className="w-5 h-5 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                              {user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </div>
+                          )}
+                          <span>{user.displayName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
 
               {/* Labels */}

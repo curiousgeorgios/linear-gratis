@@ -57,9 +57,61 @@ export async function POST(
       );
     }
 
-    // Decrypt the token and create the issue
+    // Decrypt the token
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
+    // Fetch team metadata to get triage settings
+    // This enforces that public issues always use triage/unstarted state
+    const metadataResponse = await fetch(`${request.nextUrl.origin}/api/linear/metadata`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiToken: decryptedToken,
+        teamId: viewData.team_id,
+        projectId: viewData.project_id,
+      })
+    });
+
+    interface WorkflowState {
+      id: string;
+      name: string;
+      type: string;
+      color: string;
+    }
+
+    interface MetadataResult {
+      success: boolean;
+      metadata?: {
+        triageEnabled?: boolean;
+        triageIssueState?: WorkflowState;
+        states?: WorkflowState[];
+      };
+    }
+
+    const metadataResult: MetadataResult = await metadataResponse.json();
+
+    // Determine the correct state for public issue creation
+    // Priority: 1) Triage state if enabled, 2) First unstarted state, 3) First available state
+    let finalStateId: string | undefined = undefined;
+
+    if (metadataResult.metadata?.triageEnabled && metadataResult.metadata?.triageIssueState) {
+      // Force triage state when triage is enabled
+      finalStateId = metadataResult.metadata.triageIssueState.id;
+    } else if (metadataResult.metadata?.states) {
+      // Fall back to unstarted state
+      const unstartedState = metadataResult.metadata.states.find(
+        (s: WorkflowState) => s.type === 'unstarted'
+      );
+      if (unstartedState) {
+        finalStateId = unstartedState.id;
+      } else if (metadataResult.metadata.states.length > 0) {
+        // Last resort: use first available state
+        finalStateId = metadataResult.metadata.states[0].id;
+      }
+    }
+
+    // Create the issue with enforced restrictions
+    // Note: priority and assigneeId are intentionally not passed for public views
     const createIssueResponse = await fetch(`${request.nextUrl.origin}/api/linear/create-issue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -67,9 +119,9 @@ export async function POST(
         apiToken: decryptedToken,
         title: issueData.title,
         description: issueData.description,
-        stateId: issueData.stateId,
-        priority: issueData.priority,
-        assigneeId: issueData.assigneeId,
+        stateId: finalStateId, // Enforced triage/unstarted state
+        priority: 0, // Default to no priority for public views
+        assigneeId: undefined, // No assignee for public views
         projectId: viewData.project_id,
         teamId: viewData.team_id,
         labelIds: issueData.labelIds,

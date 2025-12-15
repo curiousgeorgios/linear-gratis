@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
           team(id: $teamId) {
             id
             name
+            triageEnabled
+            triageIssueState {
+              id
+              name
+              type
+              color
+            }
             states {
               nodes {
                 id
@@ -67,6 +74,13 @@ export async function POST(request: NextRequest) {
               nodes {
                 id
                 name
+                triageEnabled
+                triageIssueState {
+                  id
+                  name
+                  type
+                  color
+                }
                 states {
                   nodes {
                     id
@@ -116,10 +130,19 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    interface TriageState {
+      id: string;
+      name: string;
+      type: string;
+      color: string;
+    }
+
     const data = await response.json() as {
       errors?: unknown[];
       data?: {
         team?: {
+          triageEnabled: boolean;
+          triageIssueState: TriageState | null;
           states: { nodes: unknown[] };
           members: { nodes: { active: boolean }[] };
           labels: { nodes: unknown[] };
@@ -127,6 +150,8 @@ export async function POST(request: NextRequest) {
         project?: {
           teams: {
             nodes: {
+              triageEnabled: boolean;
+              triageIssueState: TriageState | null;
               states: { nodes: unknown[] };
               members: { nodes: { active: boolean }[] };
               labels: { nodes: unknown[] };
@@ -153,6 +178,8 @@ export async function POST(request: NextRequest) {
         states: data.data.team.states.nodes,
         users: data.data.team.members.nodes,
         labels: data.data.team.labels.nodes,
+        triageEnabled: data.data.team.triageEnabled,
+        triageIssueState: data.data.team.triageIssueState,
       };
     } else if (projectId && data.data?.project) {
       // For projects, we need to aggregate data from all teams
@@ -160,6 +187,11 @@ export async function POST(request: NextRequest) {
       const allStates: unknown[] = [];
       const allUsers: unknown[] = [];
       const allLabels: unknown[] = [];
+
+      // Use first team's triage settings (for multi-team projects)
+      const firstTeam = project.teams.nodes[0];
+      const triageEnabled = firstTeam?.triageEnabled ?? false;
+      const triageIssueState = firstTeam?.triageIssueState ?? null;
 
       project.teams.nodes.forEach((team: { states: { nodes: unknown[] }, members: { nodes: unknown[] }, labels: { nodes: unknown[] } }) => {
         allStates.push(...team.states.nodes);
@@ -183,6 +215,8 @@ export async function POST(request: NextRequest) {
         states: uniqueStates,
         users: uniqueUsers,
         labels: uniqueLabels,
+        triageEnabled,
+        triageIssueState,
       };
     }
 
