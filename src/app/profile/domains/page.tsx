@@ -52,6 +52,15 @@ export default function CustomDomainsPage() {
   const [targetType, setTargetType] = useState<"form" | "view">("form");
   const [targetSlug, setTargetSlug] = useState("");
 
+  // Available targets for dropdown
+  const [availableViews, setAvailableViews] = useState<
+    { id: string; name: string; slug: string }[]
+  >([]);
+  const [availableForms, setAvailableForms] = useState<
+    { id: string; name: string; slug: string }[]
+  >([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
+
   useEffect(() => {
     if (authLoading) return;
 
@@ -61,6 +70,7 @@ export default function CustomDomainsPage() {
     }
 
     loadDomains();
+    loadAvailableTargets();
   }, [user, authLoading, router]);
 
   const loadDomains = async () => {
@@ -90,6 +100,44 @@ export default function CustomDomainsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAvailableTargets = async () => {
+    if (!user) return;
+
+    setLoadingTargets(true);
+    try {
+      const [viewsResult, formsResult] = await Promise.all([
+        supabase
+          .from("public_views")
+          .select("id, name, slug")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+        supabase
+          .from("customer_request_forms")
+          .select("id, name, slug")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+      ]);
+
+      if (viewsResult.data) {
+        setAvailableViews(viewsResult.data);
+      }
+      if (formsResult.data) {
+        setAvailableForms(formsResult.data);
+      }
+    } catch (error) {
+      console.error("Error loading available targets:", error);
+    } finally {
+      setLoadingTargets(false);
+    }
+  };
+
+  const handleTargetTypeChange = (value: "form" | "view") => {
+    setTargetType(value);
+    setTargetSlug("");
   };
 
   const handleAddDomain = async () => {
@@ -357,7 +405,9 @@ export default function CustomDomainsPage() {
                   <Label htmlFor="target-type">Target type</Label>
                   <Select
                     value={targetType}
-                    onValueChange={(value) => setTargetType(value as "form" | "view")}
+                    onValueChange={(value) =>
+                      handleTargetTypeChange(value as "form" | "view")
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -370,13 +420,58 @@ export default function CustomDomainsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="target-slug">Target slug</Label>
-                  <Input
-                    id="target-slug"
-                    placeholder={`e.g., ${targetType === "form" ? "support-requests" : "project-progress"}`}
+                  <Label htmlFor="target-slug">
+                    Target {targetType === "form" ? "form" : "view"}
+                  </Label>
+                  <Select
                     value={targetSlug}
-                    onChange={(e) => setTargetSlug(e.target.value)}
-                  />
+                    onValueChange={setTargetSlug}
+                    disabled={loadingTargets}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingTargets
+                            ? "Loading..."
+                            : `Select a ${targetType}`
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {targetType === "form" ? (
+                        availableForms.length > 0 ? (
+                          availableForms.map((form) => (
+                            <SelectItem key={form.id} value={form.slug}>
+                              {form.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No active forms available
+                          </div>
+                        )
+                      ) : availableViews.length > 0 ? (
+                        availableViews.map((view) => (
+                          <SelectItem key={view.id} value={view.slug}>
+                            {view.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          No active views available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {((targetType === "form" && availableForms.length === 0) ||
+                    (targetType === "view" && availableViews.length === 0)) &&
+                    !loadingTargets && (
+                      <p className="text-xs text-amber-600">
+                        {targetType === "form"
+                          ? "You don't have any active forms. Create a form first."
+                          : "You don't have any active views. Create a view first."}
+                      </p>
+                    )}
                 </div>
               </div>
 

@@ -11,8 +11,6 @@ interface KanbanBoardProps {
   showDescriptions?: boolean
   className?: string
   filters?: FilterState
-  allowIssueCreation?: boolean
-  onCreateIssue?: (columnName: string) => void
   onIssueClick?: (issueId: string) => void
 }
 
@@ -79,8 +77,6 @@ export function KanbanBoard({
   showPriorities = true,
   className = '',
   filters,
-  allowIssueCreation = false,
-  onCreateIssue,
   onIssueClick
 }: KanbanBoardProps) {
   // Filter issues based on provided filters
@@ -217,25 +213,6 @@ export function KanbanBoard({
                         </span>
                       </div>
                     </div>
-
-                    {allowIssueCreation && (
-                      <div className="flex items-center gap-1">
-                        <button className="p-1 hover:bg-accent rounded transition-colors opacity-60 group-hover:opacity-100">
-                          <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M3 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
-                          </svg>
-                        </button>
-                        <button
-                          className="p-1 hover:bg-accent rounded transition-colors opacity-60 group-hover:opacity-100"
-                          onClick={() => onCreateIssue?.(columnName)}
-                          aria-label={`Create issue in ${columnName}`}
-                        >
-                          <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8.75 4C8.75 3.58579 8.41421 3.25 8 3.25C7.58579 3.25 7.25 3.58579 7.25 4V7.25H4C3.58579 7.25 3.25 7.58579 3.25 8C3.25 8.41421 3.58579 8.75 4 8.75H7.25V12C7.25 12.4142 7.58579 12.75 8 12.75C8.41421 12.75 8.75 12.4142 8.75 12V8.75H12C12.4142 8.75 12.75 8.41421 12.75 8C12.75 7.58579 12.4142 7.25 12 7.25H8.75V4Z" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -334,21 +311,6 @@ export function KanbanBoard({
                     {column.issues.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground/60">
                         <div className="text-sm">No issues</div>
-                      </div>
-                    )}
-
-                    {/* Add issue button */}
-                    {allowIssueCreation && (
-                      <div className="pt-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                        <button
-                          className="w-full p-3 border-2 border-dashed border-border/40 rounded-md hover:border-border/60 hover:bg-accent/20 transition-all duration-200 text-muted-foreground hover:text-foreground"
-                          onClick={() => onCreateIssue?.(columnName)}
-                          aria-label={`Create issue in ${columnName}`}
-                        >
-                          <svg className="w-4 h-4 mx-auto" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8.75 4C8.75 3.58579 8.41421 3.25 8 3.25C7.58579 3.25 7.25 3.58579 7.25 4V7.25H4C3.58579 7.25 3.25 7.58579 3.25 8C3.25 8.41421 3.58579 8.75 4 8.75H7.25V12C7.25 12.4142 7.58579 12.75 8 12.75C8.41421 12.75 8.75 12.4142 8.75 12V8.75H12C12.4142 8.75 12.75 8.41421 12.75 8C12.75 7.58579 12.4142 7.25 12 7.25H8.75V4Z" />
-                          </svg>
-                        </button>
                       </div>
                     )}
                   </div>

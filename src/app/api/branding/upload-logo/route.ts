@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Upload to Supabase storage
-    const { error } = await supabase.storage
+    // Upload to Supabase storage using admin client to bypass RLS
+    const { error } = await supabaseAdmin.storage
       .from('branding')
       .upload(fileName, uint8Array, {
         contentType: file.type,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage.from('branding').getPublicUrl(fileName);
+    const { data: urlData } = supabaseAdmin.storage.from('branding').getPublicUrl(fileName);
 
     return NextResponse.json({
       url: urlData.publicUrl,
@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { error } = await supabase.storage.from('branding').remove([path]);
+    const { error } = await supabaseAdmin.storage.from('branding').remove([path]);
 
     if (error) {
       console.error('Error deleting from storage:', error);
