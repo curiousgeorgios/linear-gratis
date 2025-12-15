@@ -25,6 +25,11 @@ interface BrandingSettings {
   custom_css?: string | null;
 }
 
+// Helper to convert undefined to null for database operations
+// JSON.stringify omits undefined values, so we need to explicitly set null
+const normalise = <T>(value: T | undefined | null): T | null =>
+  value === undefined ? null : value;
+
 // GET - Fetch user's branding settings
 export async function GET(request: NextRequest) {
   try {
@@ -93,25 +98,25 @@ export async function POST(request: NextRequest) {
       result = await supabaseAdmin
         .from('branding_settings')
         .update({
-          logo_url: body.logo_url,
-          logo_width: body.logo_width,
-          logo_height: body.logo_height,
-          favicon_url: body.favicon_url,
-          brand_name: body.brand_name,
-          tagline: body.tagline,
-          primary_color: body.primary_color,
-          secondary_color: body.secondary_color,
-          accent_color: body.accent_color,
-          background_color: body.background_color,
-          text_color: body.text_color,
-          border_color: body.border_color,
-          font_family: body.font_family,
-          heading_font_family: body.heading_font_family,
-          footer_text: body.footer_text,
-          footer_links: body.footer_links,
-          show_powered_by: body.show_powered_by,
-          social_links: body.social_links,
-          custom_css: body.custom_css,
+          logo_url: normalise(body.logo_url),
+          logo_width: normalise(body.logo_width),
+          logo_height: normalise(body.logo_height),
+          favicon_url: normalise(body.favicon_url),
+          brand_name: normalise(body.brand_name),
+          tagline: normalise(body.tagline),
+          primary_color: normalise(body.primary_color),
+          secondary_color: normalise(body.secondary_color),
+          accent_color: normalise(body.accent_color),
+          background_color: normalise(body.background_color),
+          text_color: normalise(body.text_color),
+          border_color: normalise(body.border_color),
+          font_family: normalise(body.font_family),
+          heading_font_family: normalise(body.heading_font_family),
+          footer_text: normalise(body.footer_text),
+          footer_links: normalise(body.footer_links),
+          show_powered_by: normalise(body.show_powered_by),
+          social_links: normalise(body.social_links),
+          custom_css: normalise(body.custom_css),
         })
         .eq('user_id', user.id)
         .select()
@@ -122,25 +127,25 @@ export async function POST(request: NextRequest) {
         .from('branding_settings')
         .insert({
           user_id: user.id,
-          logo_url: body.logo_url,
-          logo_width: body.logo_width,
-          logo_height: body.logo_height,
-          favicon_url: body.favicon_url,
-          brand_name: body.brand_name,
-          tagline: body.tagline,
-          primary_color: body.primary_color,
-          secondary_color: body.secondary_color,
-          accent_color: body.accent_color,
-          background_color: body.background_color,
-          text_color: body.text_color,
-          border_color: body.border_color,
-          font_family: body.font_family,
-          heading_font_family: body.heading_font_family,
-          footer_text: body.footer_text,
-          footer_links: body.footer_links,
-          show_powered_by: body.show_powered_by,
-          social_links: body.social_links,
-          custom_css: body.custom_css,
+          logo_url: normalise(body.logo_url),
+          logo_width: normalise(body.logo_width),
+          logo_height: normalise(body.logo_height),
+          favicon_url: normalise(body.favicon_url),
+          brand_name: normalise(body.brand_name),
+          tagline: normalise(body.tagline),
+          primary_color: normalise(body.primary_color),
+          secondary_color: normalise(body.secondary_color),
+          accent_color: normalise(body.accent_color),
+          background_color: normalise(body.background_color),
+          text_color: normalise(body.text_color),
+          border_color: normalise(body.border_color),
+          font_family: normalise(body.font_family),
+          heading_font_family: normalise(body.heading_font_family),
+          footer_text: normalise(body.footer_text),
+          footer_links: normalise(body.footer_links),
+          show_powered_by: normalise(body.show_powered_by),
+          social_links: normalise(body.social_links),
+          custom_css: normalise(body.custom_css),
         })
         .select()
         .single();

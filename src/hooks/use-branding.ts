@@ -45,26 +45,57 @@ export function applyBrandingToPage(branding: BrandingSettings | null) {
 
   const root = document.documentElement;
 
-  // Apply colours as CSS variables
-  const colourMap: { [key: string]: string } = {
-    '--brand-primary': branding.primary_color || '#5E6AD2',
-    '--brand-secondary': branding.secondary_color || '#8B95A5',
-    '--brand-accent': branding.accent_color || '#4C9AFF',
-    '--brand-background': branding.background_color || '#FFFFFF',
-    '--brand-text': branding.text_color || '#1F2937',
-    '--brand-border': branding.border_color || '#E5E7EB',
-  };
-
-  Object.entries(colourMap).forEach(([variable, value]) => {
-    root.style.setProperty(variable, value);
-  });
-
-  // Apply fonts
-  if (branding.font_family) {
-    root.style.setProperty('--brand-font-family', branding.font_family);
+  // Apply colours to the CSS variables that Tailwind actually uses
+  // These override the defaults in globals.css
+  if (branding.primary_color) {
+    root.style.setProperty('--primary', branding.primary_color);
+    root.style.setProperty('--ring', branding.primary_color);
+    root.style.setProperty('--sidebar-primary', branding.primary_color);
+    root.style.setProperty('--sidebar-ring', branding.primary_color);
   }
+
+  if (branding.secondary_color) {
+    root.style.setProperty('--muted-foreground', branding.secondary_color);
+  }
+
+  if (branding.accent_color) {
+    root.style.setProperty('--accent', branding.accent_color);
+  }
+
+  if (branding.background_color) {
+    root.style.setProperty('--background', branding.background_color);
+    root.style.setProperty('--card', branding.background_color);
+    root.style.setProperty('--popover', branding.background_color);
+  }
+
+  if (branding.text_color) {
+    root.style.setProperty('--foreground', branding.text_color);
+    root.style.setProperty('--card-foreground', branding.text_color);
+    root.style.setProperty('--popover-foreground', branding.text_color);
+  }
+
+  if (branding.border_color) {
+    root.style.setProperty('--border', branding.border_color);
+    root.style.setProperty('--input', branding.border_color);
+  }
+
+  // Apply fonts - set both the CSS variable and the actual font-family on body
+  if (branding.font_family) {
+    root.style.setProperty('--font-sans', branding.font_family);
+    document.body.style.fontFamily = branding.font_family;
+  }
+
   if (branding.heading_font_family) {
-    root.style.setProperty('--brand-heading-font', branding.heading_font_family);
+    // Apply heading font to all heading elements
+    const headingStyle = document.getElementById('branding-heading-font');
+    if (headingStyle) {
+      headingStyle.textContent = `h1, h2, h3, h4, h5, h6 { font-family: ${branding.heading_font_family} !important; }`;
+    } else {
+      const style = document.createElement('style');
+      style.id = 'branding-heading-font';
+      style.textContent = `h1, h2, h3, h4, h5, h6 { font-family: ${branding.heading_font_family} !important; }`;
+      document.head.appendChild(style);
+    }
   }
 
   // Apply custom CSS
@@ -94,17 +125,41 @@ export function applyBrandingToPage(branding: BrandingSettings | null) {
 }
 
 // Helper to get inline styles from branding
-export function getBrandingStyles(branding: BrandingSettings | null) {
+// Returns the actual Tailwind CSS variables for use in style props
+export function getBrandingStyles(branding: BrandingSettings | null): React.CSSProperties {
   if (!branding) return {};
 
-  return {
-    '--brand-primary': branding.primary_color || '#5E6AD2',
-    '--brand-secondary': branding.secondary_color || '#8B95A5',
-    '--brand-accent': branding.accent_color || '#4C9AFF',
-    '--brand-background': branding.background_color || '#FFFFFF',
-    '--brand-text': branding.text_color || '#1F2937',
-    '--brand-border': branding.border_color || '#E5E7EB',
-    '--brand-font-family': branding.font_family || 'Inter, system-ui, sans-serif',
-    '--brand-heading-font': branding.heading_font_family || branding.font_family || 'Inter, system-ui, sans-serif',
-  } as React.CSSProperties;
+  const styles: Record<string, string> = {};
+
+  if (branding.primary_color) {
+    styles['--primary'] = branding.primary_color;
+    styles['--ring'] = branding.primary_color;
+  }
+
+  if (branding.secondary_color) {
+    styles['--muted-foreground'] = branding.secondary_color;
+  }
+
+  if (branding.accent_color) {
+    styles['--accent'] = branding.accent_color;
+  }
+
+  if (branding.background_color) {
+    styles['--background'] = branding.background_color;
+    styles['--card'] = branding.background_color;
+    styles['--popover'] = branding.background_color;
+  }
+
+  if (branding.text_color) {
+    styles['--foreground'] = branding.text_color;
+    styles['--card-foreground'] = branding.text_color;
+    styles['--popover-foreground'] = branding.text_color;
+  }
+
+  if (branding.border_color) {
+    styles['--border'] = branding.border_color;
+    styles['--input'] = branding.border_color;
+  }
+
+  return styles as React.CSSProperties;
 }
