@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/navigation";
+import { ConfirmationModal } from "@/components/confirmation-modal";
 import { supabase, CustomDomain } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import {
@@ -42,10 +44,11 @@ export default function CustomDomainsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+
+  // Delete confirmation modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [domainToDelete, setDomainToDelete] = useState<CustomDomain | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [newDomain, setNewDomain] = useState("");
@@ -142,12 +145,11 @@ export default function CustomDomainsPage() {
 
   const handleAddDomain = async () => {
     if (!user || !newDomain || !targetSlug) {
-      setMessage({ type: "error", text: "Please fill in all fields" });
+      toast.error("Please fill in all fields");
       return;
     }
 
     setSubmitting(true);
-    setMessage(null);
 
     try {
       const session = await supabase.auth.getSession();
@@ -171,18 +173,18 @@ export default function CustomDomainsPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Domain added successfully!" });
+        toast.success("Domain added successfully!");
         setNewDomain("");
         setTargetSlug("");
         setShowAddDomain(false);
         await loadDomains();
       } else {
         const error = await response.json() as { error?: string };
-        setMessage({ type: "error", text: error.error || "Failed to add domain" });
+        toast.error(error.error || "Failed to add domain");
       }
     } catch (error) {
       console.error("Error adding domain:", error);
-      setMessage({ type: "error", text: "Failed to add domain" });
+      toast.error("Failed to add domain");
     } finally {
       setSubmitting(false);
     }
@@ -190,8 +192,6 @@ export default function CustomDomainsPage() {
 
   const handleVerifyDomain = async (domainId: string) => {
     if (!user) return;
-
-    setMessage(null);
 
     try {
       const session = await supabase.auth.getSession();
@@ -208,25 +208,44 @@ export default function CustomDomainsPage() {
         },
       });
 
-      const result = await response.json() as { success?: boolean; message?: string };
+      const result = await response.json() as {
+        success?: boolean;
+        message?: string;
+        details?: {
+          cnameVerified?: boolean;
+          txtVerified?: boolean;
+          errors?: string[];
+        };
+      };
+
+      console.log('Verification result:', result);
 
       if (result.success) {
-        setMessage({ type: "success", text: result.message || "Domain verified successfully!" });
+        toast.success(result.message || "Domain verified successfully!");
         await loadDomains();
       } else {
-        setMessage({ type: "error", text: result.message || "Domain verification failed" });
+        // Show detailed error if available
+        const errorText = result.message ||
+          (result.details?.errors?.join('; ')) ||
+          "Domain verification failed";
+        toast.error(errorText);
         await loadDomains(); // Reload to see updated error
       }
     } catch (error) {
       console.error("Error verifying domain:", error);
-      setMessage({ type: "error", text: "Failed to verify domain" });
+      toast.error("Failed to verify domain");
     }
   };
 
-  const handleDeleteDomain = async (domainId: string) => {
-    if (!confirm("Are you sure you want to delete this domain?")) {
-      return;
-    }
+  const handleDeleteDomain = (domain: CustomDomain) => {
+    setDomainToDelete(domain);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteDomain = async () => {
+    if (!domainToDelete) return;
+
+    setDeleting(true);
 
     try {
       const session = await supabase.auth.getSession();
@@ -236,7 +255,7 @@ export default function CustomDomainsPage() {
         throw new Error("No access token");
       }
 
-      const response = await fetch(`/api/domains/${domainId}`, {
+      const response = await fetch(`/api/domains/${domainToDelete.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -244,46 +263,93 @@ export default function CustomDomainsPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Domain deleted successfully!" });
+        toast.success("Domain deleted successfully!");
+        setDeleteModalOpen(false);
+        setDomainToDelete(null);
         await loadDomains();
       } else {
-        setMessage({ type: "error", text: "Failed to delete domain" });
+        toast.error("Failed to delete domain");
       }
     } catch (error) {
       console.error("Error deleting domain:", error);
-      setMessage({ type: "error", text: "Failed to delete domain" });
+      toast.error("Failed to delete domain");
+    } finally {
+      setDeleting(false);
     }
   };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    setMessage({ type: "success", text: `${label} copied to clipboard!` });
-    setTimeout(() => setMessage(null), 2000);
+    toast.success(`${label} copied to clipboard!`);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadges = (domain: CustomDomain) => {
+    const badges: React.ReactNode[] = [];
+
+    // Verification status badge
+    switch (domain.verification_status) {
       case "verified":
-        return (
-          <Badge className="bg-green-100 text-green-800">
+        badges.push(
+          <Badge key="verified" className="bg-green-100 text-green-800">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Verified
           </Badge>
         );
+        break;
       case "failed":
-        return (
-          <Badge className="bg-red-100 text-red-800">
+        badges.push(
+          <Badge key="failed" className="bg-red-100 text-red-800">
             <XCircle className="h-3 w-3 mr-1" />
             Failed
           </Badge>
         );
+        break;
       default:
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">
+        badges.push(
+          <Badge key="pending" className="bg-yellow-100 text-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            Pending verification
           </Badge>
         );
+    }
+
+    // SSL status badge (only show if verified or if SSL has a notable status)
+    if (domain.ssl_status === "active") {
+      badges.push(
+        <Badge key="ssl-active" className="bg-blue-100 text-blue-800">
+          <Shield className="h-3 w-3 mr-1" />
+          SSL active
+        </Badge>
+      );
+    } else if (domain.verification_status === "verified" && domain.ssl_status === "pending") {
+      badges.push(
+        <Badge key="ssl-pending" className="bg-orange-100 text-orange-800">
+          <Clock className="h-3 w-3 mr-1" />
+          SSL provisioning
+        </Badge>
+      );
+    } else if (domain.ssl_status === "failed") {
+      badges.push(
+        <Badge key="ssl-failed" className="bg-red-100 text-red-800">
+          <XCircle className="h-3 w-3 mr-1" />
+          SSL failed
+        </Badge>
+      );
+    }
+
+    return <div className="flex gap-2 flex-wrap">{badges}</div>;
+  };
+
+  const getPurposeLabel = (purpose?: string) => {
+    switch (purpose) {
+      case "routing":
+        return "Required for routing";
+      case "ownership":
+        return "Ownership verification";
+      case "ssl":
+        return "SSL certificate";
+      default:
+        return null;
     }
   };
 
@@ -324,18 +390,6 @@ export default function CustomDomainsPage() {
               Add domain
             </Button>
           </div>
-
-          {message && (
-            <div
-              className={`mb-6 p-3 rounded-lg text-sm ${
-                message.type === "success"
-                  ? "bg-green-50 border border-green-200 text-green-800"
-                  : "bg-red-50 border border-red-200 text-red-800"
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
         </div>
 
         {/* How it works */}
@@ -517,13 +571,7 @@ export default function CustomDomainsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg">{domain.domain}</h3>
-                          {getStatusBadge(domain.verification_status)}
-                          {domain.ssl_status === "active" && (
-                            <Badge className="bg-blue-100 text-blue-800">
-                              <Shield className="h-3 w-3 mr-1" />
-                              SSL Active
-                            </Badge>
-                          )}
+                          {getStatusBadges(domain)}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>
@@ -540,6 +588,7 @@ export default function CustomDomainsPage() {
                         )}
                       </div>
                       <div className="flex gap-2">
+                        {/* Show verify button for pending domains */}
                         {domain.verification_status !== "verified" && (
                           <Button
                             variant="outline"
@@ -548,13 +597,25 @@ export default function CustomDomainsPage() {
                             className="flex items-center gap-2"
                           >
                             <RefreshCw className="h-4 w-4" />
-                            Verify
+                            Check status
+                          </Button>
+                        )}
+                        {/* Show refresh button for verified domains with pending SSL */}
+                        {domain.verification_status === "verified" && domain.ssl_status !== "active" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerifyDomain(domain.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Check SSL
                           </Button>
                         )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteDomain(domain.id)}
+                          onClick={() => handleDeleteDomain(domain)}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -567,29 +628,49 @@ export default function CustomDomainsPage() {
                       <div className="border-t pt-4">
                         <h4 className="font-semibold mb-3">DNS configuration</h4>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Add these DNS records to your domain registrar:
+                          Add these DNS records to your domain registrar. DNS changes may take up to 48 hours to propagate.
                         </p>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {domain.dns_records.map((record, index) => (
                             <div
                               key={index}
                               className="bg-muted/50 rounded-lg p-3 font-mono text-sm"
                             >
-                              <div className="grid grid-cols-[100px_1fr_auto] gap-2 items-center">
-                                <span className="font-semibold">{record.type}:</span>
-                                <div>
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    Name: {record.name}
-                                  </div>
-                                  <div className="text-xs">Value: {record.value}</div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Badge variant="outline" className="text-xs font-semibold">
+                                  {record.type}
+                                </Badge>
+                                {record.purpose && (
+                                  <Badge variant="secondary" className="text-xs font-normal">
+                                    {getPurposeLabel(record.purpose)}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-muted-foreground text-xs min-w-[50px]">Name:</span>
+                                  <code className="text-xs break-all flex-1">{record.name}</code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => copyToClipboard(record.name, "Record name")}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(record.value, "DNS record")}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-muted-foreground text-xs min-w-[50px]">Value:</span>
+                                  <code className="text-xs break-all flex-1">{record.value}</code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => copyToClipboard(record.value, "Record value")}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -604,7 +685,7 @@ export default function CustomDomainsPage() {
         )}
 
         {/* Help section */}
-        <Card className="mt-8 bg-blue-50/50 border-blue-200">
+        <Card className="mt-8 bg-muted/50 border-border/50">
           <CardHeader>
             <CardTitle className="text-base">Need help?</CardTitle>
           </CardHeader>
@@ -624,6 +705,21 @@ export default function CustomDomainsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDomainToDelete(null);
+        }}
+        onConfirm={confirmDeleteDomain}
+        title="Delete domain"
+        description={`Are you sure you want to delete "${domainToDelete?.domain}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

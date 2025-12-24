@@ -1,11 +1,8 @@
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-// Here we use the @cloudflare/next-on-pages next-dev module to allow us to
-// use bindings during local development (when running the application with
-// `next dev`). This function is only necessary during development and
-// has no impact outside of that. For more information see:
-// https://github.com/cloudflare/next-on-pages/blob/main/internal-packages/next-dev/README.md
-setupDevPlatform().catch(console.error);
+// Initialise OpenNext for Cloudflare during local development
+// This allows us to use Cloudflare bindings (KV, D1, R2, etc.) in dev mode
+initOpenNextCloudflareForDev();
 
 import type { NextConfig } from "next";
 

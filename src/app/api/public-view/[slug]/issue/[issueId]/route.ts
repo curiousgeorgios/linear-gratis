@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
 
-export const runtime = 'edge';
-
 export type IssueComment = {
   id: string;
   body: string;

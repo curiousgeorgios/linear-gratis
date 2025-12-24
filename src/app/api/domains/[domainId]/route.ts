@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-
-export const runtime = 'edge';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { removeCustomHostname } from '@/lib/dns';
 
 interface DomainUpdateBody {
   is_active?: boolean;
@@ -74,7 +73,25 @@ export async function DELETE(
 
     const { domainId } = await params;
 
-    const { error } = await supabase
+    // First, fetch the domain to get the Cloudflare hostname ID
+    const { data: domain } = await supabaseAdmin
+      .from('custom_domains')
+      .select('cloudflare_hostname_id')
+      .eq('id', domainId)
+      .eq('user_id', user.id)
+      .single();
+
+    // Remove custom hostname from Cloudflare if it exists
+    if (domain?.cloudflare_hostname_id) {
+      const removeResult = await removeCustomHostname(domain.cloudflare_hostname_id);
+      if (!removeResult.success) {
+        console.error('Failed to remove custom hostname from Cloudflare:', removeResult.error);
+        // Continue with deletion anyway - admin can clean up manually
+      }
+    }
+
+    // Delete from database
+    const { error } = await supabaseAdmin
       .from('custom_domains')
       .delete()
       .eq('id', domainId)

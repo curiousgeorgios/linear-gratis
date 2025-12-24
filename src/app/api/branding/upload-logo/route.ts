@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 // POST - Upload a logo to Supabase storage
 export async function POST(request: NextRequest) {
   try {

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
 interface MetadataRequest {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { lookupCustomDomain } from '@/lib/edge-db';
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
@@ -20,6 +21,7 @@ export async function middleware(request: NextRequest) {
     'linear.gratis',
     'localhost:3000',
     'localhost',
+    'workers.dev', // Cloudflare Workers dev domains
     process.env.NEXT_PUBLIC_APP_DOMAIN || '',
   ].filter(Boolean);
 
@@ -28,62 +30,44 @@ export async function middleware(request: NextRequest) {
   // If it's not the main domain, check if it's a verified custom domain
   if (!isMainDomain) {
     try {
-      // Look up the domain in the database via API
-      const lookupUrl = new URL('/api/domains/lookup', request.url);
-      lookupUrl.searchParams.set('domain', hostname);
+      // Look up the domain directly from the database (no internal fetch)
+      const result = await lookupCustomDomain(hostname);
 
-      const response = await fetch(lookupUrl.toString(), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      if (result.success) {
+        const { domain } = result;
 
-      if (response.ok) {
-        const data = await response.json() as {
-          domain: {
-            verification_status: string;
-            is_active: boolean;
-            target_type: 'form' | 'view';
-            target_slug: string;
-          };
-        };
-
-        const { domain } = data;
-
-        // Only rewrite if domain is verified and active
-        if (domain.verification_status === 'verified' && domain.is_active) {
-          // Rewrite to the target route based on type
-          if (domain.target_type === 'form') {
-            const rewriteUrl = new URL(`/form/${domain.target_slug}`, request.url);
-            // Preserve query parameters
-            url.searchParams.forEach((value, key) => {
-              rewriteUrl.searchParams.set(key, value);
-            });
-            return NextResponse.rewrite(rewriteUrl);
-          } else if (domain.target_type === 'view') {
-            const rewriteUrl = new URL(`/view/${domain.target_slug}`, request.url);
-            // Preserve query parameters
-            url.searchParams.forEach((value, key) => {
-              rewriteUrl.searchParams.set(key, value);
-            });
-            return NextResponse.rewrite(rewriteUrl);
-          }
-        } else {
-          // Domain not verified or not active
-          return new NextResponse(
-            'Domain not verified or inactive. Please contact the domain owner.',
-            { status: 403 }
-          );
+        // Rewrite to the target route based on type
+        if (domain.target_type === 'form' && domain.target_slug) {
+          const rewriteUrl = new URL(`/form/${domain.target_slug}`, request.url);
+          // Preserve query parameters
+          url.searchParams.forEach((value, key) => {
+            rewriteUrl.searchParams.set(key, value);
+          });
+          return NextResponse.rewrite(rewriteUrl);
+        } else if (domain.target_type === 'view' && domain.target_slug) {
+          const rewriteUrl = new URL(`/view/${domain.target_slug}`, request.url);
+          // Preserve query parameters
+          url.searchParams.forEach((value, key) => {
+            rewriteUrl.searchParams.set(key, value);
+          });
+          return NextResponse.rewrite(rewriteUrl);
         }
-      } else if (response.status === 404) {
+      } else if ('notFound' in result && result.notFound) {
         // Domain not found - show error page
         return new NextResponse(
           'This domain is not registered with our service.',
           { status: 404 }
         );
+      } else {
+        // Lookup error
+        console.error('Domain lookup error:', result.error);
+        return new NextResponse(
+          'An error occurred while processing this domain.',
+          { status: 500 }
+        );
       }
 
-      // If lookup fails for other reasons, let the request through
+      // If domain found but no target configured, let the request through
       return NextResponse.next();
     } catch (error) {
       console.error('Custom domain middleware error:', error);

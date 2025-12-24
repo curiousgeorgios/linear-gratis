@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 // GET - Look up a custom domain by domain name (for middleware/routing)
 export async function GET(request: NextRequest) {
   try {

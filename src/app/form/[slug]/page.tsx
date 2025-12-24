@@ -14,8 +14,6 @@ import { supabase, CustomerRequestForm } from '@/lib/supabase'
 import { LinearCustomerRequestManager } from '@/lib/linear'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 
-export const runtime = 'edge';
-
 // Helper function to decrypt tokens via API
 async function decryptTokenViaAPI(encryptedToken: string): Promise<string> {
   const response = await fetch('/api/decrypt-token', {
