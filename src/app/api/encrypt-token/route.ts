@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encryptToken } from '@/lib/encryption';
 
-export const runtime = 'edge';
-
 export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json() as { token: string };

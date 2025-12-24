@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
+import { fetchLinearIssues } from '@/lib/linear';
 import bcrypt from 'bcryptjs';
-
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
@@ -64,35 +63,18 @@ export async function GET(
       );
     }
 
-    // Decrypt the token and fetch issues
+    // Decrypt the token and fetch issues directly from Linear API
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
-    const requestBody: Record<string, unknown> = {
-      apiToken: decryptedToken
-    };
-
-    if (viewData.project_id) {
-      requestBody.projectId = viewData.project_id;
-    } else if (viewData.team_id) {
-      requestBody.teamId = viewData.team_id;
-    }
-
-    if (viewData.allowed_statuses && viewData.allowed_statuses.length > 0) {
-      requestBody.statuses = viewData.allowed_statuses;
-    }
-
-    // Fetch issues from Linear
-    const issuesResponse = await fetch(`${request.nextUrl.origin}/api/linear/issues`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+    const issuesResult = await fetchLinearIssues(decryptedToken, {
+      projectId: viewData.project_id || undefined,
+      teamId: viewData.team_id || undefined,
+      statuses: viewData.allowed_statuses?.length > 0 ? viewData.allowed_statuses : undefined,
     });
 
-    if (!issuesResponse.ok) {
-      throw new Error('Failed to fetch issues from Linear');
+    if (!issuesResult.success) {
+      throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
     }
-
-    const issuesData = await issuesResponse.json() as { issues?: unknown[] };
 
     return NextResponse.json({
       success: true,
@@ -114,7 +96,7 @@ export async function GET(
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
-      issues: issuesData.issues || []
+      issues: issuesResult.issues
     });
 
   } catch (error) {
@@ -201,35 +183,18 @@ export async function POST(
       );
     }
 
-    // Decrypt the token and fetch issues
+    // Decrypt the token and fetch issues directly from Linear API
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
-    const requestBody: Record<string, unknown> = {
-      apiToken: decryptedToken
-    };
-
-    if (viewData.project_id) {
-      requestBody.projectId = viewData.project_id;
-    } else if (viewData.team_id) {
-      requestBody.teamId = viewData.team_id;
-    }
-
-    if (viewData.allowed_statuses && viewData.allowed_statuses.length > 0) {
-      requestBody.statuses = viewData.allowed_statuses;
-    }
-
-    // Fetch issues from Linear
-    const issuesResponse = await fetch(`${request.nextUrl.origin}/api/linear/issues`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+    const issuesResult = await fetchLinearIssues(decryptedToken, {
+      projectId: viewData.project_id || undefined,
+      teamId: viewData.team_id || undefined,
+      statuses: viewData.allowed_statuses?.length > 0 ? viewData.allowed_statuses : undefined,
     });
 
-    if (!issuesResponse.ok) {
-      throw new Error('Failed to fetch issues from Linear');
+    if (!issuesResult.success) {
+      throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
     }
-
-    const issuesData = await issuesResponse.json() as { issues?: unknown[] };
 
     return NextResponse.json({
       success: true,
@@ -252,7 +217,7 @@ export async function POST(
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
-      issues: issuesData.issues || []
+      issues: issuesResult.issues
     });
 
   } catch (error) {

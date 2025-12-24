@@ -1,7 +1,5 @@
 'use client'
 
-export const runtime = 'edge';
-
 import { useState, useEffect, useRef } from 'react'
 import { notFound } from 'next/navigation'
 import { KanbanBoard } from '@/components/kanban-board'

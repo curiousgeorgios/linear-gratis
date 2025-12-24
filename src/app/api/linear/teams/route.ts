@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-
 export type Team = {
   id: string
   name: string

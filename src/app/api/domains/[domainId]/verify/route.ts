@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { verifyCustomDomain } from '@/lib/cloudflare';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import {
+  getCustomHostname,
+  addCustomHostname,
+  type CloudflareCustomHostnameResult,
+} from '@/lib/dns';
 
-export const runtime = 'edge';
-
-// POST - Verify a custom domain using Cloudflare DNS API
+// POST - Verify a custom domain using DNS over HTTPS
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ domainId: string }> }
@@ -26,98 +28,210 @@ export async function POST(
 
     const { domainId } = await params;
 
-    // Fetch domain
-    const { data: domain, error: fetchError } = await supabase
+    // Fetch domain using admin client to bypass RLS
+    const { data: initialDomain, error: fetchError } = await supabaseAdmin
       .from('custom_domains')
       .select('*')
       .eq('id', domainId)
       .eq('user_id', user.id)
       .single();
 
-    if (fetchError || !domain) {
+    if (fetchError || !initialDomain) {
       return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
     }
 
+    // Use let so we can update if needed after Cloudflare registration
+    let domain = initialDomain;
+
     try {
-      // Verify DNS records using Cloudflare API
-      const targetDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'linear.gratis';
+      const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'linear.gratis';
 
-      const verificationResult = await verifyCustomDomain(
-        domain.domain,
-        domain.verification_token,
-        targetDomain
-      );
+      // If no Cloudflare hostname ID, something went wrong during creation - try to create now
+      if (!domain.cloudflare_hostname_id) {
+        const cloudflareResult = await addCustomHostname(domain.domain);
 
-      if (verificationResult.success) {
-        // Update domain status to verified
-        const updateData: {
-          verification_status: 'verified';
-          verified_at: string;
-          last_checked_at: string;
-          error_message: null;
-          ssl_status?: 'active' | 'pending';
-          ssl_issued_at?: string;
-        } = {
-          verification_status: 'verified',
-          verified_at: new Date().toISOString(),
-          last_checked_at: new Date().toISOString(),
-          error_message: null,
-        };
-
-        // Update SSL status if available
-        if (verificationResult.sslActive) {
-          updateData.ssl_status = 'active';
-          updateData.ssl_issued_at = new Date().toISOString();
+        if (!cloudflareResult.success) {
+          return NextResponse.json({
+            success: false,
+            message: 'Failed to register domain with Cloudflare. Please try again.',
+            error: cloudflareResult.error,
+          }, { status: 500 });
         }
 
-        const { data: updated, error: updateError } = await supabase
-          .from('custom_domains')
-          .update(updateData)
-          .eq('id', domainId)
-          .select()
-          .single();
+        // Build DNS records from the new response
+        const dns_records: Array<{ type: string; name: string; value: string; purpose: string }> = [
+          { type: 'CNAME', name: domain.domain, value: appDomain, purpose: 'routing' },
+        ];
 
-        if (updateError) {
-          throw updateError;
+        if (cloudflareResult.ownershipVerification) {
+          dns_records.push({
+            type: 'TXT',
+            name: cloudflareResult.ownershipVerification.name,
+            value: cloudflareResult.ownershipVerification.value,
+            purpose: 'ownership',
+          });
         }
 
-        return NextResponse.json({
-          domain: updated,
-          success: true,
-          message: 'Domain verified successfully! SSL certificate is ' +
-                   (verificationResult.sslActive ? 'active' : 'being provisioned'),
-          details: {
-            cnameVerified: verificationResult.cnameVerified,
-            txtVerified: verificationResult.txtVerified,
-            sslActive: verificationResult.sslActive,
-          },
-        });
-      } else {
-        // Verification failed - update with error details
-        const errorMessage = verificationResult.errors.length > 0
-          ? verificationResult.errors.join('; ')
-          : 'DNS records not found or incorrect. Please check your DNS settings.';
-
-        await supabase
+        // Update with the new Cloudflare data
+        await supabaseAdmin
           .from('custom_domains')
           .update({
-            verification_status: 'failed',
+            cloudflare_hostname_id: cloudflareResult.hostnameId,
+            cloudflare_hostname_status: cloudflareResult.hostnameStatus,
+            dns_records,
             last_checked_at: new Date().toISOString(),
-            error_message: errorMessage,
           })
           .eq('id', domainId);
 
+        // Refresh domain data
+        const { data: refreshed } = await supabaseAdmin
+          .from('custom_domains')
+          .select('*')
+          .eq('id', domainId)
+          .single();
+
+        if (refreshed) {
+          domain = refreshed;
+        }
+      }
+
+      // Poll Cloudflare for current hostname status
+      const cloudflareStatus = await getCustomHostname(domain.cloudflare_hostname_id!);
+
+      if (!cloudflareStatus.success || !cloudflareStatus.hostname) {
         return NextResponse.json({
           success: false,
-          message: 'DNS verification failed',
-          details: {
-            cnameVerified: verificationResult.cnameVerified,
-            txtVerified: verificationResult.txtVerified,
-            sslActive: verificationResult.sslActive,
-            errors: verificationResult.errors,
-          },
-        }, { status: 400 });
+          message: 'Failed to check domain status with Cloudflare',
+          error: cloudflareStatus.error,
+        }, { status: 500 });
       }
+
+      const cfHostname = cloudflareStatus.hostname;
+
+      // Map Cloudflare status to our status
+      let verificationStatus: 'pending' | 'verified' | 'failed' = 'pending';
+      let sslStatus: 'pending' | 'active' | 'failed' = 'pending';
+
+      // Hostname status: pending → user needs to add DNS records, active → verified
+      if (cfHostname.status === 'active') {
+        verificationStatus = 'verified';
+      } else if (cfHostname.status === 'pending') {
+        verificationStatus = 'pending';
+      } else {
+        verificationStatus = 'failed';
+      }
+
+      // SSL status mapping
+      if (cfHostname.ssl.status === 'active') {
+        sslStatus = 'active';
+      } else if (['pending_validation', 'pending_issuance', 'pending_deployment', 'initializing'].includes(cfHostname.ssl.status)) {
+        sslStatus = 'pending';
+      } else if (['expired', 'deleted'].includes(cfHostname.ssl.status)) {
+        sslStatus = 'failed';
+      }
+
+      // Update DNS records if Cloudflare has new/updated validation records
+      const updatedDnsRecords: Array<{ type: string; name: string; value: string; purpose: string }> = [
+        { type: 'CNAME', name: domain.domain, value: appDomain, purpose: 'routing' },
+      ];
+
+      if (cfHostname.ownership_verification) {
+        updatedDnsRecords.push({
+          type: 'TXT',
+          name: cfHostname.ownership_verification.name,
+          value: cfHostname.ownership_verification.value,
+          purpose: 'ownership',
+        });
+      }
+
+      if (cfHostname.ssl.validation_records) {
+        for (const record of cfHostname.ssl.validation_records) {
+          if (record.txt_name && record.txt_value) {
+            updatedDnsRecords.push({
+              type: 'TXT',
+              name: record.txt_name,
+              value: record.txt_value,
+              purpose: 'ssl',
+            });
+          }
+        }
+      }
+
+      // Build update data
+      const updateData: {
+        verification_status: 'pending' | 'verified' | 'failed';
+        ssl_status: 'pending' | 'active' | 'failed';
+        cloudflare_hostname_status: CloudflareCustomHostnameResult['status'];
+        dns_records: typeof updatedDnsRecords;
+        last_checked_at: string;
+        error_message: string | null;
+        verified_at?: string;
+        ssl_issued_at?: string;
+      } = {
+        verification_status: verificationStatus,
+        ssl_status: sslStatus,
+        cloudflare_hostname_status: cfHostname.status,
+        dns_records: updatedDnsRecords,
+        last_checked_at: new Date().toISOString(),
+        error_message: null,
+      };
+
+      // Set timestamps on status changes
+      if (verificationStatus === 'verified' && domain.verification_status !== 'verified') {
+        updateData.verified_at = new Date().toISOString();
+      }
+      if (sslStatus === 'active' && domain.ssl_status !== 'active') {
+        updateData.ssl_issued_at = new Date().toISOString();
+      }
+
+      // Add error message if still pending
+      if (verificationStatus === 'pending') {
+        const pendingReasons: string[] = [];
+        if (cfHostname.status === 'pending') {
+          pendingReasons.push('Waiting for DNS records to propagate');
+        }
+        if (cfHostname.ssl.status !== 'active') {
+          pendingReasons.push(`SSL status: ${cfHostname.ssl.status}`);
+        }
+        if (cfHostname.ssl.validation_errors?.length) {
+          pendingReasons.push(...cfHostname.ssl.validation_errors.map(e => e.message));
+        }
+        updateData.error_message = pendingReasons.join('. ') || null;
+      }
+
+      // Update database
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from('custom_domains')
+        .update(updateData)
+        .eq('id', domainId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Return appropriate response
+      const isVerified = verificationStatus === 'verified';
+      const sslMessage = sslStatus === 'active'
+        ? 'SSL certificate is active.'
+        : sslStatus === 'pending'
+          ? 'SSL certificate is being provisioned.'
+          : 'SSL certificate provisioning failed.';
+
+      return NextResponse.json({
+        domain: updated,
+        success: isVerified,
+        message: isVerified
+          ? `Domain verified! ${sslMessage}`
+          : `Domain verification in progress. Please ensure DNS records are configured correctly. ${updateData.error_message || ''}`,
+        details: {
+          cloudflareHostnameStatus: cfHostname.status,
+          cloudflareSSLStatus: cfHostname.ssl.status,
+          verificationStatus,
+          sslStatus,
+        },
+      }, { status: isVerified ? 200 : 202 });
     } catch (verificationError) {
       console.error('Verification error:', verificationError);
 
@@ -125,10 +239,9 @@ export async function POST(
         ? verificationError.message
         : 'Verification failed. Please try again later.';
 
-      await supabase
+      await supabaseAdmin
         .from('custom_domains')
         .update({
-          verification_status: 'failed',
           last_checked_at: new Date().toISOString(),
           error_message: errorMessage,
         })

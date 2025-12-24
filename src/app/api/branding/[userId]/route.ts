@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 // GET - Fetch branding settings for a specific user (public access)
 export async function GET(
   request: NextRequest,

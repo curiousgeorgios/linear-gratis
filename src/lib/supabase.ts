@@ -106,6 +106,7 @@ export type CustomDomain = {
     type: string
     name: string
     value: string
+    purpose?: 'routing' | 'ownership' | 'ssl'
   }[]
   ssl_status: 'pending' | 'active' | 'failed'
   ssl_issued_at?: string
@@ -115,6 +116,9 @@ export type CustomDomain = {
   target_slug?: string
   last_checked_at?: string
   error_message?: string
+  cloudflare_hostname_id?: string
+  cloudflare_hostname_status?: 'pending' | 'active' | 'pending_deletion' | 'moved' | 'deleted'
   created_at: string
   updated_at: string
 }
+

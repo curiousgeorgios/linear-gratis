@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 interface BrandingSettings {
   logo_url?: string | null;
   logo_width?: number | null;

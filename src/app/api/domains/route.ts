@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import crypto from 'crypto';
-
-export const runtime = 'edge';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { addCustomHostname } from '@/lib/dns';
 
 interface DomainCreateBody {
   domain: string;
@@ -28,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch custom domains
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('custom_domains')
       .select('*')
       .eq('user_id', user.id)
@@ -80,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if domain already exists
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('custom_domains')
       .select('id')
       .eq('domain', domain)
@@ -90,46 +88,85 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Domain already exists' }, { status: 400 });
     }
 
-    // Generate verification token
-    const verification_token = `linear-verify-${crypto.randomBytes(16).toString('hex')}`;
+    // Create custom hostname in Cloudflare FIRST to get actual verification records
+    const cloudflareResult = await addCustomHostname(domain);
 
-    // Prepare DNS records
+    if (!cloudflareResult.success) {
+      console.error('Failed to register domain with Cloudflare:', cloudflareResult.error);
+      return NextResponse.json(
+        { error: cloudflareResult.error || 'Failed to register domain with Cloudflare' },
+        { status: 500 }
+      );
+    }
+
+    // Build DNS records from Cloudflare's response
     const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'linear.gratis';
-    const dns_records = [
+    const dns_records: Array<{ type: string; name: string; value: string; purpose: string }> = [
       {
         type: 'CNAME',
         name: domain,
         value: appDomain,
-      },
-      {
-        type: 'TXT',
-        name: `_linear-verification.${domain}`,
-        value: verification_token,
+        purpose: 'routing',
       },
     ];
 
-    // Insert domain
-    const { data, error } = await supabase
+    // Add ownership verification TXT record if provided by Cloudflare
+    if (cloudflareResult.ownershipVerification) {
+      dns_records.push({
+        type: 'TXT',
+        name: cloudflareResult.ownershipVerification.name,
+        value: cloudflareResult.ownershipVerification.value,
+        purpose: 'ownership',
+      });
+    }
+
+    // Add SSL validation records if provided (may be empty initially)
+    if (cloudflareResult.sslValidationRecords) {
+      for (const record of cloudflareResult.sslValidationRecords) {
+        if (record.txt_name && record.txt_value) {
+          dns_records.push({
+            type: 'TXT',
+            name: record.txt_name,
+            value: record.txt_value,
+            purpose: 'ssl',
+          });
+        }
+      }
+    }
+
+    // Insert domain with Cloudflare data
+    const { data, error } = await supabaseAdmin
       .from('custom_domains')
       .insert({
         user_id: user.id,
         domain,
-        verification_token,
+        verification_token: '', // No longer used - Cloudflare handles verification
         dns_records,
         target_type,
         target_slug,
         verification_status: 'pending',
-        ssl_status: 'pending',
+        ssl_status: cloudflareResult.sslStatus === 'active' ? 'active' : 'pending',
+        cloudflare_hostname_id: cloudflareResult.hostnameId,
+        cloudflare_hostname_status: cloudflareResult.hostnameStatus,
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating custom domain:', error);
+      // Try to clean up the Cloudflare hostname if database insert failed
+      if (cloudflareResult.hostnameId) {
+        const { removeCustomHostname } = await import('@/lib/dns');
+        await removeCustomHostname(cloudflareResult.hostnameId).catch(console.error);
+      }
       return NextResponse.json({ error: 'Failed to create custom domain' }, { status: 500 });
     }
 
-    return NextResponse.json({ domain: data, success: true });
+    return NextResponse.json({
+      domain: data,
+      success: true,
+      message: 'Domain registered. Please add the DNS records shown below to verify ownership.',
+    });
   } catch (error) {
     console.error('Error in POST /api/domains:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
