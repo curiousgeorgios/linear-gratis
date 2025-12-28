@@ -51,6 +51,13 @@ export async function middleware(request: NextRequest) {
             rewriteUrl.searchParams.set(key, value);
           });
           return NextResponse.rewrite(rewriteUrl);
+        } else if (domain.target_type === 'roadmap' && domain.target_slug) {
+          const rewriteUrl = new URL(`/roadmap/${domain.target_slug}`, request.url);
+          // Preserve query parameters
+          url.searchParams.forEach((value, key) => {
+            rewriteUrl.searchParams.set(key, value);
+          });
+          return NextResponse.rewrite(rewriteUrl);
         }
       } else if ('notFound' in result && result.notFound) {
         // Domain not found - show error page

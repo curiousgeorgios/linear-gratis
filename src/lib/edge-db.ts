@@ -24,7 +24,7 @@ export type CustomDomain = {
   ssl_issued_at?: string
   redirect_to_https?: boolean
   is_active: boolean
-  target_type?: 'form' | 'view'
+  target_type?: 'form' | 'view' | 'roadmap'
   target_slug?: string
   last_checked_at?: string
   error_message?: string

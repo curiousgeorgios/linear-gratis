@@ -188,6 +188,172 @@ export async function fetchLinearIssues(
 }
 
 /**
+ * Roadmap issue type with additional fields for timeline view
+ */
+export type RoadmapIssue = LinearIssue & {
+  dueDate?: string;
+  project?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
+};
+
+/**
+ * Fetches issues for a roadmap from Linear API (supports multiple projects)
+ *
+ * @param apiToken - Linear API token
+ * @param projectIds - Array of project IDs to fetch issues from
+ * @returns Promise with issues array or error
+ */
+export async function fetchRoadmapIssues(
+  apiToken: string,
+  projectIds: string[]
+): Promise<{ success: true; issues: RoadmapIssue[] } | { success: false; error: string }> {
+  try {
+    if (!projectIds || projectIds.length === 0) {
+      return { success: false, error: 'At least one projectId must be provided' };
+    }
+
+    // Build filter for multiple projects
+    const projectFilter = projectIds.map((id) => `{ id: { eq: "${id}" } }`).join(', ');
+
+    const query = `
+      query RoadmapIssues {
+        issues(
+          filter: { project: { or: [${projectFilter}] } }
+          orderBy: updatedAt
+          first: 100
+        ) {
+          nodes {
+            id
+            identifier
+            title
+            description
+            priority
+            priorityLabel
+            url
+            dueDate
+            state {
+              id
+              name
+              color
+              type
+            }
+            assignee {
+              id
+              name
+            }
+            labels {
+              nodes {
+                id
+                name
+                color
+              }
+            }
+            project {
+              id
+              name
+              color
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    const response = await fetch('https://api.linear.app/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: apiToken.trim(),
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { success: false, error: `Linear API error: ${response.status} ${response.statusText} - ${errorText}` };
+    }
+
+    const result = await response.json() as {
+      data?: {
+        issues: {
+          nodes: Array<{
+            id: string;
+            identifier: string;
+            title: string;
+            description?: string;
+            priority: number;
+            priorityLabel: string;
+            url: string;
+            dueDate?: string;
+            state: {
+              id: string;
+              name: string;
+              color: string;
+              type: string;
+            };
+            assignee?: {
+              id: string;
+              name: string;
+            };
+            labels: {
+              nodes: Array<{
+                id: string;
+                name: string;
+                color: string;
+              }>;
+            };
+            project?: {
+              id: string;
+              name: string;
+              color?: string;
+            };
+            createdAt: string;
+            updatedAt: string;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    };
+
+    if (result.errors) {
+      return { success: false, error: `GraphQL errors: ${result.errors.map((e) => e.message).join(', ')}` };
+    }
+
+    if (!result.data) {
+      return { success: false, error: 'No data returned from Linear API' };
+    }
+
+    const issues: RoadmapIssue[] = result.data.issues.nodes.map((issue) => ({
+      id: issue.id,
+      identifier: issue.identifier,
+      title: issue.title,
+      description: issue.description,
+      priority: issue.priority,
+      priorityLabel: issue.priorityLabel,
+      url: issue.url,
+      dueDate: issue.dueDate,
+      state: issue.state,
+      assignee: issue.assignee,
+      labels: issue.labels.nodes,
+      project: issue.project,
+      createdAt: issue.createdAt,
+      updatedAt: issue.updatedAt,
+    }));
+
+    return { success: true, issues };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+/**
  * Linear Customer Request Manager
  *
  * A simple wrapper around the Linear API that creates customer requests
