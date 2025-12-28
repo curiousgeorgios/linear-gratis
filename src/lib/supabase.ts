@@ -112,12 +112,72 @@ export type CustomDomain = {
   ssl_issued_at?: string
   redirect_to_https?: boolean
   is_active: boolean
-  target_type?: 'form' | 'view'
+  target_type?: 'form' | 'view' | 'roadmap'
   target_slug?: string
   last_checked_at?: string
   error_message?: string
   cloudflare_hostname_id?: string
   cloudflare_hostname_status?: 'pending' | 'active' | 'pending_deletion' | 'moved' | 'deleted'
+  created_at: string
+  updated_at: string
+}
+
+export type KanbanColumn = {
+  key: string
+  label: string
+  state_types: string[]
+}
+
+export type Roadmap = {
+  id: string
+  user_id: string
+  name: string
+  slug: string
+  title: string
+  description?: string
+  layout_type: 'kanban' | 'timeline'
+  timeline_granularity: 'month' | 'quarter'
+  kanban_columns: KanbanColumn[]
+  project_ids: string[]
+  show_item_descriptions: boolean
+  show_item_dates: boolean
+  show_progress_percentage: boolean
+  show_vote_counts: boolean
+  show_comment_counts: boolean
+  allow_voting: boolean
+  allow_comments: boolean
+  require_email_for_comments: boolean
+  moderate_comments: boolean
+  is_active: boolean
+  password_protected: boolean
+  password_hash?: string
+  expires_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export type RoadmapVote = {
+  id: string
+  roadmap_id: string
+  issue_id: string
+  visitor_fingerprint: string
+  ip_hash?: string
+  created_at: string
+}
+
+export type RoadmapComment = {
+  id: string
+  roadmap_id: string
+  issue_id: string
+  author_name: string
+  author_email: string
+  author_email_verified: boolean
+  content: string
+  is_approved: boolean
+  is_hidden: boolean
+  parent_id?: string
+  visitor_fingerprint?: string
+  ip_hash?: string
   created_at: string
   updated_at: string
 }

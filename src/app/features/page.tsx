@@ -79,6 +79,30 @@ const features = [
         lindie: "check"
       },
       {
+        feature: "Roadmap voting",
+        linearGratis: "check",
+        steelSync: "x",
+        lindie: "check"
+      },
+      {
+        feature: "Roadmap comments",
+        linearGratis: "check",
+        steelSync: "x",
+        lindie: "check"
+      },
+      {
+        feature: "Password-protected roadmaps",
+        linearGratis: "check",
+        steelSync: "x",
+        lindie: "x"
+      },
+      {
+        feature: "Kanban & timeline views",
+        linearGratis: "check",
+        steelSync: "check",
+        lindie: "check"
+      },
+      {
         feature: "Private project sharing",
         linearGratis: "check",
         steelSync: "check",
@@ -115,31 +139,31 @@ const features = [
       },
       {
         feature: "Custom branding/logos",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },
       {
         feature: "White-label options",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },
       {
         feature: "Custom domains",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "x",
         lindie: "x"
       },
       {
         feature: "Advanced styling options",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       },
       {
         feature: "Theme customisation",
-        linearGratis: "soon",
+        linearGratis: "check",
         steelSync: "check",
         lindie: "check"
       }
