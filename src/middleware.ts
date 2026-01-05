@@ -1,19 +1,58 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { lookupCustomDomain } from '@/lib/edge-db';
 
+async function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session - this extends the session if it's about to expire
+  await supabase.auth.getUser();
+
+  return supabaseResponse;
+}
+
 export async function middleware(request: NextRequest) {
+  // Refresh Supabase auth session first
+  const response = await updateSession(request);
+
   const hostname = request.headers.get('host') || '';
   const url = request.nextUrl;
 
-  // Skip middleware for API routes, static files, and Next.js internals
+  // Skip custom domain logic for API routes, static files, and Next.js internals
+  // (but still return the response with refreshed session cookies)
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
     url.pathname.startsWith('/static/') ||
     url.pathname.includes('.') // Skip files with extensions
   ) {
-    return NextResponse.next();
+    return response;
   }
 
   // Check if this is a custom domain (not the main domain)
@@ -75,7 +114,7 @@ export async function middleware(request: NextRequest) {
       }
 
       // If domain found but no target configured, let the request through
-      return NextResponse.next();
+      return response;
     } catch (error) {
       console.error('Custom domain middleware error:', error);
       // On error, show a generic error page rather than exposing the app
@@ -87,7 +126,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Main domain - process normally
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

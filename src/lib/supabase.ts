@@ -1,20 +1,26 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+
+// Re-export the SSR-compatible browser client factory
+export { createClient } from './supabase/client'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Browser client instance for backwards compatibility with existing code
+// Uses cookie-based storage via @supabase/ssr
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
-// Service role client for bypassing RLS in API routes
+// Service role client for bypassing RLS in API routes (server-side only)
 export const supabaseAdmin = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
+  ? createSupabaseClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     })
-  : supabase
+  : supabase // Fallback for development without service key
 
 export type Profile = {
   id: string
