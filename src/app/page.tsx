@@ -16,7 +16,6 @@ import { supabase } from "@/lib/supabase";
 import {
   ArrowRight,
   Github,
-  Star,
   Users,
   MessageSquare,
   Share2,
@@ -25,12 +24,16 @@ import {
   Heart,
   ChevronRight,
   Settings,
-  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MetricsBar } from "@/components/metrics-bar";
+import { FAQ } from "@/components/faq";
+import { GitHubStars, GitHubStatsBar } from "@/components/github-stats";
+import { ProductPreview } from "@/components/product-preview";
+import { KanbanMockup } from "@/components/mockups/kanban-mockup";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -93,9 +96,9 @@ export default function Home() {
         <Navigation />
 
         {/* Hero Section */}
-        <section className="container mx-auto px-6 pt-24 pb-20">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
+        <section className="container mx-auto px-6 pt-24 pb-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
               <Badge
                 variant="secondary"
                 className="mb-8 px-4 py-2 bg-primary/10 text-primary border-primary/20"
@@ -105,56 +108,47 @@ export default function Home() {
               </Badge>
 
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent leading-tight">
-                Make Linear accessible to
+                Share Linear with clients.
                 <br />
-                <span className="text-primary">everyone</span>
+                <span className="text-primary">No seats required.</span>
               </h1>
 
-              <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
-                Share live Linear boards with clients and collect feedback through custom forms – all without giving away Linear seats. Stop sending status updates and copy-pasting feedback.
+              <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+                Real-time project boards and feedback forms that connect directly to Linear.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
                 <Link href="/login">
                   <Button
                     size="lg"
                     className="h-14 px-10 text-lg font-semibold"
                   >
-                    Start collecting feedback
+                    Start free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link
-                  href="https://github.com/curiousgeorgios/linear-gratis"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link href="#demo">
                   <Button
                     variant="outline"
                     size="lg"
                     className="h-14 px-10 text-lg font-semibold"
                   >
-                    <Star className="mr-2 h-5 w-5" />
-                    Star on GitHub
+                    View demo
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
-
-              <div className="flex justify-center items-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>No setup required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Always free</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Ready in 2 minutes</span>
-                </div>
-              </div>
             </div>
+
+            {/* Product Preview */}
+            <div className="mb-12">
+              <ProductPreview>
+                <KanbanMockup />
+              </ProductPreview>
+            </div>
+
+            {/* Metrics Bar */}
+            <MetricsBar />
 
             {/* Problem/Solution */}
             <div className="grid md:grid-cols-2 gap-8 mb-16">
@@ -319,7 +313,7 @@ export default function Home() {
         </section>
 
         {/* Live Demo Section */}
-        <section className="container mx-auto px-6 py-20">
+        <section id="demo" className="container mx-auto px-6 py-20">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -744,6 +738,19 @@ export default function Home() {
           </div>
         </section>
 
+        {/* FAQ Section */}
+        <section className="container mx-auto px-6 py-16">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Frequently asked questions</h2>
+              <p className="text-muted-foreground text-lg">
+                Everything you need to know about linear.gratis
+              </p>
+            </div>
+            <FAQ />
+          </div>
+        </section>
+
         {/* Open Source Section */}
         <section className="container mx-auto px-6 py-16">
           <div className="max-w-4xl mx-auto text-center">
@@ -760,6 +767,11 @@ export default function Home() {
                 accessible to everyone without barriers. No hidden costs, no
                 premium features, no limits.
               </p>
+
+              {/* GitHub Stats */}
+              <div className="mb-8">
+                <GitHubStatsBar />
+              </div>
 
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <div className="text-center">
@@ -785,22 +797,26 @@ export default function Home() {
                 </div>
               </div>
 
-              <Link
-                href="https://github.com/curiousgeorgios/linear-gratis"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-12 px-8 font-semibold"
-                >
-                  <Star className="mr-2 h-5 w-5" />
-                  Star on GitHub
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <GitHubStars />
             </div>
+          </div>
+        </section>
+
+        {/* Final CTA Section */}
+        <section className="container mx-auto px-6 py-20">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Ready to share Linear with your clients?
+            </h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              Get started in under 2 minutes. No credit card required.
+            </p>
+            <Link href="/login">
+              <Button size="lg" className="h-14 px-10 text-lg font-semibold">
+                Start free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </section>
 

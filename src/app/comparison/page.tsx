@@ -87,9 +87,9 @@ export default function ComparisonPage() {
                     <Users className="h-5 w-5 text-blue-500" />
                     <span>Community supported</span>
                   </div>
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <Badge variant="outline" className="text-xs">Coming soon</Badge>
-                    <span>Shareable Linear views</span>
+                  <div className="flex items-center gap-3">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span>Shareable Linear views & roadmaps</span>
                   </div>
                 </div>
 
@@ -106,15 +106,15 @@ export default function ComparisonPage() {
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl mb-2">SteelSync</CardTitle>
-                <CardDescription>Public roadmaps focused</CardDescription>
-                <div className="text-4xl font-bold mt-4">$29</div>
-                <p className="text-sm text-muted-foreground">per month</p>
+                <CardDescription>Public boards & AI changelogs</CardDescription>
+                <div className="text-4xl font-bold mt-4">Free+</div>
+                <p className="text-sm text-muted-foreground">paid tiers available</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500" />
-                    <span>Public/private roadmaps</span>
+                    <span>Public/private boards</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500" />
@@ -130,20 +130,21 @@ export default function ComparisonPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <DollarSign className="h-5 w-5 text-orange-500" />
-                    <span>Monthly subscription required</span>
+                    <span>Advanced features require payment</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Lock className="h-5 w-5 text-gray-500" />
                     <span>Closed source</span>
                   </div>
                   <div className="flex items-center gap-3 text-muted-foreground">
-                    <span className="text-sm">Best for agencies needing advanced roadmap features</span>
+                    <span className="text-sm">Best for agencies needing AI changelogs</span>
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full h-12 font-semibold mt-6" disabled>
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  Paid plans only
+                <Button variant="outline" className="w-full h-12 font-semibold mt-6" asChild>
+                  <a href="https://steelsync.io" target="_blank" rel="noopener noreferrer">
+                    Visit SteelSync
+                  </a>
                 </Button>
               </CardContent>
             </Card>
@@ -152,9 +153,9 @@ export default function ComparisonPage() {
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl mb-2">Lindie</CardTitle>
-                <CardDescription>Enterprise sharing</CardDescription>
-                <div className="text-4xl font-bold mt-4">$0-99</div>
-                <p className="text-sm text-muted-foreground">per month</p>
+                <CardDescription>Linear&apos;s collaboration companion</CardDescription>
+                <div className="text-4xl font-bold mt-4">Free+</div>
+                <p className="text-sm text-muted-foreground">paid tiers available</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -164,11 +165,11 @@ export default function ComparisonPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500" />
-                    <span>Domain/label restrictions</span>
+                    <span>Magic Summary feature</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500" />
-                    <span>Custom branding</span>
+                    <span>Status change notifications</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500" />
@@ -176,20 +177,21 @@ export default function ComparisonPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Users className="h-5 w-5 text-orange-500" />
-                    <span>Large teams & agencies focus</span>
+                    <span>Up to 10 users on free tier</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Lock className="h-5 w-5 text-gray-500" />
                     <span>Closed source</span>
                   </div>
                   <div className="flex items-center gap-3 text-muted-foreground">
-                    <span className="text-sm">Best for enterprise security needs</span>
+                    <span className="text-sm">Best for client collaboration</span>
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full h-12 font-semibold mt-6" disabled>
-                  <Lock className="mr-2 h-4 w-4" />
-                  Contact for pricing
+                <Button variant="outline" className="w-full h-12 font-semibold mt-6" asChild>
+                  <a href="https://lindie.app" target="_blank" rel="noopener noreferrer">
+                    Visit Lindie
+                  </a>
                 </Button>
               </CardContent>
             </Card>
@@ -262,7 +264,7 @@ export default function ComparisonPage() {
                   Choose SteelSync if...
                 </h3>
                 <p className="text-muted-foreground">
-                  You&apos;re an agency that needs AI-generated changelogs, advanced public roadmap customisation, and don&apos;t mind paying $29/month for premium features.
+                  You need AI-generated changelogs, automated client request workflows, and advanced public board customisation for your agency.
                 </p>
               </CardContent>
             </Card>
@@ -274,7 +276,7 @@ export default function ComparisonPage() {
                   Choose Lindie if...
                 </h3>
                 <p className="text-muted-foreground">
-                  You need advanced features like analytics, magic summary, and visibility rules, and can justify $50-99/month for enterprise-level Linear sharing capabilities.
+                  You need Magic Summary overviews, automated status notifications, and a polished UI for sharing Linear projects with clients.
                 </p>
               </CardContent>
             </Card>
