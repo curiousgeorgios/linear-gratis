@@ -27,12 +27,12 @@ export const metadata: Metadata = createMetadata({
 export default function IntegrationsPage() {
   const categories = Array.from(new Set(Object.values(integrations).map(i => i.category)))
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyVariant = (difficulty: string): "green" | "yellow" | "red" | "gray" => {
     switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400'
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400'
-      case 'Advanced': return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-400'
+      case 'Easy': return 'green'
+      case 'Medium': return 'yellow'
+      case 'Advanced': return 'red'
+      default: return 'gray'
     }
   }
 
@@ -108,11 +108,11 @@ export default function IntegrationsPage() {
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-2xl">{getCategoryIcon(integration.category)}</span>
                         <div className="flex items-center gap-2">
-                          <Badge className={getDifficultyColor(integration.difficulty)}>
+                          <Badge variant={getDifficultyVariant(integration.difficulty)}>
                             {integration.difficulty}
                           </Badge>
                           {integration.officialSupport && (
-                            <Badge variant="outline" className="border-green-500 text-green-700 dark:text-green-400 text-xs">
+                            <Badge variant="green" className="text-xs">
                               Official
                             </Badge>
                           )}
@@ -194,7 +194,7 @@ export default function IntegrationsPage() {
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-medium">{integration.name}</h4>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className={`text-xs ${getDifficultyColor(integration.difficulty)}`}>
+                              <Badge variant={getDifficultyVariant(integration.difficulty)} className="text-xs">
                                 {integration.difficulty}
                               </Badge>
                               {integration.officialSupport && (

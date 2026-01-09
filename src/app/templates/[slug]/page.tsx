@@ -53,13 +53,13 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
     generateBreadcrumbSchema(`/templates/${template.slug}`)
   ]
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryVariant = (category: string): "blue" | "green" | "purple" | "orange" | "gray" => {
     switch (category) {
-      case 'Support': return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400'
-      case 'Product': return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400'
-      case 'Feedback': return 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-400'
-      case 'Research': return 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-400'
+      case 'Support': return 'blue'
+      case 'Product': return 'green'
+      case 'Feedback': return 'purple'
+      case 'Research': return 'orange'
+      default: return 'gray'
     }
   }
 
@@ -108,7 +108,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
           <div className="max-w-4xl mx-auto mb-12">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Badge className={getCategoryColor(template.category)}>
+                <Badge variant={getCategoryVariant(template.category)}>
                   {template.category}
                 </Badge>
                 <Badge variant="outline">
@@ -411,7 +411,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                     <Card className="border-border/50 hover:border-primary/20 transition-colors cursor-pointer h-full">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge className={getCategoryColor(relatedTemplate.category)} variant="secondary">
+                          <Badge variant={getCategoryVariant(relatedTemplate.category)}>
                             {relatedTemplate.category}
                           </Badge>
                         </div>

@@ -93,6 +93,22 @@
   --priority-medium: var(--linear-yellow);
   --priority-high: var(--linear-orange);
   --priority-urgent: var(--linear-red);
+
+  /* Semantic badge colours - light mode */
+  --badge-blue-bg: #dbeafe;
+  --badge-blue-text: #1e40af;
+  --badge-green-bg: #dcfce7;
+  --badge-green-text: #166534;
+  --badge-yellow-bg: #fef3c7;
+  --badge-yellow-text: #92400e;
+  --badge-red-bg: #fee2e2;
+  --badge-red-text: #991b1b;
+  --badge-purple-bg: #f3e8ff;
+  --badge-purple-text: #6b21a8;
+  --badge-orange-bg: #ffedd5;
+  --badge-orange-text: #9a3412;
+  --badge-gray-bg: #f3f4f6;
+  --badge-gray-text: #374151;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -154,6 +170,22 @@
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: #27272a;
   --sidebar-ring: #6366f1;
+
+  /* Semantic badge colours - dark mode */
+  --badge-blue-bg: rgba(59, 130, 246, 0.15);
+  --badge-blue-text: #60a5fa;
+  --badge-green-bg: rgba(34, 197, 94, 0.15);
+  --badge-green-text: #4ade80;
+  --badge-yellow-bg: rgba(234, 179, 8, 0.15);
+  --badge-yellow-text: #facc15;
+  --badge-red-bg: rgba(239, 68, 68, 0.15);
+  --badge-red-text: #f87171;
+  --badge-purple-bg: rgba(168, 85, 247, 0.15);
+  --badge-purple-text: #c084fc;
+  --badge-orange-bg: rgba(249, 115, 22, 0.15);
+  --badge-orange-text: #fb923c;
+  --badge-gray-bg: rgba(107, 114, 128, 0.15);
+  --badge-gray-text: #9ca3af;
 }
 
 @layer base {
