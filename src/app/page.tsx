@@ -228,7 +228,7 @@ export default function Home() {
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-4">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400">
+                    <Badge variant="blue">
                       Live now
                     </Badge>
                     <Share2 className="h-8 w-8 text-blue-500" />
@@ -266,7 +266,7 @@ export default function Home() {
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-4">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400">
+                    <Badge variant="green">
                       Live now
                     </Badge>
                     <MessageSquare className="h-8 w-8 text-green-500" />
@@ -452,10 +452,7 @@ export default function Home() {
                     <CardContent>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400"
-                          >
+                          <Badge variant="green">
                             Customer Request
                           </Badge>
                           <span className="text-sm text-muted-foreground">

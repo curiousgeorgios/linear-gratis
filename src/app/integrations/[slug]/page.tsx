@@ -51,12 +51,12 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
     generateBreadcrumbSchema(`/integrations/${integration.slug}`)
   ]
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyVariant = (difficulty: string): "green" | "yellow" | "red" | "gray" => {
     switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400'
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400'
-      case 'Advanced': return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-400'
+      case 'Easy': return 'green'
+      case 'Medium': return 'yellow'
+      case 'Advanced': return 'red'
+      default: return 'gray'
     }
   }
 
@@ -111,11 +111,11 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                 <Badge variant="secondary">
                   {integration.category}
                 </Badge>
-                <Badge className={getDifficultyColor(integration.difficulty)}>
+                <Badge variant={getDifficultyVariant(integration.difficulty)}>
                   {integration.difficulty}
                 </Badge>
                 {integration.officialSupport && (
-                  <Badge variant="outline" className="border-green-500 text-green-700 dark:text-green-400">
+                  <Badge variant="green">
                     ✓ Official
                   </Badge>
                 )}
@@ -415,7 +415,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-lg">{getCategoryIcon(related.category)}</span>
-                          <Badge className={getDifficultyColor(related.difficulty)} variant="secondary">
+                          <Badge variant={getDifficultyVariant(related.difficulty)}>
                             {related.difficulty}
                           </Badge>
                         </div>

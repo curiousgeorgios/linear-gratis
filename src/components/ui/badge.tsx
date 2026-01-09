@@ -15,6 +15,13 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
         outline: "text-foreground",
+        blue: "border-transparent",
+        green: "border-transparent",
+        yellow: "border-transparent",
+        red: "border-transparent",
+        purple: "border-transparent",
+        orange: "border-transparent",
+        gray: "border-transparent",
       },
     },
     defaultVariants: {
@@ -23,13 +30,28 @@ const badgeVariants = cva(
   }
 )
 
+const colorVariantStyles: Record<string, React.CSSProperties> = {
+  blue: { backgroundColor: "var(--badge-blue-bg)", color: "var(--badge-blue-text)" },
+  green: { backgroundColor: "var(--badge-green-bg)", color: "var(--badge-green-text)" },
+  yellow: { backgroundColor: "var(--badge-yellow-bg)", color: "var(--badge-yellow-text)" },
+  red: { backgroundColor: "var(--badge-red-bg)", color: "var(--badge-red-text)" },
+  purple: { backgroundColor: "var(--badge-purple-bg)", color: "var(--badge-purple-text)" },
+  orange: { backgroundColor: "var(--badge-orange-bg)", color: "var(--badge-orange-text)" },
+  gray: { backgroundColor: "var(--badge-gray-bg)", color: "var(--badge-gray-text)" },
+}
+
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, style, ...props }: BadgeProps) {
+  const colorStyle = variant && colorVariantStyles[variant]
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div
+      className={cn(badgeVariants({ variant }), className)}
+      style={colorStyle ? { ...colorStyle, ...style } : style}
+      {...props}
+    />
   )
 }
 

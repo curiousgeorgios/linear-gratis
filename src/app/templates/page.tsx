@@ -39,13 +39,13 @@ const categoryDescriptions: Record<string, string> = {
 export default function TemplatesPage() {
   const categories = Array.from(new Set(Object.values(templates).map(t => t.category)))
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryVariant = (category: string): "blue" | "green" | "purple" | "orange" | "gray" => {
     switch (category) {
-      case 'Support': return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400'
-      case 'Product': return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400'
-      case 'Feedback': return 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-400'
-      case 'Research': return 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-400'
+      case 'Support': return 'blue'
+      case 'Product': return 'green'
+      case 'Feedback': return 'purple'
+      case 'Research': return 'orange'
+      default: return 'gray'
     }
   }
 
@@ -113,7 +113,7 @@ export default function TemplatesPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-center">
-                    <Badge className={getCategoryColor(category)} variant="secondary">
+                    <Badge variant={getCategoryVariant(category)}>
                       {templatesInCategory.length} template{templatesInCategory.length !== 1 ? 's' : ''}
                     </Badge>
                   </CardContent>
@@ -132,7 +132,7 @@ export default function TemplatesPage() {
                 <Card className="border-border/50 hover:border-primary/20 transition-all duration-300 hover:shadow-lg cursor-pointer h-full">
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-3">
-                      <Badge className={getCategoryColor(template.category)}>
+                      <Badge variant={getCategoryVariant(template.category)}>
                         {template.category}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -202,7 +202,7 @@ export default function TemplatesPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
@@ -214,7 +214,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
@@ -226,7 +226,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
@@ -240,7 +240,7 @@ export default function TemplatesPage() {
 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
@@ -252,7 +252,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
@@ -264,7 +264,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-950 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 bg-[var(--badge-green-bg)] rounded flex items-center justify-center flex-shrink-0">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>

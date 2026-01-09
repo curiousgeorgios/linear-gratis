@@ -513,7 +513,7 @@ export default function FeaturesPage() {
                           <div className="flex items-center justify-center gap-2">
                             <FeatureIcon status={item.linearGratis} />
                             {item.linearGratis === 'soon' && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                              <Badge variant="blue" className="text-xs">
                                 Coming soon
                               </Badge>
                             )}
