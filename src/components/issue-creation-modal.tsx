@@ -412,35 +412,8 @@ export function IssueCreationModal({
 
             {/* Issue properties */}
             <div className="flex items-center gap-2 px-4 py-3 border-t flex-wrap" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
-              {/* Status - Read-only for public views, interactive for authenticated users */}
-              {viewSlug ? (
-                // Read-only status display for public views
-                <div
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded"
-                  style={{
-                    border: '0.5px solid lch(24.833 4.707 272)',
-                    backgroundColor: 'lch(8.3 1.867 272)',
-                    opacity: 0.75,
-                  }}
-                  title="Status is automatically assigned for public submissions"
-                >
-                  {selectedState ? (
-                    <>
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: selectedState.color }}
-                      />
-                      <span>{selectedState.name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <TodoIcon />
-                      <span>Status</span>
-                    </>
-                  )}
-                </div>
-              ) : (
-                // Interactive status dropdown for authenticated users
+              {/* Status - Hidden for public views, interactive for authenticated users */}
+              {!viewSlug && (
                 <div className="relative" ref={stateDropdownRef}>
                   <button
                     type="button"
@@ -639,86 +612,88 @@ export function IssueCreationModal({
               )}
 
 
-              {/* Labels */}
-              <div className="relative" ref={labelsDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowLabelsDropdown(!showLabelsDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
-                  style={{
-                    border: '0.5px solid lch(24.833 4.707 272)',
-                    backgroundColor: 'lch(8.3 1.867 272)',
-                  }}
-                >
-                  {selectedLabels.length > 0 ? (
-                    <>
-                      <div className="flex gap-1">
-                        {selectedLabels.slice(0, 2).map((label) => (
-                          <div
-                            key={label.id}
-                            className="w-3 h-3 rounded-sm"
-                            style={{ backgroundColor: label.color }}
-                          />
-                        ))}
-                        {selectedLabels.length > 2 && (
-                          <span className="text-xs">+{selectedLabels.length - 2}</span>
-                        )}
-                      </div>
-                      <span>Labels</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M12 11.5V13H5.132v-1.5H12Zm1.5-1.5V6a1.5 1.5 0 0 0-1.346-1.492L12 4.5H5.133a.5.5 0 0 0-.303.103l-.08.076-2.382 2.834a.5.5 0 0 0-.11.234l-.008.087v.331a.5.5 0 0 0 .118.321l2.382 2.835a.5.5 0 0 0 .383.179V13l-.22-.012a2 2 0 0 1-1.16-.54l-.15-.16L1.218 9.45a2 2 0 0 1-.46-1.11L.75 8.165v-.331a2 2 0 0 1 .363-1.147l.106-.14 2.383-2.834a2 2 0 0 1 1.312-.701L5.134 3H12a3 3 0 0 1 3 3v4a3 3 0 0 1-3.002 3v-1.5c.778 0 1.417-.59 1.494-1.347L13.5 10Z"></path>
-                        <path d="M5.5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path>
-                      </svg>
-                      <span>Labels</span>
-                    </>
-                  )}
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
-
-                {showLabelsDropdown && metadata?.labels && (
-                  <div
-                    className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
+              {/* Labels - Hidden for public views */}
+              {!viewSlug && (
+                <div className="relative" ref={labelsDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowLabelsDropdown(!showLabelsDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-accent transition-colors"
                     style={{
-                      backgroundColor: 'lch(10.633 1.867 272)',
                       border: '0.5px solid lch(24.833 4.707 272)',
+                      backgroundColor: 'lch(8.3 1.867 272)',
                     }}
                   >
-                    {metadata.labels.map((label) => {
-                      const isSelected = selectedLabels.some(l => l.id === label.id)
-                      return (
-                        <button
-                          key={label.id}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              const newLabels = selectedLabels.filter(l => l.id !== label.id)
-                              setSelectedLabels(newLabels)
-                              setFormData(prev => ({ ...prev, labelIds: newLabels.map(l => l.id) }))
-                            } else {
-                              const newLabels = [...selectedLabels, label]
-                              setSelectedLabels(newLabels)
-                              setFormData(prev => ({ ...prev, labelIds: newLabels.map(l => l.id) }))
-                            }
-                          }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors ${
-                            isSelected ? 'bg-accent/50' : ''
-                          }`}
-                        >
-                          <div
-                            className="w-3 h-3 rounded-sm"
-                            style={{ backgroundColor: label.color }}
-                          />
-                          <span>{label.name}</span>
-                          {isSelected && <span className="ml-auto text-xs">✓</span>}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+                    {selectedLabels.length > 0 ? (
+                      <>
+                        <div className="flex gap-1">
+                          {selectedLabels.slice(0, 2).map((label) => (
+                            <div
+                              key={label.id}
+                              className="w-3 h-3 rounded-sm"
+                              style={{ backgroundColor: label.color }}
+                            />
+                          ))}
+                          {selectedLabels.length > 2 && (
+                            <span className="text-xs">+{selectedLabels.length - 2}</span>
+                          )}
+                        </div>
+                        <span>Labels</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M12 11.5V13H5.132v-1.5H12Zm1.5-1.5V6a1.5 1.5 0 0 0-1.346-1.492L12 4.5H5.133a.5.5 0 0 0-.303.103l-.08.076-2.382 2.834a.5.5 0 0 0-.11.234l-.008.087v.331a.5.5 0 0 0 .118.321l2.382 2.835a.5.5 0 0 0 .383.179V13l-.22-.012a2 2 0 0 1-1.16-.54l-.15-.16L1.218 9.45a2 2 0 0 1-.46-1.11L.75 8.165v-.331a2 2 0 0 1 .363-1.147l.106-.14 2.383-2.834a2 2 0 0 1 1.312-.701L5.134 3H12a3 3 0 0 1 3 3v4a3 3 0 0 1-3.002 3v-1.5c.778 0 1.417-.59 1.494-1.347L13.5 10Z"></path>
+                          <path d="M5.5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path>
+                        </svg>
+                        <span>Labels</span>
+                      </>
+                    )}
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </button>
+
+                  {showLabelsDropdown && metadata?.labels && (
+                    <div
+                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
+                      style={{
+                        backgroundColor: 'lch(10.633 1.867 272)',
+                        border: '0.5px solid lch(24.833 4.707 272)',
+                      }}
+                    >
+                      {metadata.labels.map((label) => {
+                        const isSelected = selectedLabels.some(l => l.id === label.id)
+                        return (
+                          <button
+                            key={label.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                const newLabels = selectedLabels.filter(l => l.id !== label.id)
+                                setSelectedLabels(newLabels)
+                                setFormData(prev => ({ ...prev, labelIds: newLabels.map(l => l.id) }))
+                              } else {
+                                const newLabels = [...selectedLabels, label]
+                                setSelectedLabels(newLabels)
+                                setFormData(prev => ({ ...prev, labelIds: newLabels.map(l => l.id) }))
+                              }
+                            }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors ${
+                              isSelected ? 'bg-accent/50' : ''
+                            }`}
+                          >
+                            <div
+                              className="w-3 h-3 rounded-sm"
+                              style={{ backgroundColor: label.color }}
+                            />
+                            <span>{label.name}</span>
+                            {isSelected && <span className="ml-auto text-xs">✓</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
 
             </div>
