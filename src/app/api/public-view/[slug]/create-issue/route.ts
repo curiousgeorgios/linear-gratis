@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
 
+const LINEAR_API_URL = 'https://api.linear.app/graphql';
+
 interface IssueCreateRequest {
   title: string;
   description?: string;
@@ -9,6 +11,145 @@ interface IssueCreateRequest {
   priority?: number;
   assigneeId?: string;
   labelIds?: string[];
+}
+
+interface WorkflowState {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+}
+
+// Fetch team metadata directly from Linear API
+async function fetchTeamMetadata(apiToken: string, teamId: string) {
+  const query = `
+    query TeamMetadata($teamId: String!) {
+      team(id: $teamId) {
+        id
+        name
+        triageEnabled
+        triageIssueState {
+          id
+          name
+          type
+          color
+        }
+        states {
+          nodes {
+            id
+            name
+            type
+            color
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(LINEAR_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': apiToken,
+    },
+    body: JSON.stringify({ query, variables: { teamId } }),
+  });
+
+  const data = await response.json() as {
+    data?: {
+      team?: {
+        triageEnabled?: boolean;
+        triageIssueState?: WorkflowState;
+        states?: { nodes: WorkflowState[] };
+      };
+    };
+  };
+
+  return data.data?.team;
+}
+
+// Create issue directly via Linear API
+async function createLinearIssue(
+  apiToken: string,
+  input: {
+    title: string;
+    description?: string;
+    stateId?: string;
+    priority?: number;
+    projectId?: string;
+    teamId: string;
+    labelIds?: string[];
+  }
+) {
+  const mutation = `
+    mutation IssueCreate($input: IssueCreateInput!) {
+      issueCreate(input: $input) {
+        success
+        issue {
+          id
+          identifier
+          title
+          description
+          priority
+          state {
+            id
+            name
+            type
+            color
+          }
+          team {
+            id
+            name
+            key
+          }
+          project {
+            id
+            name
+          }
+          labels {
+            nodes {
+              id
+              name
+              color
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      title: input.title.trim(),
+      ...(input.description && { description: input.description }),
+      ...(input.stateId && { stateId: input.stateId }),
+      ...(input.priority !== undefined && { priority: input.priority }),
+      ...(input.projectId && { projectId: input.projectId }),
+      teamId: input.teamId,
+      ...(input.labelIds && input.labelIds.length > 0 && { labelIds: input.labelIds }),
+    },
+  };
+
+  const response = await fetch(LINEAR_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': apiToken,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  return response.json() as Promise<{
+    errors?: unknown[];
+    data?: {
+      issueCreate?: {
+        success: boolean;
+        issue: unknown;
+      };
+    };
+  }>;
 }
 
 export async function POST(
@@ -41,6 +182,13 @@ export async function POST(
       );
     }
 
+    if (!viewData.team_id) {
+      return NextResponse.json(
+        { error: 'View has no team configured' },
+        { status: 400 }
+      );
+    }
+
     // Get the user's Linear token
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -58,80 +206,60 @@ export async function POST(
     // Decrypt the token
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
-    // Fetch team metadata to get triage settings
-    // This enforces that public issues always use triage/unstarted state
-    const metadataResponse = await fetch(`${request.nextUrl.origin}/api/linear/metadata`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiToken: decryptedToken,
-        teamId: viewData.team_id,
-        projectId: viewData.project_id,
-      })
-    });
-
-    interface WorkflowState {
-      id: string;
-      name: string;
-      type: string;
-      color: string;
-    }
-
-    interface MetadataResult {
-      success: boolean;
-      metadata?: {
-        triageEnabled?: boolean;
-        triageIssueState?: WorkflowState;
-        states?: WorkflowState[];
-      };
-    }
-
-    const metadataResult: MetadataResult = await metadataResponse.json();
+    // Fetch team metadata directly from Linear API
+    const teamMetadata = await fetchTeamMetadata(decryptedToken, viewData.team_id);
 
     // Determine the correct state for public issue creation
     // Priority: 1) Triage state if enabled, 2) First unstarted state, 3) First available state
     let finalStateId: string | undefined = undefined;
 
-    if (metadataResult.metadata?.triageEnabled && metadataResult.metadata?.triageIssueState) {
+    if (teamMetadata?.triageEnabled && teamMetadata?.triageIssueState) {
       // Force triage state when triage is enabled
-      finalStateId = metadataResult.metadata.triageIssueState.id;
-    } else if (metadataResult.metadata?.states) {
+      finalStateId = teamMetadata.triageIssueState.id;
+    } else if (teamMetadata?.states?.nodes) {
       // Fall back to unstarted state
-      const unstartedState = metadataResult.metadata.states.find(
+      const unstartedState = teamMetadata.states.nodes.find(
         (s: WorkflowState) => s.type === 'unstarted'
       );
       if (unstartedState) {
         finalStateId = unstartedState.id;
-      } else if (metadataResult.metadata.states.length > 0) {
+      } else if (teamMetadata.states.nodes.length > 0) {
         // Last resort: use first available state
-        finalStateId = metadataResult.metadata.states[0].id;
+        finalStateId = teamMetadata.states.nodes[0].id;
       }
     }
 
     // Create the issue with enforced restrictions
     // Note: priority and assigneeId are intentionally not passed for public views
-    const createIssueResponse = await fetch(`${request.nextUrl.origin}/api/linear/create-issue`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiToken: decryptedToken,
-        title: issueData.title,
-        description: issueData.description,
-        stateId: finalStateId, // Enforced triage/unstarted state
-        priority: 0, // Default to no priority for public views
-        assigneeId: undefined, // No assignee for public views
-        projectId: viewData.project_id,
-        teamId: viewData.team_id,
-        labelIds: issueData.labelIds,
-      })
+    const result = await createLinearIssue(decryptedToken, {
+      title: issueData.title,
+      description: issueData.description,
+      stateId: finalStateId, // Enforced triage/unstarted state
+      priority: 0, // Default to no priority for public views
+      projectId: viewData.project_id,
+      teamId: viewData.team_id,
+      labelIds: issueData.labelIds,
     });
 
-    if (!createIssueResponse.ok) {
-      throw new Error('Failed to create issue');
+    if (result.errors) {
+      console.error('Linear API errors:', result.errors);
+      return NextResponse.json(
+        { error: 'Failed to create issue', details: result.errors },
+        { status: 400 }
+      );
     }
 
-    const result = await createIssueResponse.json();
-    return NextResponse.json(result);
+    if (!result.data?.issueCreate?.success) {
+      return NextResponse.json(
+        { error: 'Failed to create issue' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      issue: result.data.issueCreate.issue,
+    });
 
   } catch (error) {
     console.error('Error creating issue:', error);
