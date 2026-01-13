@@ -163,32 +163,29 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     teamId?: string;
     labelIds: string[];
   }) => {
-    try {
-      const response = await fetch(`/api/public-view/${slug}/create-issue`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: issueData.title,
-          description: issueData.description,
-          stateId: issueData.stateId,
-          priority: issueData.priority,
-          assigneeId: issueData.assigneeId,
-          labelIds: issueData.labelIds,
-        }),
-      })
+    const response = await fetch(`/api/public-view/${slug}/create-issue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: issueData.title,
+        description: issueData.description,
+        stateId: issueData.stateId,
+        priority: issueData.priority,
+        assigneeId: issueData.assigneeId,
+        labelIds: issueData.labelIds,
+      }),
+    })
 
-      const result = await response.json() as { success?: boolean; issue?: unknown; error?: string }
+    const result = await response.json() as { success?: boolean; issue?: unknown; error?: string }
 
-      if (result.success) {
-        setShowIssueModal(false)
-        // Refresh to show the new issue
-        await handleRefresh()
-      }
-    } catch (error) {
-      console.error('Error creating issue:', error)
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Failed to create issue')
     }
+
+    // Success - refresh to show the new issue
+    await handleRefresh()
   }
 
   useEffect(() => {
