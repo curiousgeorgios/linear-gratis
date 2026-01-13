@@ -495,11 +495,11 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
                 {branding.footer_text}
               </p>
-            ) : (
+            ) : !view?.allow_issue_creation ? (
               <p className="text-sm text-muted-foreground mb-1">
                 Read-only view of Linear issues
               </p>
-            )}
+            ) : null}
             {(branding?.show_powered_by !== false) && (
               <p className="text-xs text-muted-foreground">
                 {branding?.footer_text ? 'Powered by ' : 'Create your own at '}
