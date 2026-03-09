@@ -293,29 +293,6 @@ export default function FormsPage() {
     return <div>Loading...</div>;
   }
 
-  if (!linearToken) {
-    return (
-      <div className="min-h-screen">
-        <Navigation />
-        <div className="max-w-4xl mx-auto p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Linear API token required</CardTitle>
-              <CardDescription>
-                You need to save your Linear API token before creating forms.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/profile">
-                <Button>Go to profile settings</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -377,16 +354,24 @@ export default function FormsPage() {
           </div>
 
           <div className="text-center">
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              disabled={projects.length === 0}
-              size="lg"
-              className="h-12 px-8 font-semibold"
-            >
-              {forms.length === 0
-                ? "Create your first form"
-                : "Create new form"}
-            </Button>
+            {linearToken ? (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                disabled={projects.length === 0}
+                size="lg"
+                className="h-12 px-8 font-semibold"
+              >
+                {forms.length === 0
+                  ? "Create your first form"
+                  : "Create new form"}
+              </Button>
+            ) : (
+              <Link href="/profile">
+                <Button variant="outline" size="lg" className="h-12 px-8 font-semibold">
+                  Set up Linear API token to create forms
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -666,16 +651,14 @@ export default function FormsPage() {
                             Preview
                           </Button>
                         </Link>
-                        {form.user_id === user?.id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteForm(form.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteForm(form.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
