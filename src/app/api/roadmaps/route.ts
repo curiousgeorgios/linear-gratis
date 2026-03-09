@@ -30,11 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    // Fetch user's roadmaps
+    // Fetch all roadmaps (shared across authenticated users)
     const { data: roadmaps, error } = await supabaseAdmin
       .from('roadmaps')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
