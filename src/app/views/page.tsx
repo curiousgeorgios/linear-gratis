@@ -451,30 +451,6 @@ export default function PublicViewsPage() {
     return <div>Loading...</div>;
   }
 
-  if (!linearToken) {
-    return (
-      <div className="min-h-screen">
-        <Navigation />
-        <div className="max-w-4xl mx-auto p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Linear API token required</CardTitle>
-              <CardDescription>
-                You need to save your Linear API token before creating public
-                views.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/profile">
-                <Button>Go to profile settings</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -529,20 +505,28 @@ export default function PublicViewsPage() {
           </div>
 
           <div className="text-center">
-            <Button
-              onClick={() => {
-                setShowCreateView(true);
-                setShowEditView(false);
-                setEditingView(null);
-              }}
-              disabled={projects.length === 0 && teams.length === 0}
-              size="lg"
-              className="h-12 px-8 font-semibold"
-            >
-              {views.length === 0
-                ? "Create your first public view"
-                : "Create new view"}
-            </Button>
+            {linearToken ? (
+              <Button
+                onClick={() => {
+                  setShowCreateView(true);
+                  setShowEditView(false);
+                  setEditingView(null);
+                }}
+                disabled={projects.length === 0 && teams.length === 0}
+                size="lg"
+                className="h-12 px-8 font-semibold"
+              >
+                {views.length === 0
+                  ? "Create your first public view"
+                  : "Create new view"}
+              </Button>
+            ) : (
+              <Link href="/profile">
+                <Button variant="outline" size="lg" className="h-12 px-8 font-semibold">
+                  Set up Linear API token to create views
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -1201,27 +1185,23 @@ export default function PublicViewsPage() {
                             Preview
                           </Button>
                         </Link>
-                        {view.user_id === user?.id && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => startEditView(view)}
-                              className="flex items-center gap-2"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteView(view.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEditView(view)}
+                          className="flex items-center gap-2"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteView(view.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
