@@ -192,6 +192,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button, [role="button"], a, select, label[for], input[type="checkbox"], input[type="radio"], summary {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
