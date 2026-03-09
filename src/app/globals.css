@@ -192,7 +192,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  button, [role="button"], a, select, label[for], input[type="checkbox"], input[type="radio"], summary {
+  button, [role="button"], [data-slot="button"], a, a[href], select, label[for], input[type="checkbox"], input[type="radio"], summary, [onclick], [tabindex="0"] {
     cursor: pointer;
   }
   body {
