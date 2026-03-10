@@ -302,8 +302,9 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                   src={branding.logo_url}
                   alt={branding.brand_name || 'Logo'}
                   style={{
-                    width: `${branding.logo_width || 120}px`,
-                    height: `${branding.logo_height || 40}px`,
+                    width: 'auto',
+                    height: 'auto',
+                    maxHeight: `${branding.logo_height || 40}px`,
                     objectFit: 'contain',
                   }}
                   className="flex-shrink-0"
