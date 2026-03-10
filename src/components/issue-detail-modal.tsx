@@ -13,6 +13,7 @@ interface IssueDetailModalProps {
   viewSlug: string
   showComments?: boolean
   showActivity?: boolean
+  showDescriptions?: boolean
 }
 
 const getPriorityIcon = (priority: number) => {
@@ -97,7 +98,7 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug, showComments = false, showActivity = false }: IssueDetailModalProps) {
+export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug, showComments = false, showActivity = false, showDescriptions = true }: IssueDetailModalProps) {
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -282,7 +283,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug, showComme
               </div>
 
               {/* Description */}
-              {issue.description && (
+              {showDescriptions && issue.description && (
                 <div className="mb-8">
                   <h3 className="text-sm font-medium text-foreground mb-3">Description</h3>
                   <div className="prose prose-sm max-w-none text-foreground/90 markdown-content">
