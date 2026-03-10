@@ -40,7 +40,7 @@ export function useBrandingSettings(userId: string | null) {
 }
 
 // Helper function to apply branding colours to CSS variables
-export function applyBrandingToPage(branding: BrandingSettings | null) {
+export function applyBrandingToPage(branding: BrandingSettings | null, pageTitle?: string) {
   if (!branding) return;
 
   const root = document.documentElement;
@@ -110,6 +110,12 @@ export function applyBrandingToPage(branding: BrandingSettings | null) {
     }
 
     styleElement.textContent = branding.custom_css;
+  }
+
+  // Apply document title from branding
+  if (branding.brand_name || pageTitle) {
+    const parts = [pageTitle, branding.brand_name].filter(Boolean);
+    document.title = parts.join(' - ');
   }
 
   // Apply favicon

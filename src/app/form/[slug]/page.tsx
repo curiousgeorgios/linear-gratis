@@ -122,9 +122,9 @@ export default function PublicFormPage() {
   // Apply branding when it loads
   useEffect(() => {
     if (branding) {
-      applyBrandingToPage(branding)
+      applyBrandingToPage(branding, formConfig?.form_title)
     }
-  }, [branding])
+  }, [branding, formConfig])
 
   const onFormSubmit = async (values: FormData) => {
     if (!formConfig) return

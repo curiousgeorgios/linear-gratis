@@ -204,9 +204,9 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
   // Apply branding when it loads
   useEffect(() => {
     if (branding) {
-      applyBrandingToPage(branding)
+      applyBrandingToPage(branding, roadmap?.title)
     }
-  }, [branding])
+  }, [branding, roadmap])
 
   if (loading) {
     return (

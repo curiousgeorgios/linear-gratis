@@ -197,9 +197,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   // Apply branding when it loads
   useEffect(() => {
     if (branding) {
-      applyBrandingToPage(branding)
+      applyBrandingToPage(branding, view?.view_title)
     }
-  }, [branding])
+  }, [branding, view])
 
   const hasActiveFilters = () => {
     return filters.search ||
