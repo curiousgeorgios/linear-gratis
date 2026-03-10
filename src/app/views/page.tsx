@@ -70,6 +70,8 @@ export default function PublicViewsPage() {
   const [editingView, setEditingView] = useState<PublicView | null>(null);
   const [showEditView, setShowEditView] = useState(false);
   const [allowIssueCreation, setAllowIssueCreation] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -237,6 +239,8 @@ export default function PublicViewsPage() {
         show_labels: true,
         show_priorities: true,
         show_descriptions: true,
+        show_comments: showComments,
+        show_activity: showActivity,
         allowed_statuses: [],
         password_protected: passwordProtected,
         password_hash: passwordHash,
@@ -323,6 +327,8 @@ export default function PublicViewsPage() {
     setPasswordProtected(false);
     setPassword("");
     setAllowIssueCreation(false);
+    setShowComments(false);
+    setShowActivity(false);
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
@@ -337,6 +343,8 @@ export default function PublicViewsPage() {
     setPasswordProtected(view.password_protected || false);
     setPassword("");
     setAllowIssueCreation(view.allow_issue_creation || false);
+    setShowComments(view.show_comments || false);
+    setShowActivity(view.show_activity || false);
 
     // Set source type and selection based on existing view
     if (view.project_id) {
@@ -418,6 +426,8 @@ export default function PublicViewsPage() {
           password_protected: passwordProtected,
           password_hash: passwordHash,
           allow_issue_creation: allowIssueCreation,
+          show_comments: showComments,
+          show_activity: showActivity,
           ...sourceData,
         })
         .eq("id", editingView.id);
@@ -760,6 +770,44 @@ export default function PublicViewsPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showComments}
+                        onChange={() => setShowComments(!showComments)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="show-comments"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show comments on issue detail
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display Linear comments (internal discussions) when viewing issue details
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showActivity}
+                        onChange={() => setShowActivity(!showActivity)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="show-activity"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show activity history on issue detail
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display status changes, assignee changes, and other activity when viewing issue details
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1008,6 +1056,44 @@ export default function PublicViewsPage() {
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
                         Enable a &quot;Create issue&quot; button in the public board view
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showComments}
+                        onChange={() => setShowComments(!showComments)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="edit-show-comments"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show comments on issue detail
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display Linear comments (internal discussions) when viewing issue details
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showActivity}
+                        onChange={() => setShowActivity(!showActivity)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="edit-show-activity"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show activity history on issue detail
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display status changes, assignee changes, and other activity when viewing issue details
                       </p>
                     </div>
                   </div>

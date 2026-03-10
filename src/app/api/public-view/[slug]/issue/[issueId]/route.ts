@@ -121,6 +121,52 @@ export async function GET(
     // Decrypt the token
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
+    // Build GraphQL query based on view visibility settings
+    const showComments = viewData.show_comments ?? false;
+    const showActivity = viewData.show_activity ?? false;
+
+    const commentsFragment = showComments ? `
+          comments {
+            nodes {
+              id
+              body
+              createdAt
+              updatedAt
+              user {
+                id
+                name
+                avatarUrl
+              }
+            }
+          }` : '';
+
+    const historyFragment = showActivity ? `
+          history {
+            nodes {
+              id
+              createdAt
+              fromState {
+                name
+                color
+              }
+              toState {
+                name
+                color
+              }
+              fromAssignee {
+                name
+              }
+              toAssignee {
+                name
+              }
+              fromPriority
+              toPriority
+              actor {
+                name
+              }
+            }
+          }` : '';
+
     // Fetch issue details from Linear using GraphQL
     const query = `
       query IssueDetail($issueId: String!) {
@@ -150,45 +196,7 @@ export async function GET(
             }
           }
           createdAt
-          updatedAt
-          comments {
-            nodes {
-              id
-              body
-              createdAt
-              updatedAt
-              user {
-                id
-                name
-                avatarUrl
-              }
-            }
-          }
-          history {
-            nodes {
-              id
-              createdAt
-              fromState {
-                name
-                color
-              }
-              toState {
-                name
-                color
-              }
-              fromAssignee {
-                name
-              }
-              toAssignee {
-                name
-              }
-              fromPriority
-              toPriority
-              actor {
-                name
-              }
-            }
-          }
+          updatedAt${commentsFragment}${historyFragment}
         }
       }
     `;
@@ -240,7 +248,7 @@ export async function GET(
           };
           createdAt: string;
           updatedAt: string;
-          comments: {
+          comments?: {
             nodes: Array<{
               id: string;
               body: string;
@@ -253,7 +261,7 @@ export async function GET(
               };
             }>;
           };
-          history: {
+          history?: {
             nodes: Array<{
               id: string;
               createdAt: string;
@@ -312,8 +320,8 @@ export async function GET(
       labels: issue.labels.nodes,
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,
-      comments: issue.comments.nodes,
-      history: issue.history.nodes.map(h => ({
+      comments: issue.comments?.nodes || [],
+      history: (issue.history?.nodes || []).map(h => ({
         id: h.id,
         createdAt: h.createdAt,
         fromState: h.fromState,
