@@ -396,7 +396,7 @@ export default function RoadmapsPage() {
                         <p className="text-sm text-muted-foreground">No projects found</p>
                       ) : (
                         projects.map((project) => (
-                          <div key={project.id} className="flex items-center space-x-2">
+                          <div key={project.id} className="flex items-center gap-2">
                             <Checkbox
                               checked={selectedProjects.includes(project.id)}
                               onChange={() => toggleProjectSelection(project.id)}
@@ -429,7 +429,7 @@ export default function RoadmapsPage() {
                   </div>
 
                   <div className="space-y-3 pt-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <Checkbox
                         checked={allowVoting}
                         onChange={() => setAllowVoting(!allowVoting)}
@@ -438,7 +438,7 @@ export default function RoadmapsPage() {
                         Allow visitors to upvote items
                       </label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <Checkbox
                         checked={allowComments}
                         onChange={() => setAllowComments(!allowComments)}
@@ -447,7 +447,7 @@ export default function RoadmapsPage() {
                         Allow visitors to comment on items
                       </label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <Checkbox
                         checked={passwordProtected}
                         onChange={() => setPasswordProtected(!passwordProtected)}

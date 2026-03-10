@@ -516,7 +516,7 @@ export default function BrandingPage() {
                   rows={2}
                 />
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   checked={branding.show_powered_by ?? true}
                   onChange={() =>
