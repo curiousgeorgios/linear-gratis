@@ -70,6 +70,10 @@ export default function PublicViewsPage() {
   const [editingView, setEditingView] = useState<PublicView | null>(null);
   const [showEditView, setShowEditView] = useState(false);
   const [allowIssueCreation, setAllowIssueCreation] = useState(false);
+  const [excludedIssueIds, setExcludedIssueIds] = useState<string[]>([]);
+  const [availableIssues, setAvailableIssues] = useState<Array<{ id: string; identifier: string; title: string }>>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [issueFilter, setIssueFilter] = useState("");
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -242,6 +246,7 @@ export default function PublicViewsPage() {
         password_hash: passwordHash,
         is_active: true,
         allow_issue_creation: allowIssueCreation,
+        excluded_issue_ids: excludedIssueIds,
         ...sourceData,
       });
 
@@ -323,9 +328,38 @@ export default function PublicViewsPage() {
     setPasswordProtected(false);
     setPassword("");
     setAllowIssueCreation(false);
+    setExcludedIssueIds([]);
+    setAvailableIssues([]);
+    setIssueFilter("");
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
+  };
+
+  const fetchViewIssues = async (projectId?: string, teamId?: string) => {
+    if (!linearToken || (!projectId && !teamId)) return;
+
+    setLoadingIssues(true);
+    try {
+      const response = await fetch("/api/linear/issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiToken: linearToken,
+          projectId: projectId || undefined,
+          teamId: teamId || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as { issues?: Array<{ id: string; identifier: string; title: string }> };
+        setAvailableIssues(data.issues || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch issues:", error);
+    } finally {
+      setLoadingIssues(false);
+    }
   };
 
   const startEditView = (view: PublicView) => {
@@ -337,16 +371,19 @@ export default function PublicViewsPage() {
     setPasswordProtected(view.password_protected || false);
     setPassword("");
     setAllowIssueCreation(view.allow_issue_creation || false);
+    setExcludedIssueIds(view.excluded_issue_ids || []);
 
     // Set source type and selection based on existing view
     if (view.project_id) {
       setSourceType("project");
       setSelectedProject(view.project_id);
       setSelectedTeam("");
+      fetchViewIssues(view.project_id, undefined);
     } else if (view.team_id) {
       setSourceType("team");
       setSelectedTeam(view.team_id);
       setSelectedProject("");
+      fetchViewIssues(undefined, view.team_id);
     } else {
       // No project or team set - default to project
       setSourceType("project");
@@ -418,6 +455,7 @@ export default function PublicViewsPage() {
           password_protected: passwordProtected,
           password_hash: passwordHash,
           allow_issue_creation: allowIssueCreation,
+          excluded_issue_ids: excludedIssueIds,
           ...sourceData,
         })
         .eq("id", editingView.id);
@@ -1069,6 +1107,66 @@ export default function PublicViewsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Excluded Issues */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    6
+                  </div>
+                  Excluded issues
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Select issues to hide from this public view
+                </p>
+                <Input
+                  placeholder="Filter by ID or title..."
+                  value={issueFilter}
+                  onChange={(e) => setIssueFilter(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="max-h-64 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+                  {loadingIssues ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">Loading issues...</p>
+                  ) : availableIssues.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No issues found</p>
+                  ) : (
+                    availableIssues
+                      .filter((issue) => {
+                        if (!issueFilter) return true;
+                        const q = issueFilter.toLowerCase();
+                        return issue.identifier.toLowerCase().includes(q) || issue.title.toLowerCase().includes(q);
+                      })
+                      .map((issue) => {
+                        const toggleExclude = () => {
+                          setExcludedIssueIds((prev) =>
+                            prev.includes(issue.id)
+                              ? prev.filter((id) => id !== issue.id)
+                              : [...prev, issue.id]
+                          );
+                        };
+                        return (
+                          <div key={issue.id} className="flex items-center gap-2" onClick={toggleExclude}>
+                            <Checkbox
+                              checked={excludedIssueIds.includes(issue.id)}
+                              onChange={toggleExclude}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span className="text-sm cursor-pointer flex-1 min-w-0">
+                              <span className="font-mono text-muted-foreground mr-2">{issue.identifier}</span>
+                              <span className="truncate">{issue.title}</span>
+                            </span>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+                {excludedIssueIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {excludedIssueIds.length} issue{excludedIssueIds.length !== 1 ? 's' : ''} will be hidden from this view
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4 border-t">

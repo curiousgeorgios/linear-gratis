@@ -65,6 +65,7 @@ export type PublicView = {
   password_hash?: string
   expires_at?: string
   allow_issue_creation: boolean
+  excluded_issue_ids: string[]
   created_at: string
   updated_at: string
 }
