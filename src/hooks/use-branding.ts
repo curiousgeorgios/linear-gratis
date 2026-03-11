@@ -79,14 +79,16 @@ export function applyBrandingToPage(branding: BrandingSettings | null) {
     root.style.setProperty('--input', branding.border_color);
   }
 
-  // Apply fonts - set both the CSS variable and the actual font-family on body
+  // Load Google Fonts and apply font families
+  const fontsToLoad: string[] = [];
   if (branding.font_family) {
+    fontsToLoad.push(branding.font_family.split(',')[0].trim());
     root.style.setProperty('--font-sans', branding.font_family);
     document.body.style.fontFamily = branding.font_family;
   }
 
   if (branding.heading_font_family) {
-    // Apply heading font to all heading elements
+    fontsToLoad.push(branding.heading_font_family.split(',')[0].trim());
     const headingStyle = document.getElementById('branding-heading-font');
     if (headingStyle) {
       headingStyle.textContent = `h1, h2, h3, h4, h5, h6 { font-family: ${branding.heading_font_family} !important; }`;
@@ -95,6 +97,25 @@ export function applyBrandingToPage(branding: BrandingSettings | null) {
       style.id = 'branding-heading-font';
       style.textContent = `h1, h2, h3, h4, h5, h6 { font-family: ${branding.heading_font_family} !important; }`;
       document.head.appendChild(style);
+    }
+  }
+
+  // Inject Google Fonts <link> for non-system fonts
+  const systemFonts = ['arial', 'helvetica', 'times new roman', 'times', 'courier new', 'courier', 'georgia', 'verdana', 'tahoma', 'trebuchet ms', 'system-ui', 'sans-serif', 'serif', 'monospace'];
+  const googleFonts = fontsToLoad.filter(f => !systemFonts.includes(f.toLowerCase().replace(/['"]/g, '')));
+  if (googleFonts.length > 0) {
+    const linkId = 'branding-google-fonts';
+    let link = document.getElementById(linkId) as HTMLLinkElement | null;
+    const families = googleFonts.map(f => f.replace(/['"]/g, '').replace(/ /g, '+')).join('&family=');
+    const href = `https://fonts.googleapis.com/css2?family=${families}:wght@300;400;500;600;700&display=swap`;
+    if (link) {
+      link.href = href;
+    } else {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
     }
   }
 
