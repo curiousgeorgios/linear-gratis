@@ -17,6 +17,7 @@ export type LinearIssue = {
   assignee?: {
     id: string;
     name: string;
+    avatarUrl?: string;
   };
   labels: Array<{
     id: string;
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
             assignee {
               id
               name
+              avatarUrl
             }
             labels {
               nodes {
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
             assignee?: {
               id: string;
               name: string;
+              avatarUrl?: string;
             };
             labels: {
               nodes: Array<{

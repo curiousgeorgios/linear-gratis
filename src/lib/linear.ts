@@ -18,6 +18,7 @@ export type LinearIssue = {
   assignee?: {
     id: string;
     name: string;
+    avatarUrl?: string;
   };
   labels: Array<{
     id: string;
@@ -90,6 +91,7 @@ export async function fetchLinearIssues(
             assignee {
               id
               name
+              avatarUrl
             }
             labels {
               nodes {
@@ -139,6 +141,7 @@ export async function fetchLinearIssues(
             assignee?: {
               id: string;
               name: string;
+              avatarUrl?: string;
             };
             labels: {
               nodes: Array<{
@@ -243,6 +246,7 @@ export async function fetchRoadmapIssues(
             assignee {
               id
               name
+              avatarUrl
             }
             labels {
               nodes {
@@ -298,6 +302,7 @@ export async function fetchRoadmapIssues(
             assignee?: {
               id: string;
               name: string;
+              avatarUrl?: string;
             };
             labels: {
               nodes: Array<{

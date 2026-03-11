@@ -79,6 +79,27 @@ const getInitials = (name: string) => {
     .slice(0, 2)
 }
 
+const UserAvatar = ({ name, avatarUrl, size = 'sm' }: { name?: string; avatarUrl?: string; size?: 'sm' | 'md' }) => {
+  const sizeClass = size === 'md' ? 'w-7 h-7' : 'w-5 h-5'
+  const textSize = size === 'md' ? 'text-xs' : 'text-[10px]'
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name || ''}
+        className={`${sizeClass} rounded-full flex-shrink-0 object-cover`}
+      />
+    )
+  }
+
+  return (
+    <div className={`${sizeClass} rounded-full bg-primary/10 flex items-center justify-center ${textSize} font-medium text-primary flex-shrink-0`}>
+      {name ? getInitials(name) : '?'}
+    </div>
+  )
+}
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   const now = new Date()
@@ -257,9 +278,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                 {/* Assignee */}
                 {issue.assignee && (
                   <div className="flex items-center gap-2 px-2 py-1 bg-accent/50 rounded-md">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                      {getInitials(issue.assignee.name)}
-                    </div>
+                    <UserAvatar name={issue.assignee.name} avatarUrl={issue.assignee.avatarUrl} />
                     <span className="text-xs font-medium text-foreground">{issue.assignee.name}</span>
                   </div>
                 )}
@@ -402,9 +421,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                     )}
                     {activityItems.map((item) => (
                       <div key={item.id} className="flex gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">
-                          {item.user?.name ? getInitials(item.user.name) : '?'}
-                        </div>
+                        <UserAvatar name={item.user?.name} avatarUrl={item.user?.avatarUrl} size="md" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-foreground">{item.user?.name || 'Unknown'}</span>
@@ -484,9 +501,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                     )}
                     {issue.comments.map((comment) => (
                       <div key={comment.id} className="flex gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">
-                          {comment.user?.name ? getInitials(comment.user.name) : '?'}
-                        </div>
+                        <UserAvatar name={comment.user?.name} avatarUrl={comment.user?.avatarUrl} size="md" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-foreground">{comment.user?.name || 'Unknown'}</span>

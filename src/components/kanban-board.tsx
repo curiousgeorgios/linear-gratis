@@ -243,9 +243,17 @@ export function KanbanBoard({
                                 {/* Assignee in top right */}
                                 {showAssignees && issue.assignee && (
                                   <div className="flex-shrink-0">
-                                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                                      {getInitials(issue.assignee.name)}
-                                    </div>
+                                    {issue.assignee.avatarUrl ? (
+                                      <img
+                                        src={issue.assignee.avatarUrl}
+                                        alt={issue.assignee.name}
+                                        className="w-5 h-5 rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                                        {getInitials(issue.assignee.name)}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
