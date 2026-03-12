@@ -338,7 +338,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               </div>
             )}
 
-            {view.project_id && (
+            {view.project_id && view.show_project_updates !== false && (
               <button
                 onClick={() => setShowProjectUpdates(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"

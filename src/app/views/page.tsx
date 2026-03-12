@@ -70,6 +70,7 @@ export default function PublicViewsPage() {
   const [editingView, setEditingView] = useState<PublicView | null>(null);
   const [showEditView, setShowEditView] = useState(false);
   const [allowIssueCreation, setAllowIssueCreation] = useState(false);
+  const [showProjectUpdates, setShowProjectUpdates] = useState(true);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -242,6 +243,7 @@ export default function PublicViewsPage() {
         password_hash: passwordHash,
         is_active: true,
         allow_issue_creation: allowIssueCreation,
+        show_project_updates: showProjectUpdates,
         ...sourceData,
       });
 
@@ -323,6 +325,7 @@ export default function PublicViewsPage() {
     setPasswordProtected(false);
     setPassword("");
     setAllowIssueCreation(false);
+    setShowProjectUpdates(true);
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
@@ -337,6 +340,7 @@ export default function PublicViewsPage() {
     setPasswordProtected(view.password_protected || false);
     setPassword("");
     setAllowIssueCreation(view.allow_issue_creation || false);
+    setShowProjectUpdates(view.show_project_updates !== false);
 
     // Set source type and selection based on existing view
     if (view.project_id) {
@@ -418,6 +422,7 @@ export default function PublicViewsPage() {
           password_protected: passwordProtected,
           password_hash: passwordHash,
           allow_issue_creation: allowIssueCreation,
+          show_project_updates: showProjectUpdates,
           ...sourceData,
         })
         .eq("id", editingView.id);
@@ -760,6 +765,25 @@ export default function PublicViewsPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showProjectUpdates}
+                        onChange={() => setShowProjectUpdates(!showProjectUpdates)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="show-project-updates"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show project updates
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display the project updates button on the public board view
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1008,6 +1032,25 @@ export default function PublicViewsPage() {
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
                         Enable a &quot;Create issue&quot; button in the public board view
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Checkbox
+                        checked={showProjectUpdates}
+                        onChange={() => setShowProjectUpdates(!showProjectUpdates)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="edit-show-project-updates"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Show project updates
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Display the project updates button on the public board view
                       </p>
                     </div>
                   </div>
