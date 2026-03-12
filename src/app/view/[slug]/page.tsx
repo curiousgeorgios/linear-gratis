@@ -488,7 +488,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       </div>
 
       {/* Custom Footer */}
-      {!error && (
+      {!error && (branding?.footer_text || !view?.allow_issue_creation || branding?.show_powered_by !== false) && (
         <footer className="px-4 sm:px-6 pb-6 mt-auto">
           <div className="text-center py-8 border-t border-border/30">
             {branding?.footer_text ? (
