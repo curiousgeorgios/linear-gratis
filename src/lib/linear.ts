@@ -8,6 +8,7 @@ export type LinearIssue = {
   description?: string;
   priority: number;
   priorityLabel: string;
+  estimate?: number;
   url: string;
   state: {
     id: string;
@@ -80,6 +81,7 @@ export async function fetchLinearIssues(
             description
             priority
             priorityLabel
+            estimate
             url
             state {
               id
@@ -129,6 +131,7 @@ export async function fetchLinearIssues(
             description?: string;
             priority: number;
             priorityLabel: string;
+            estimate?: number;
             url: string;
             state: {
               id: string;
@@ -170,6 +173,7 @@ export async function fetchLinearIssues(
       description: issue.description,
       priority: issue.priority,
       priorityLabel: issue.priorityLabel,
+      estimate: issue.estimate,
       url: issue.url,
       state: issue.state,
       assignee: issue.assignee,
@@ -232,6 +236,7 @@ export async function fetchRoadmapIssues(
             description
             priority
             priorityLabel
+            estimate
             url
             dueDate
             state {
@@ -287,6 +292,7 @@ export async function fetchRoadmapIssues(
             description?: string;
             priority: number;
             priorityLabel: string;
+            estimate?: number;
             url: string;
             dueDate?: string;
             state: {
@@ -334,6 +340,7 @@ export async function fetchRoadmapIssues(
       description: issue.description,
       priority: issue.priority,
       priorityLabel: issue.priorityLabel,
+      estimate: issue.estimate,
       url: issue.url,
       dueDate: issue.dueDate,
       state: issue.state,
