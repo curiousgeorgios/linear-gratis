@@ -651,14 +651,16 @@ export default function FormsPage() {
                             Preview
                           </Button>
                         </Link>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteForm(form.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {form.user_id === user?.id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteForm(form.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
