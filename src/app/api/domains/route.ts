@@ -20,11 +20,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch custom domains
+    // Fetch all custom domains (shared across authenticated users)
     const { data, error } = await supabaseAdmin
       .from('custom_domains')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

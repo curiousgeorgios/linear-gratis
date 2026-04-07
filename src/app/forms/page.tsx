@@ -72,7 +72,6 @@ export default function FormsPage() {
         supabase
           .from("customer_request_forms")
           .select("*")
-          .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
 
@@ -294,29 +293,6 @@ export default function FormsPage() {
     return <div>Loading...</div>;
   }
 
-  if (!linearToken) {
-    return (
-      <div className="min-h-screen">
-        <Navigation />
-        <div className="max-w-4xl mx-auto p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Linear API token required</CardTitle>
-              <CardDescription>
-                You need to save your Linear API token before creating forms.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/profile">
-                <Button>Go to profile settings</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -378,16 +354,24 @@ export default function FormsPage() {
           </div>
 
           <div className="text-center">
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              disabled={projects.length === 0}
-              size="lg"
-              className="h-12 px-8 font-semibold"
-            >
-              {forms.length === 0
-                ? "Create your first form"
-                : "Create new form"}
-            </Button>
+            {linearToken ? (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                disabled={projects.length === 0}
+                size="lg"
+                className="h-12 px-8 font-semibold"
+              >
+                {forms.length === 0
+                  ? "Create your first form"
+                  : "Create new form"}
+              </Button>
+            ) : (
+              <Link href="/profile">
+                <Button variant="outline" size="lg" className="h-12 px-8 font-semibold">
+                  Set up Linear API token to create forms
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
