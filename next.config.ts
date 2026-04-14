@@ -7,6 +7,19 @@ initOpenNextCloudflareForDev();
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Linear-hosted avatars + common third-party providers Linear uses when a
+  // user hasn't uploaded a photo. Keeps the allowlist narrow -- branding
+  // logos and markdown images deliberately stay on <img> because their
+  // hosts are arbitrary user-provided URLs.
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'public.linear.app' },
+      { protocol: 'https', hostname: '**.linear.app' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'www.gravatar.com' },
+      { protocol: 'https', hostname: 'secure.gravatar.com' },
+    ],
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.resolve.fallback = {
