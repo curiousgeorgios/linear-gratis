@@ -78,24 +78,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let filterCondition = "";
+    // Build the filter as a typed variable rather than string-interpolating
+    // user-supplied values into the query text. Linear's IssueFilter input
+    // type handles the shape.
+    const filter: Record<string, unknown> = {};
     if (projectId) {
-      filterCondition = `project: { id: { eq: "${projectId}" } }`;
+      filter.project = { id: { eq: projectId } };
     } else if (teamId) {
-      filterCondition = `team: { id: { eq: "${teamId}" } }`;
+      filter.team = { id: { eq: teamId } };
     }
-
     if (statuses && statuses.length > 0) {
-      const statusFilter = `state: { name: { in: [${statuses.map((s) => `"${s}"`).join(", ")}] } }`;
-      filterCondition = filterCondition
-        ? `${filterCondition}, ${statusFilter}`
-        : statusFilter;
+      filter.state = { name: { in: statuses } };
     }
 
     const query = `
-      query Issues($after: String) {
+      query Issues($after: String, $filter: IssueFilter) {
         issues(
-          filter: { ${filterCondition} }
+          filter: $filter
           orderBy: updatedAt
           first: 250
           after: $after
@@ -141,6 +140,7 @@ export async function POST(request: NextRequest) {
     const result = await paginateLinearConnection<IssueNode>({
       apiToken,
       query,
+      variables: { filter },
       extract: (data) =>
         (data as { issues: LinearConnection<IssueNode> }).issues,
     });
