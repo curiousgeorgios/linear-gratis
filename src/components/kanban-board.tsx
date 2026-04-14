@@ -5,6 +5,12 @@ import { FilterState } from '@/components/filter-dropdown'
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
+// Shared Tailwind classes for the small metadata badges on a kanban card
+// (priority, estimate, label). Using theme tokens so the badges adapt to
+// whatever colour scheme the branding has set.
+const CARD_BADGE_CLASS =
+  'flex items-center gap-1 h-[22px] px-1 rounded border border-border bg-accent/40 text-muted-foreground text-xs font-medium overflow-hidden flex-shrink-0 max-w-[134px] transition-colors duration-150 hover:text-foreground'
+
 interface KanbanBoardProps {
   issues: LinearIssue[]
   showAssignees?: boolean
@@ -224,18 +230,7 @@ export function KanbanBoard({
 
                                 {/* Priority badge */}
                                 {showPriorities && (
-                                  <div
-                                    className="flex items-center gap-1 text-xs font-medium overflow-hidden flex-shrink-0 transition-colors duration-150 hover:text-white"
-                                    style={{
-                                      borderRadius: '4px',
-                                      height: '22px',
-                                      padding: '4px',
-                                      border: '0.5px solid lch(22.5 4.707 272)',
-                                      backgroundColor: 'lch(8.3 1.867 272)',
-                                      color: 'lch(62.6% 1.35 272 / 1)',
-                                      maxWidth: '134px'
-                                    }}
-                                  >
+                                  <div className={CARD_BADGE_CLASS}>
                                     <PriorityIcon
                                       priority={issue.priority}
                                       priorityLabel={issue.priorityLabel}
@@ -245,18 +240,7 @@ export function KanbanBoard({
 
                                 {/* Estimate badge */}
                                 {issue.estimate != null && issue.estimate > 0 && (
-                                  <div
-                                    className="flex items-center gap-1 text-xs font-medium overflow-hidden flex-shrink-0 transition-colors duration-150 hover:text-white"
-                                    style={{
-                                      borderRadius: '4px',
-                                      height: '22px',
-                                      padding: '4px',
-                                      border: '0.5px solid lch(22.5 4.707 272)',
-                                      backgroundColor: 'lch(8.3 1.867 272)',
-                                      color: 'lch(62.6% 1.35 272 / 1)',
-                                      maxWidth: '134px'
-                                    }}
-                                  >
+                                  <div className={CARD_BADGE_CLASS}>
                                     <EstimateIcon />
                                     <span>{issue.estimate}</span>
                                   </div>
@@ -264,19 +248,7 @@ export function KanbanBoard({
 
                                 {/* Label badges */}
                                 {issue.labels.map((label) => (
-                                  <div
-                                    key={label.id}
-                                    className="flex items-center gap-1 text-xs font-medium overflow-hidden flex-shrink-0 transition-colors duration-150 hover:text-white"
-                                    style={{
-                                      borderRadius: '4px',
-                                      height: '22px',
-                                      padding: '4px',
-                                      border: '0.5px solid lch(22.5 4.707 272)',
-                                      backgroundColor: 'lch(8.3 1.867 272)',
-                                      color: 'lch(62.6% 1.35 272 / 1)',
-                                      maxWidth: '134px'
-                                    }}
-                                  >
+                                  <div key={label.id} className={CARD_BADGE_CLASS}>
                                     <div
                                       className="w-2 h-2 rounded-full"
                                       style={{ backgroundColor: label.color }}
