@@ -49,15 +49,16 @@ export async function POST(request: NextRequest) {
       throw new Error(result.error);
     }
 
-    return NextResponse.json({
-      success: true,
-      teams: result.nodes.map(team => ({
+    const teams = result.nodes
+      .map(team => ({
         id: team.id,
         name: team.name,
         key: team.key,
         description: team.description
       }))
-    });
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+    return NextResponse.json({ success: true, teams });
 
   } catch (error) {
     console.error('Teams API error:', error);

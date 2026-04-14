@@ -47,14 +47,15 @@ export async function POST(request: NextRequest) {
       throw new Error(result.error);
     }
 
-    return NextResponse.json({
-      success: true,
-      projects: result.nodes.map(project => ({
+    const projects = result.nodes
+      .map(project => ({
         id: project.id,
         name: project.name,
         description: project.description
       }))
-    });
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+    return NextResponse.json({ success: true, projects });
 
   } catch (error) {
     console.error('Projects API error:', error);
