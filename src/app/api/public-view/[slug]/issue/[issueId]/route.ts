@@ -35,6 +35,7 @@ export type IssueHistory = {
   toPriority?: number;
   user: {
     name: string;
+    avatarUrl?: string;
   };
 };
 
@@ -56,6 +57,7 @@ export type IssueDetail = {
   assignee?: {
     id: string;
     name: string;
+    avatarUrl?: string;
   };
   labels: Array<{
     id: string;
@@ -82,7 +84,6 @@ export async function GET(
       );
     }
 
-    // Check if view exists and is active
     const { data: viewData, error: viewError } = await supabaseAdmin
       .from('public_views')
       .select('*')
@@ -97,7 +98,6 @@ export async function GET(
       );
     }
 
-    // Check if view has expired
     if (viewData.expires_at && new Date(viewData.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'This public view has expired' },
@@ -105,7 +105,6 @@ export async function GET(
       );
     }
 
-    // Get the user's Linear token
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('linear_api_token')
@@ -119,12 +118,15 @@ export async function GET(
       );
     }
 
-    // Decrypt the token
     const decryptedToken = decryptToken(profileData.linear_api_token);
 
-    // Fetch issue details from Linear using GraphQL
+    // Gate comments and history via GraphQL @include. Keeps the query text
+    // static (cacheable, readable) while view settings control the flags.
+    const includeComments = viewData.show_comments ?? false;
+    const includeActivity = viewData.show_activity ?? false;
+
     const query = `
-      query IssueDetail($issueId: String!) {
+      query IssueDetail($issueId: String!, $includeComments: Boolean!, $includeActivity: Boolean!) {
         issue(id: $issueId) {
           id
           identifier
@@ -143,6 +145,7 @@ export async function GET(
           assignee {
             id
             name
+            avatarUrl
           }
           labels {
             nodes {
@@ -153,7 +156,7 @@ export async function GET(
           }
           createdAt
           updatedAt
-          comments {
+          comments @include(if: $includeComments) {
             nodes {
               id
               body
@@ -166,7 +169,7 @@ export async function GET(
               }
             }
           }
-          history {
+          history @include(if: $includeActivity) {
             nodes {
               id
               createdAt
@@ -188,6 +191,7 @@ export async function GET(
               toPriority
               actor {
                 name
+                avatarUrl
               }
             }
           }
@@ -203,7 +207,7 @@ export async function GET(
       },
       body: JSON.stringify({
         query,
-        variables: { issueId }
+        variables: { issueId, includeComments, includeActivity },
       }),
     });
 
@@ -233,6 +237,7 @@ export async function GET(
           assignee?: {
             id: string;
             name: string;
+            avatarUrl?: string;
           };
           labels: {
             nodes: Array<{
@@ -243,7 +248,7 @@ export async function GET(
           };
           createdAt: string;
           updatedAt: string;
-          comments: {
+          comments?: {
             nodes: Array<{
               id: string;
               body: string;
@@ -256,7 +261,7 @@ export async function GET(
               };
             }>;
           };
-          history: {
+          history?: {
             nodes: Array<{
               id: string;
               createdAt: string;
@@ -278,6 +283,7 @@ export async function GET(
               toPriority?: number;
               actor: {
                 name: string;
+                avatarUrl?: string;
               };
             }>;
           };
@@ -301,7 +307,6 @@ export async function GET(
 
     const issue = result.data.issue;
 
-    // Transform the data to match our IssueDetail type
     const issueDetail: IssueDetail = {
       id: issue.id,
       identifier: issue.identifier,
@@ -316,8 +321,8 @@ export async function GET(
       labels: issue.labels.nodes,
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,
-      comments: issue.comments.nodes,
-      history: issue.history.nodes.map(h => ({
+      comments: issue.comments?.nodes ?? [],
+      history: (issue.history?.nodes ?? []).map((h) => ({
         id: h.id,
         createdAt: h.createdAt,
         fromState: h.fromState,
@@ -326,7 +331,7 @@ export async function GET(
         toAssignee: h.toAssignee,
         fromPriority: h.fromPriority,
         toPriority: h.toPriority,
-        user: h.actor,
+        user: { name: h.actor.name, avatarUrl: h.actor.avatarUrl },
       })),
     };
 

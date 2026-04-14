@@ -3,6 +3,7 @@
 import { LinearIssue } from '@/app/api/linear/issues/route'
 import { FilterState } from '@/components/filter-dropdown'
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
+import { UserAvatar } from '@/components/user-avatar'
 
 interface KanbanBoardProps {
   issues: LinearIssue[]
@@ -129,16 +130,6 @@ export function KanbanBoard({
     return orderA - orderB
   })
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-
   if (filteredIssues.length === 0 && issues.length > 0) {
     return (
       <div className="text-center py-20">
@@ -216,9 +207,7 @@ export function KanbanBoard({
                                 {/* Assignee in top right */}
                                 {showAssignees && issue.assignee && (
                                   <div className="flex-shrink-0">
-                                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                                      {getInitials(issue.assignee.name)}
-                                    </div>
+                                    <UserAvatar name={issue.assignee.name} avatarUrl={issue.assignee.avatarUrl} />
                                   </div>
                                 )}
                               </div>
