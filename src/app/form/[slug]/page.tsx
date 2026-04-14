@@ -243,6 +243,7 @@ export default function PublicFormPage() {
         {branding && (branding.logo_url || branding.brand_name) && (
           <div className="mb-6 text-center">
             {branding.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time
               <img
                 src={branding.logo_url}
                 alt={branding.brand_name || 'Logo'}
