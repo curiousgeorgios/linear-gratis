@@ -13,6 +13,9 @@ interface IssueDetailModalProps {
   onClose: () => void
   issueId: string
   viewSlug: string
+  showComments?: boolean
+  showActivity?: boolean
+  showDescriptions?: boolean
 }
 
 const getStateIcon = (stateType: string, color: string) => {
@@ -60,11 +63,19 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDetailModalProps) {
+export function IssueDetailModal({
+  isOpen,
+  onClose,
+  issueId,
+  viewSlug,
+  showComments = false,
+  showActivity = false,
+  showDescriptions = true,
+}: IssueDetailModalProps) {
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'activity' | 'comments'>('activity')
+  const [activeTab, setActiveTab] = useState<'activity' | 'comments'>(showActivity ? 'activity' : 'comments')
 
   useEffect(() => {
     if (isOpen && issueId) {
@@ -255,7 +266,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
               </div>
 
               {/* Description */}
-              {issue.description && (
+              {showDescriptions && issue.description && (
                 <div className="mb-8">
                   <h3 className="text-sm font-medium text-foreground mb-3">Description</h3>
                   <div className="prose prose-sm max-w-none text-foreground/90 markdown-content">
@@ -345,33 +356,38 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                 </div>
               )}
 
-              {/* Activity/Comments Tabs */}
+              {/* Activity/Comments Tabs - only rendered when the view settings expose them */}
+              {(showActivity || showComments) && (
               <div className="border-t border-border pt-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <button
-                    onClick={() => setActiveTab('activity')}
-                    className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
-                      activeTab === 'activity'
-                        ? 'border-primary text-foreground'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Activity
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('comments')}
-                    className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
-                      activeTab === 'comments'
-                        ? 'border-primary text-foreground'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Comments ({issue.comments.length})
-                  </button>
+                  {showActivity && (
+                    <button
+                      onClick={() => setActiveTab('activity')}
+                      className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
+                        activeTab === 'activity'
+                          ? 'border-primary text-foreground'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Activity
+                    </button>
+                  )}
+                  {showComments && (
+                    <button
+                      onClick={() => setActiveTab('comments')}
+                      className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
+                        activeTab === 'comments'
+                          ? 'border-primary text-foreground'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Comments ({issue.comments.length})
+                    </button>
+                  )}
                 </div>
 
                 {/* Activity Tab */}
-                {activeTab === 'activity' && (
+                {showActivity && activeTab === 'activity' && (
                   <div className="space-y-4">
                     {activityItems.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-8">No activity yet</p>
@@ -424,12 +440,13 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
 
                             // Priority change - only show if both values exist and are different
                             if (item.toPriority !== undefined && item.fromPriority !== undefined && item.toPriority !== item.fromPriority) {
+                              // Linear's priority scheme: 0=None, 1=Urgent, 2=High, 3=Medium, 4=Low
                               const priorityLabels: Record<number, string> = {
                                 0: 'None',
-                                1: 'Low',
-                                2: 'Medium',
-                                3: 'High',
-                                4: 'Urgent'
+                                1: 'Urgent',
+                                2: 'High',
+                                3: 'Medium',
+                                4: 'Low',
                               }
                               changes.push(
                                 <div key="priority">
@@ -451,7 +468,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                 )}
 
                 {/* Comments Tab */}
-                {activeTab === 'comments' && (
+                {showComments && activeTab === 'comments' && (
                   <div className="space-y-4">
                     {issue.comments.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-8">No comments yet</p>
@@ -473,6 +490,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
         </div>

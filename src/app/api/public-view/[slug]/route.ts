@@ -93,6 +93,9 @@ export async function GET(
         show_labels: viewData.show_labels,
         show_priorities: viewData.show_priorities,
         show_descriptions: viewData.show_descriptions,
+        show_comments: viewData.show_comments ?? false,
+        show_activity: viewData.show_activity ?? false,
+        show_project_updates: viewData.show_project_updates ?? true,
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
@@ -213,6 +216,9 @@ export async function POST(
         show_labels: viewData.show_labels,
         show_priorities: viewData.show_priorities,
         show_descriptions: viewData.show_descriptions,
+        show_comments: viewData.show_comments ?? false,
+        show_activity: viewData.show_activity ?? false,
+        show_project_updates: viewData.show_project_updates ?? true,
         password_protected: viewData.password_protected,
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
