@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +73,36 @@ export default function PublicViewsPage() {
   const [showComments, setShowComments] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showProjectUpdates, setShowProjectUpdates] = useState(true);
+  const [excludedIssueIds, setExcludedIssueIds] = useState<string[]>([]);
+  const [availableIssues, setAvailableIssues] = useState<Array<{ id: string; identifier: string; title: string }>>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [issueFilter, setIssueFilter] = useState("");
+
+  const EXCLUDED_PICKER_LIMIT = 200;
+
+  const filteredPickerIssues = useMemo(() => {
+    if (!issueFilter) return availableIssues;
+    const q = issueFilter.toLowerCase();
+    return availableIssues.filter(
+      (issue) =>
+        issue.identifier.toLowerCase().includes(q) ||
+        issue.title.toLowerCase().includes(q),
+    );
+  }, [availableIssues, issueFilter]);
+
+  const visiblePickerIssues = useMemo(
+    () => filteredPickerIssues.slice(0, EXCLUDED_PICKER_LIMIT),
+    [filteredPickerIssues],
+  );
+  const hiddenPickerCount = filteredPickerIssues.length - visiblePickerIssues.length;
+
+  const toggleExcludeIssue = useCallback((issueId: string) => {
+    setExcludedIssueIds((prev) =>
+      prev.includes(issueId)
+        ? prev.filter((id) => id !== issueId)
+        : [...prev, issueId],
+    );
+  }, []);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -247,6 +277,7 @@ export default function PublicViewsPage() {
         show_comments: showComments,
         show_activity: showActivity,
         show_project_updates: showProjectUpdates,
+        excluded_issue_ids: excludedIssueIds,
         ...sourceData,
       });
 
@@ -331,10 +362,44 @@ export default function PublicViewsPage() {
     setShowComments(false);
     setShowActivity(false);
     setShowProjectUpdates(true);
+    setExcludedIssueIds([]);
+    setAvailableIssues([]);
+    setIssueFilter("");
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
   };
+
+  const fetchPickerIssues = useCallback(
+    async (sourceProjectId?: string, sourceTeamId?: string) => {
+      if (!linearToken || (!sourceProjectId && !sourceTeamId)) return;
+
+      setLoadingIssues(true);
+      try {
+        const response = await fetch("/api/linear/issues", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apiToken: linearToken,
+            projectId: sourceProjectId || undefined,
+            teamId: sourceTeamId || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as {
+            issues?: Array<{ id: string; identifier: string; title: string }>;
+          };
+          setAvailableIssues(data.issues ?? []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch issues for exclusion picker:", error);
+      } finally {
+        setLoadingIssues(false);
+      }
+    },
+    [linearToken],
+  );
 
   const startEditView = (view: PublicView) => {
     setEditingView(view);
@@ -348,6 +413,9 @@ export default function PublicViewsPage() {
     setShowComments(view.show_comments ?? false);
     setShowActivity(view.show_activity ?? false);
     setShowProjectUpdates(view.show_project_updates ?? true);
+    setExcludedIssueIds(view.excluded_issue_ids ?? []);
+    setIssueFilter("");
+    fetchPickerIssues(view.project_id, view.team_id);
 
     // Set source type and selection based on existing view
     if (view.project_id) {
@@ -432,6 +500,7 @@ export default function PublicViewsPage() {
           show_comments: showComments,
           show_activity: showActivity,
           show_project_updates: showProjectUpdates,
+          excluded_issue_ids: excludedIssueIds,
           ...sourceData,
         })
         .eq("id", editingView.id);
@@ -1163,6 +1232,57 @@ export default function PublicViewsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Excluded issues */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    6
+                  </div>
+                  Excluded issues
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Tick any issues you want hidden from the public view.
+                </p>
+                <Input
+                  placeholder="Filter by ID or title..."
+                  value={issueFilter}
+                  onChange={(e) => setIssueFilter(e.target.value)}
+                />
+                <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
+                  {loadingIssues ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">Loading issues…</p>
+                  ) : filteredPickerIssues.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No issues match that filter.</p>
+                  ) : (
+                    visiblePickerIssues.map((issue) => (
+                      <label
+                        key={issue.id}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={excludedIssueIds.includes(issue.id)}
+                          onChange={() => toggleExcludeIssue(issue.id)}
+                        />
+                        <span className="text-sm flex-1 min-w-0 flex items-baseline gap-2">
+                          <span className="font-mono text-muted-foreground">{issue.identifier}</span>
+                          <span className="truncate">{issue.title}</span>
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {hiddenPickerCount > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Showing first {EXCLUDED_PICKER_LIMIT} of {filteredPickerIssues.length} matches. Refine the filter to see more.
+                  </p>
+                )}
+                {excludedIssueIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {excludedIssueIds.length} issue{excludedIssueIds.length === 1 ? "" : "s"} will be hidden from this view.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4 border-t">

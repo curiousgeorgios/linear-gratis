@@ -76,6 +76,13 @@ export async function GET(
       throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
     }
 
+    // Strip out any issues the view owner has excluded. Filtering happens
+    // server-side so excluded IDs never leave the server.
+    const excludedIds = new Set<string>(viewData.excluded_issue_ids ?? []);
+    const visibleIssues = excludedIds.size > 0
+      ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
+      : issuesResult.issues;
+
     return NextResponse.json({
       success: true,
       view: {
@@ -99,7 +106,7 @@ export async function GET(
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
-      issues: issuesResult.issues
+      issues: visibleIssues
     });
 
   } catch (error) {
@@ -199,6 +206,11 @@ export async function POST(
       throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
     }
 
+    const excludedIds = new Set<string>(viewData.excluded_issue_ids ?? []);
+    const visibleIssues = excludedIds.size > 0
+      ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
+      : issuesResult.issues;
+
     return NextResponse.json({
       success: true,
       view: {
@@ -223,7 +235,7 @@ export async function POST(
         allow_issue_creation: viewData.allow_issue_creation,
         created_at: viewData.created_at
       },
-      issues: issuesResult.issues
+      issues: visibleIssues
     });
 
   } catch (error) {
