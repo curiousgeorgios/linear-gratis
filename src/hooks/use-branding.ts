@@ -81,9 +81,24 @@ function injectGoogleFontsLink(fontsToLoad: string[]) {
   document.head.appendChild(link);
 }
 
-// Helper function to apply branding colours to CSS variables
-export function applyBrandingToPage(branding: BrandingSettings | null) {
+// Helper function to apply branding colours to CSS variables.
+// `pageTitle` becomes the document title prefix (e.g. "My Roadmap - Acme").
+export function applyBrandingToPage(
+  branding: BrandingSettings | null,
+  pageTitle?: string,
+) {
   if (!branding) return;
+
+  // Update document.title from brand name + current page title. Either or
+  // both can be absent; composes with " - " when both are present.
+  if (typeof document !== 'undefined') {
+    const parts = [pageTitle, branding.brand_name].filter(
+      (s): s is string => Boolean(s && s.trim()),
+    );
+    if (parts.length > 0) {
+      document.title = parts.join(' - ');
+    }
+  }
 
   const root = document.documentElement;
 

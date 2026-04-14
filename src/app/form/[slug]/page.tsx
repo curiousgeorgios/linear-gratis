@@ -122,9 +122,9 @@ export default function PublicFormPage() {
   // Apply branding when it loads
   useEffect(() => {
     if (branding) {
-      applyBrandingToPage(branding)
+      applyBrandingToPage(branding, formConfig?.form_title)
     }
-  }, [branding])
+  }, [branding, formConfig?.form_title])
 
   const onFormSubmit = async (values: FormData) => {
     if (!formConfig) return
@@ -248,8 +248,9 @@ export default function PublicFormPage() {
                 src={branding.logo_url}
                 alt={branding.brand_name || 'Logo'}
                 style={{
-                  width: `${branding.logo_width || 120}px`,
-                  height: `${branding.logo_height || 40}px`,
+                  width: 'auto',
+                  height: 'auto',
+                  maxHeight: `${branding.logo_height || 40}px`,
                   objectFit: 'contain',
                 }}
                 className="mx-auto mb-4"
@@ -402,25 +403,31 @@ export default function PublicFormPage() {
           </CardContent>
         </Card>
 
-        {/* Custom footer */}
-        <div className="text-center mt-6 text-sm text-gray-500">
-          {branding?.footer_text ? (
-            <p className="whitespace-pre-wrap mb-2">{branding.footer_text}</p>
-          ) : null}
-          {(branding?.show_powered_by !== false) && (
-            <p>
-              {branding?.footer_text ? 'Powered by ' : 'Powered by '}
-              <a
-                href="https://linear.gratis"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                linear.gratis
-              </a>
-            </p>
-          )}
-        </div>
+        {/* Custom footer — skip rendering when there's nothing to show. */}
+        {(() => {
+          const showPoweredBy = branding?.show_powered_by !== false
+          if (!branding?.footer_text && !showPoweredBy) return null
+          return (
+            <div className="text-center mt-6 text-sm text-gray-500">
+              {branding?.footer_text ? (
+                <p className="whitespace-pre-wrap mb-2">{branding.footer_text}</p>
+              ) : null}
+              {showPoweredBy && (
+                <p>
+                  Powered by{' '}
+                  <a
+                    href="https://linear.gratis"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    linear.gratis
+                  </a>
+                </p>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
