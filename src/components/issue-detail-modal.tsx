@@ -273,7 +273,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                       remarkPlugins={[remarkGfm]}
                       components={{
                         // Checkboxes
-                        input: ({ node, ...props }) => (
+                        input: ({ ...props }) => (
                           <input
                             {...props}
                             className="mr-2 accent-primary cursor-default"
@@ -281,7 +281,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                           />
                         ),
                         // Links
-                        a: ({ node, ...props }) => (
+                        a: ({ ...props }) => (
                           <a
                             {...props}
                             className="text-primary hover:underline"
@@ -290,7 +290,7 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                           />
                         ),
                         // Code blocks
-                        code: ({ node, className, ...props }) => {
+                        code: ({ className, ...props }) => {
                           const isInline = !className || !className.includes('language-');
                           return isInline ? (
                             <code {...props} className="bg-accent/60 px-1.5 py-0.5 rounded text-sm font-mono" />
@@ -299,51 +299,52 @@ export function IssueDetailModal({ isOpen, onClose, issueId, viewSlug }: IssueDe
                           )
                         },
                         // Lists
-                        ul: ({ node, ...props }) => (
+                        ul: ({ ...props }) => (
                           <ul {...props} className="list-disc list-inside space-y-1 my-2" />
                         ),
-                        ol: ({ node, ...props }) => (
+                        ol: ({ ...props }) => (
                           <ol {...props} className="list-decimal list-inside space-y-1 my-2" />
                         ),
                         // Paragraphs
-                        p: ({ node, ...props }) => (
+                        p: ({ ...props }) => (
                           <p {...props} className="my-2 leading-relaxed" />
                         ),
                         // Headings
-                        h1: ({ node, ...props }) => (
+                        h1: ({ ...props }) => (
                           <h1 {...props} className="text-xl font-semibold mt-6 mb-3" />
                         ),
-                        h2: ({ node, ...props }) => (
+                        h2: ({ ...props }) => (
                           <h2 {...props} className="text-lg font-semibold mt-5 mb-2" />
                         ),
-                        h3: ({ node, ...props }) => (
+                        h3: ({ ...props }) => (
                           <h3 {...props} className="text-base font-semibold mt-4 mb-2" />
                         ),
-                        // Images
-                        img: ({ node, ...props }) => (
-                          <img {...props} className="rounded-lg max-w-full my-4" />
+                        // Images (from user-authored markdown; next/image can't be used for arbitrary external URLs)
+                        img: ({ alt, ...props }) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img {...props} alt={alt ?? ''} className="rounded-lg max-w-full my-4" />
                         ),
                         // Blockquotes
-                        blockquote: ({ node, ...props }) => (
+                        blockquote: ({ ...props }) => (
                           <blockquote {...props} className="border-l-4 border-border pl-4 italic text-muted-foreground my-3" />
                         ),
                         // Horizontal rules
-                        hr: ({ node, ...props }) => (
+                        hr: ({ ...props }) => (
                           <hr {...props} className="border-border my-4" />
                         ),
                         // Tables
-                        table: ({ node, ...props }) => (
+                        table: ({ ...props }) => (
                           <div className="overflow-x-auto my-4">
                             <table {...props} className="min-w-full border border-border rounded-md" />
                           </div>
                         ),
-                        thead: ({ node, ...props }) => (
+                        thead: ({ ...props }) => (
                           <thead {...props} className="bg-accent/40" />
                         ),
-                        th: ({ node, ...props }) => (
+                        th: ({ ...props }) => (
                           <th {...props} className="border border-border px-3 py-2 text-left font-medium" />
                         ),
-                        td: ({ node, ...props }) => (
+                        td: ({ ...props }) => (
                           <td {...props} className="border border-border px-3 py-2" />
                         ),
                       }}

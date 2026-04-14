@@ -229,6 +229,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
                           {/* Author and date */}
                           <div className="flex items-center gap-2 text-sm text-[lch(62.6%_1.35_272)]">
                             {update.user.avatarUrl && (
+                              // eslint-disable-next-line @next/next/no-img-element -- Linear avatar, domain not whitelisted in next.config
                               <img
                                 src={update.user.avatarUrl}
                                 alt={update.user.displayName}

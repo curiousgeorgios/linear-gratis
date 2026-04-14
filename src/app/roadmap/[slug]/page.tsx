@@ -298,6 +298,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
           <div className="flex items-center gap-3 sm:gap-6 max-w-[50%] min-w-0">
             <div className="flex items-center gap-2 min-w-0">
               {branding?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time
                 <img
                   src={branding.logo_url}
                   alt={branding.brand_name || 'Logo'}

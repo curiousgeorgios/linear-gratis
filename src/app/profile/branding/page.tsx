@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,18 +48,7 @@ export default function BrandingPage() {
     logo_height: 40,
   });
 
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    loadBranding();
-  }, [user, authLoading, router]);
-
-  const loadBranding = async () => {
+  const loadBranding = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -80,7 +69,7 @@ export default function BrandingPage() {
       if (response.ok) {
         const data = (await response.json()) as { branding: BrandingSettings | null };
         if (data.branding) {
-          setBranding({ ...branding, ...data.branding });
+          setBranding((prev) => ({ ...prev, ...data.branding }));
         }
       }
     } catch (error) {
@@ -88,7 +77,18 @@ export default function BrandingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    loadBranding();
+  }, [user, authLoading, router, loadBranding]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -324,6 +324,7 @@ export default function BrandingPage() {
                   <Label>Logo</Label>
                   {branding.logo_url && (
                     <div className="border border-border rounded-lg p-4 bg-muted/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time */}
                       <img
                         src={branding.logo_url}
                         alt="Logo preview"
@@ -381,6 +382,7 @@ export default function BrandingPage() {
                   <Label>Favicon</Label>
                   {branding.favicon_url && (
                     <div className="border border-border rounded-lg p-4 bg-muted/20 h-[100px] flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time */}
                       <img
                         src={branding.favicon_url}
                         alt="Favicon preview"
