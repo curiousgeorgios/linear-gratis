@@ -15,29 +15,49 @@ interface KanbanBoardProps {
 }
 
 const getPriorityIcon = (priority: number) => {
-  if (priority === 0) {
+  if (priority === 1) {
     return (
-      <svg className="w-3.5 h-3.5 text-muted-foreground/70" viewBox="0 0 16 16" fill="currentColor">
-        <rect x="1.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
-        <rect x="6.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
-        <rect x="11.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
+      <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="#ff7235">
+        <path d="M3 1C1.91067 1 1 1.91067 1 3V13C1 14.0893 1.91067 15 3 15H13C14.0893 15 15 14.0893 15 13V3C15 1.91067 14.0893 1 13 1H3ZM7 4L9 4L8.75391 8.99836H7.25L7 4ZM9 11C9 11.5523 8.55228 12 8 12C7.44772 12 7 11.5523 7 11C7 10.4477 7.44772 10 8 10C8.55228 10 9 10.4477 9 11Z"></path>
       </svg>
     )
   }
 
-  if (priority >= 3) {
+  if (priority === 2) {
     return (
-      <svg className="w-3.5 h-3.5 text-orange-500" viewBox="0 0 16 16" fill="currentColor">
-        <path fillRule="evenodd" d="M3.741 14.5h8.521c1.691 0 2.778-1.795 1.993-3.293l-4.26-8.134c-.842-1.608-3.144-1.608-3.986 0l-4.26 8.134C.962 12.705 2.05 14.5 3.74 14.5ZM8 3.368a.742.742 0 0 0-.663.402l-4.26 8.134A.75.75 0 0 0 3.741 13H8V3.367Z" clipRule="evenodd"></path>
+      <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="#9c9da6">
+        <rect x="1.5" y="8" width="3" height="6" rx="1"></rect>
+        <rect x="6.5" y="5" width="3" height="9" rx="1"></rect>
+        <rect x="11.5" y="2" width="3" height="12" rx="1"></rect>
+      </svg>
+    )
+  }
+
+  if (priority === 3) {
+    return (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="#9c9da6">
+        <rect x="1.5" y="8" width="3" height="6" rx="1"></rect>
+        <rect x="6.5" y="5" width="3" height="9" rx="1"></rect>
+        <rect x="11.5" y="2" width="3" height="12" rx="1" fillOpacity="0.4"></rect>
+      </svg>
+    )
+  }
+
+  if (priority === 4) {
+    return (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="#9c9da6">
+        <rect x="1.5" y="8" width="3" height="6" rx="1"></rect>
+        <rect x="6.5" y="5" width="3" height="9" rx="1" fillOpacity="0.4"></rect>
+        <rect x="11.5" y="2" width="3" height="12" rx="1" fillOpacity="0.4"></rect>
       </svg>
     )
   }
 
   return (
-    <svg className="w-3.5 h-3.5 text-blue-500" viewBox="0 0 16 16" fill="currentColor">
-      <rect x="1.5" y="8" width="3" height="6" rx="1"></rect>
-      <rect x="6.5" y="5" width="3" height="9" rx="1"></rect>
-      <rect x="11.5" y="2" width="3" height="12" rx="1"></rect>
+    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="#9c9da6">
+      <rect x="1.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
+      <rect x="6.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
+      <rect x="11.5" y="7.25" width="3" height="1.5" rx="0.5" opacity="0.9"></rect>
     </svg>
   )
 }
@@ -278,7 +298,26 @@ export function KanbanBoard({
                                   </div>
                                 )}
 
-
+                                {/* Estimate badge */}
+                                {issue.estimate != null && issue.estimate > 0 && (
+                                  <div
+                                    className="flex items-center gap-1 text-xs font-medium overflow-hidden flex-shrink-0 transition-colors duration-150 hover:text-white"
+                                    style={{
+                                      borderRadius: '4px',
+                                      height: '22px',
+                                      padding: '4px',
+                                      border: '0.5px solid lch(22.5 4.707 272)',
+                                      backgroundColor: 'lch(8.3 1.867 272)',
+                                      color: 'lch(62.6% 1.35 272 / 1)',
+                                      maxWidth: '134px'
+                                    }}
+                                  >
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                      <path fillRule="evenodd" d="M3.741 14.5h8.521c1.691 0 2.778-1.795 1.993-3.293l-4.26-8.134c-.842-1.608-3.144-1.608-3.986 0l-4.26 8.134C.962 12.705 2.05 14.5 3.74 14.5ZM8 3.368a.742.742 0 0 0-.663.402l-4.26 8.134A.75.75 0 0 0 3.741 13H8V3.367Z" clipRule="evenodd"></path>
+                                    </svg>
+                                    <span>{issue.estimate}</span>
+                                  </div>
+                                )}
 
                                 {/* Label badges */}
                                 {issue.labels.map((label) => (
