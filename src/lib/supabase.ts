@@ -60,6 +60,10 @@ export type PublicView = {
   show_labels: boolean
   show_priorities: boolean
   show_descriptions: boolean
+  show_comments: boolean
+  show_activity: boolean
+  show_project_updates: boolean
+  excluded_issue_ids: string[]
   allowed_statuses: string[]
   password_protected: boolean
   password_hash?: string
