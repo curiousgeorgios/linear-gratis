@@ -8,6 +8,7 @@ export type LinearIssue = {
   description?: string;
   priority: number;
   priorityLabel: string;
+  estimate?: number;
   url: string;
   state: {
     id: string;
@@ -48,6 +49,7 @@ type IssueNode = {
   description?: string;
   priority: number;
   priorityLabel: string;
+  estimate?: number;
   url: string;
   state: { id: string; name: string; color: string; type: string };
   assignee?: { id: string; name: string };
@@ -104,6 +106,7 @@ export async function POST(request: NextRequest) {
             description
             priority
             priorityLabel
+            estimate
             url
             state {
               id
@@ -151,6 +154,7 @@ export async function POST(request: NextRequest) {
       description: issue.description,
       priority: issue.priority,
       priorityLabel: issue.priorityLabel,
+      estimate: issue.estimate,
       url: issue.url,
       state: issue.state,
       assignee: issue.assignee,
