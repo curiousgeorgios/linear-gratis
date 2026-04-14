@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paginateLinearConnection, type LinearConnection } from "@/lib/linear";
 
 export type LinearIssue = {
   id: string;
@@ -40,6 +41,21 @@ export type RequestBody = {
   statuses?: string[];
 };
 
+type IssueNode = {
+  id: string;
+  identifier: string;
+  title: string;
+  description?: string;
+  priority: number;
+  priorityLabel: string;
+  url: string;
+  state: { id: string; name: string; color: string; type: string };
+  assignee?: { id: string; name: string };
+  labels: { nodes: Array<{ id: string; name: string; color: string }> };
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { apiToken, projectId, teamId, statuses } =
@@ -59,7 +75,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the filter conditions
     let filterCondition = "";
     if (projectId) {
       filterCondition = `project: { id: { eq: "${projectId}" } }`;
@@ -67,7 +82,6 @@ export async function POST(request: NextRequest) {
       filterCondition = `team: { id: { eq: "${teamId}" } }`;
     }
 
-    // Add status filter if provided
     if (statuses && statuses.length > 0) {
       const statusFilter = `state: { name: { in: [${statuses.map((s) => `"${s}"`).join(", ")}] } }`;
       filterCondition = filterCondition
@@ -75,13 +89,13 @@ export async function POST(request: NextRequest) {
         : statusFilter;
     }
 
-    // Get issues from Linear using GraphQL - simplified to reduce complexity
     const query = `
-      query Issues {
+      query Issues($after: String) {
         issues(
           filter: { ${filterCondition} }
           orderBy: updatedAt
-          first: 50
+          first: 250
+          after: $after
         ) {
           nodes {
             id
@@ -111,73 +125,26 @@ export async function POST(request: NextRequest) {
             createdAt
             updatedAt
           }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
     `;
 
-    const response = await fetch("https://api.linear.app/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${apiToken.replace(/[^\x00-\xFF]/g, "")}`,
-      },
-      body: JSON.stringify({ query }),
+    const result = await paginateLinearConnection<IssueNode>({
+      apiToken,
+      query,
+      extract: (data) =>
+        (data as { issues: LinearConnection<IssueNode> }).issues,
     });
 
-    if (!response.ok) {
-      throw new Error(
-        `Linear API error: ${response.status} ${response.statusText}`,
-      );
+    if (!result.success) {
+      throw new Error(result.error);
     }
 
-    const result = (await response.json()) as {
-      data?: {
-        issues: {
-          nodes: Array<{
-            id: string;
-            identifier: string;
-            title: string;
-            description?: string;
-            priority: number;
-            priorityLabel: string;
-            url: string;
-            state: {
-              id: string;
-              name: string;
-              color: string;
-              type: string;
-            };
-            assignee?: {
-              id: string;
-              name: string;
-            };
-            labels: {
-              nodes: Array<{
-                id: string;
-                name: string;
-                color: string;
-              }>;
-            };
-            createdAt: string;
-            updatedAt: string;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    };
-
-    if (result.errors) {
-      throw new Error(
-        `GraphQL errors: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    if (!result.data) {
-      throw new Error("No data returned from Linear API");
-    }
-
-    // Transform the data to match our LinearIssue type
-    const issues: LinearIssue[] = result.data.issues.nodes.map((issue) => ({
+    const issues: LinearIssue[] = result.nodes.map((issue) => ({
       id: issue.id,
       identifier: issue.identifier,
       title: issue.title,

@@ -1,4 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { paginateLinearConnection, type LinearConnection } from '@/lib/linear';
+
+type ProjectUpdate = {
+  id: string
+  body: string
+  createdAt: string
+  editedAt?: string
+  health: string
+  user: {
+    id: string
+    name: string
+    displayName: string
+    avatarUrl?: string
+    email: string
+  }
+  diff?: unknown
+  diffMarkdown?: string
+  isDiffHidden: boolean
+  project: {
+    id: string
+    name: string
+    progress: number
+    state: string
+  }
+}
+
+type ProjectWithUpdates = {
+  id: string
+  name: string
+  projectUpdates: LinearConnection<ProjectUpdate>
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,13 +42,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get project updates from Linear using direct GraphQL request
     const query = `
-      query ProjectUpdates($projectId: String!) {
+      query ProjectUpdates($projectId: String!, $after: String) {
         project(id: $projectId) {
           id
           name
-          projectUpdates {
+          projectUpdates(first: 250, after: $after) {
             nodes {
               id
               body
@@ -41,81 +71,39 @@ export async function POST(request: NextRequest) {
                 state
               }
             }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
         }
       }
     `;
 
-    const response = await fetch('https://api.linear.app/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': apiToken.trim()
+    // Capture project metadata from the first page so we can return it alongside the updates.
+    let projectMeta: { id: string; name: string } | null = null;
+
+    const result = await paginateLinearConnection<ProjectUpdate>({
+      apiToken,
+      query,
+      variables: { projectId },
+      extract: (data) => {
+        const project = (data as { project: ProjectWithUpdates }).project;
+        if (!projectMeta) {
+          projectMeta = { id: project.id, name: project.name };
+        }
+        return project.projectUpdates;
       },
-      body: JSON.stringify({
-        query,
-        variables: { projectId }
-      })
     });
 
-    if (!response.ok) {
-      let errorDetails = '';
-      try {
-        const errorBody = await response.text();
-        errorDetails = ` - ${errorBody}`;
-      } catch {
-        // Ignore text parsing errors
-      }
-      throw new Error(`Linear API error: ${response.status} ${response.statusText}${errorDetails}`);
-    }
-
-    const result = await response.json() as {
-      data?: {
-        project: {
-          id: string
-          name: string
-          projectUpdates: {
-            nodes: Array<{
-              id: string
-              body: string
-              createdAt: string
-              editedAt?: string
-              health: string
-              user: {
-                id: string
-                name: string
-                displayName: string
-                avatarUrl?: string
-                email: string
-              }
-              diff?: unknown
-              diffMarkdown?: string
-              isDiffHidden: boolean
-              project: {
-                id: string
-                name: string
-                progress: number
-                state: string
-              }
-            }>
-          }
-        }
-      }
-      errors?: Array<{ message: string }>
-    };
-
-    if (result.errors) {
-      throw new Error(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
-    }
-
-    if (!result.data) {
-      throw new Error('No data returned from Linear API');
+    if (!result.success) {
+      throw new Error(result.error);
     }
 
     return NextResponse.json({
       success: true,
-      project: result.data.project,
-      updates: result.data.project.projectUpdates.nodes
+      project: projectMeta,
+      updates: result.nodes
     });
 
   } catch (error) {

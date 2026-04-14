@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { paginateLinearConnection, type LinearConnection } from '@/lib/linear';
+
+type ProjectNode = {
+  id: string
+  name: string
+  description?: string
+  createdAt: string
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,87 +19,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Projects API - Token length:', apiToken.length, 'First 20 chars:', apiToken.substring(0, 20));
-
-    // Fetch all projects via cursor pagination (Linear API max is 250 per page)
-    type ProjectNode = {
-      id: string
-      name: string
-      description?: string
-      createdAt: string
-    }
-
-    const allProjects: ProjectNode[] = [];
-    let endCursor: string | null = null;
-    let hasNextPage = true;
-
-    while (hasNextPage) {
-      const query = `
-        query Projects($after: String) {
-          projects(first: 250, after: $after) {
-            nodes {
-              id
-              name
-              description
-              createdAt
-            }
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
+    const query = `
+      query Projects($after: String) {
+        projects(first: 250, after: $after) {
+          nodes {
+            id
+            name
+            description
+            createdAt
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
           }
         }
-      `;
-
-      const response = await fetch('https://api.linear.app/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': apiToken.trim()
-        },
-        body: JSON.stringify({ query, variables: { after: endCursor } })
-      });
-
-      if (!response.ok) {
-        let errorDetails = '';
-        try {
-          const errorBody = await response.text();
-          errorDetails = ` - ${errorBody}`;
-        } catch {
-          // Ignore text parsing errors
-        }
-        throw new Error(`Linear API error: ${response.status} ${response.statusText}${errorDetails}`);
       }
+    `;
 
-      const result = await response.json() as {
-        data?: {
-          projects: {
-            nodes: ProjectNode[]
-            pageInfo: {
-              hasNextPage: boolean
-              endCursor: string | null
-            }
-          }
-        }
-        errors?: Array<{ message: string }>
-      };
+    const result = await paginateLinearConnection<ProjectNode>({
+      apiToken,
+      query,
+      extract: (data) =>
+        (data as { projects: LinearConnection<ProjectNode> }).projects,
+    });
 
-      if (result.errors) {
-        throw new Error(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
-      }
-
-      if (!result.data) {
-        throw new Error('No data returned from Linear API');
-      }
-
-      allProjects.push(...result.data.projects.nodes);
-      hasNextPage = result.data.projects.pageInfo.hasNextPage;
-      endCursor = result.data.projects.pageInfo.endCursor;
+    if (!result.success) {
+      throw new Error(result.error);
     }
 
     return NextResponse.json({
       success: true,
-      projects: allProjects.map(project => ({
+      projects: result.nodes.map(project => ({
         id: project.id,
         name: project.name,
         description: project.description
