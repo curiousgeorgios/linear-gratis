@@ -144,26 +144,20 @@ export async function fetchLinearIssues(
       return { success: false, error: 'Either projectId or teamId must be provided' };
     }
 
-    // Build the filter conditions
-    let filterCondition = '';
+    const filter: Record<string, unknown> = {};
     if (projectId) {
-      filterCondition = `project: { id: { eq: "${projectId}" } }`;
+      filter.project = { id: { eq: projectId } };
     } else if (teamId) {
-      filterCondition = `team: { id: { eq: "${teamId}" } }`;
+      filter.team = { id: { eq: teamId } };
     }
-
-    // Add status filter if provided
     if (statuses && statuses.length > 0) {
-      const statusFilter = `state: { name: { in: [${statuses.map((s) => `"${s}"`).join(', ')}] } }`;
-      filterCondition = filterCondition
-        ? `${filterCondition}, ${statusFilter}`
-        : statusFilter;
+      filter.state = { name: { in: statuses } };
     }
 
     const query = `
-      query Issues {
+      query Issues($filter: IssueFilter) {
         issues(
-          filter: { ${filterCondition} }
+          filter: $filter
           orderBy: updatedAt
           first: 50
         ) {
@@ -207,7 +201,7 @@ export async function fetchLinearIssues(
         'Content-Type': 'application/json',
         Authorization: apiToken.trim(),
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, variables: { filter } }),
     });
 
     if (!response.ok) {
@@ -314,13 +308,14 @@ export async function fetchRoadmapIssues(
       return { success: false, error: 'At least one projectId must be provided' };
     }
 
-    // Build filter for multiple projects
-    const projectFilter = projectIds.map((id) => `{ id: { eq: "${id}" } }`).join(', ');
+    const filter = {
+      project: { or: projectIds.map((id) => ({ id: { eq: id } })) },
+    };
 
     const query = `
-      query RoadmapIssues {
+      query RoadmapIssues($filter: IssueFilter) {
         issues(
-          filter: { project: { or: [${projectFilter}] } }
+          filter: $filter
           orderBy: updatedAt
           first: 100
         ) {
@@ -370,7 +365,7 @@ export async function fetchRoadmapIssues(
         'Content-Type': 'application/json',
         Authorization: apiToken.trim(),
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, variables: { filter } }),
     });
 
     if (!response.ok) {
