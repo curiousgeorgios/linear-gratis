@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `${apiToken.replace(/[^\x00-\xFF]/g, "")}`,
+        Authorization: apiToken.trim(),
       },
       body: JSON.stringify({ query }),
     });
