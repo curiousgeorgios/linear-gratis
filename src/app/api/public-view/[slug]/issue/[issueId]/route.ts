@@ -203,7 +203,7 @@ export async function GET(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `${decryptedToken.replace(/[^\x00-\xFF]/g, '')}`,
+        Authorization: decryptedToken.trim(),
       },
       body: JSON.stringify({
         query,
