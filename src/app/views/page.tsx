@@ -138,7 +138,7 @@ export default function PublicViewsPage() {
 
       if (response.ok) {
         const data = (await response.json()) as { projects?: Project[] };
-        setProjects((data.projects || []).sort((a, b) => a.name.localeCompare(b.name)));
+        setProjects(data.projects || []);
       }
     } catch (error) {
       console.error("Failed to fetch projects:", error);
@@ -155,7 +155,7 @@ export default function PublicViewsPage() {
 
       if (response.ok) {
         const data = (await response.json()) as { teams?: Team[] };
-        setTeams((data.teams || []).sort((a, b) => a.name.localeCompare(b.name)));
+        setTeams(data.teams || []);
       }
     } catch (error) {
       console.error("Failed to fetch teams:", error);
