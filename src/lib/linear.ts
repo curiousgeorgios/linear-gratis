@@ -1,4 +1,96 @@
 /**
+ * Shape of a Relay-style connection returned by the Linear GraphQL API.
+ */
+export type LinearConnection<T> = {
+  nodes: T[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor: string | null;
+  };
+};
+
+/**
+ * Fetches every page of a Linear GraphQL connection by following `endCursor`
+ * until `hasNextPage` is false.
+ *
+ * The supplied `query` must declare `$after: String` and pass it to the
+ * connection being paginated. `extract` navigates from the `data` object to
+ * the connection (which allows nested shapes like `data.project.projectUpdates`).
+ * `maxPages` bounds the loop so a misbehaving API cannot hang the request.
+ */
+export async function paginateLinearConnection<T>(args: {
+  apiToken: string;
+  query: string;
+  variables?: Record<string, unknown>;
+  extract: (data: Record<string, unknown>) => LinearConnection<T>;
+  maxPages?: number;
+}): Promise<{ success: true; nodes: T[] } | { success: false; error: string }> {
+  const { apiToken, query, variables = {}, extract, maxPages = 100 } = args;
+
+  const allNodes: T[] = [];
+  let endCursor: string | null = null;
+  let hasNextPage = true;
+  let pages = 0;
+
+  while (hasNextPage) {
+    if (pages++ >= maxPages) {
+      return {
+        success: false,
+        error: `Pagination exceeded safety limit (${maxPages} pages)`,
+      };
+    }
+
+    const response = await fetch('https://api.linear.app/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: apiToken.trim(),
+      },
+      body: JSON.stringify({
+        query,
+        variables: { ...variables, after: endCursor },
+      }),
+    });
+
+    if (!response.ok) {
+      let errorDetails = '';
+      try {
+        errorDetails = ` - ${await response.text()}`;
+      } catch {
+        // Ignore text parsing errors
+      }
+      return {
+        success: false,
+        error: `Linear API error: ${response.status} ${response.statusText}${errorDetails}`,
+      };
+    }
+
+    const result = (await response.json()) as {
+      data?: Record<string, unknown>;
+      errors?: Array<{ message: string }>;
+    };
+
+    if (result.errors) {
+      return {
+        success: false,
+        error: `GraphQL errors: ${result.errors.map((e) => e.message).join(', ')}`,
+      };
+    }
+
+    if (!result.data) {
+      return { success: false, error: 'No data returned from Linear API' };
+    }
+
+    const connection = extract(result.data);
+    allNodes.push(...connection.nodes);
+    hasNextPage = connection.pageInfo.hasNextPage;
+    endCursor = connection.pageInfo.endCursor;
+  }
+
+  return { success: true, nodes: allNodes };
+}
+
+/**
  * Linear issue type returned from the API
  */
 export type LinearIssue = {
