@@ -4,7 +4,6 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 interface BrandingSettings {
   logo_url?: string | null;
-  logo_width?: number | null;
   logo_height?: number | null;
   favicon_url?: string | null;
   brand_name?: string | null;
@@ -86,7 +85,6 @@ export async function POST(request: NextRequest) {
         .from('branding_settings')
         .update({
           logo_url: normalise(body.logo_url),
-          logo_width: normalise(body.logo_width),
           logo_height: normalise(body.logo_height),
           favicon_url: normalise(body.favicon_url),
           brand_name: normalise(body.brand_name),
@@ -115,7 +113,6 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: user.id,
           logo_url: normalise(body.logo_url),
-          logo_width: normalise(body.logo_width),
           logo_height: normalise(body.logo_height),
           favicon_url: normalise(body.favicon_url),
           brand_name: normalise(body.brand_name),

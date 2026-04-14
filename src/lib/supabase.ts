@@ -77,7 +77,6 @@ export type BrandingSettings = {
   id: string
   user_id: string
   logo_url?: string
-  logo_width?: number
   logo_height?: number
   favicon_url?: string
   brand_name?: string

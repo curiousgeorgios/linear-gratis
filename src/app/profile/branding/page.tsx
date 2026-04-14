@@ -44,7 +44,6 @@ export default function BrandingPage() {
   // Branding state - start with minimal defaults, let CSS theme handle colours
   const [branding, setBranding] = useState<Partial<BrandingSettings>>({
     show_powered_by: true,
-    logo_width: 120,
     logo_height: 40,
   });
 
@@ -191,7 +190,6 @@ export default function BrandingPage() {
         heading_font_family: undefined,
         // Reset display settings
         show_powered_by: true,
-        logo_width: 120,
         logo_height: 40,
         // Clear assets and content
         logo_url: undefined,
@@ -350,31 +348,20 @@ export default function BrandingPage() {
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="logo-width" className="text-xs">Width (px)</Label>
-                      <Input
-                        id="logo-width"
-                        type="number"
-                        value={branding.logo_width || 120}
-                        onChange={(e) =>
-                          setBranding({ ...branding, logo_width: parseInt(e.target.value) })
-                        }
-                        className="h-8"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="logo-height" className="text-xs">Height (px)</Label>
-                      <Input
-                        id="logo-height"
-                        type="number"
-                        value={branding.logo_height || 40}
-                        onChange={(e) =>
-                          setBranding({ ...branding, logo_height: parseInt(e.target.value) })
-                        }
-                        className="h-8"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="logo-height" className="text-xs">Max height (px)</Label>
+                    <Input
+                      id="logo-height"
+                      type="number"
+                      value={branding.logo_height || 40}
+                      onChange={(e) =>
+                        setBranding({ ...branding, logo_height: parseInt(e.target.value) })
+                      }
+                      className="h-8"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Width scales automatically to preserve the logo&apos;s aspect ratio.
+                    </p>
                   </div>
                 </div>
 
