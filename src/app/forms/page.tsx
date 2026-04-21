@@ -23,7 +23,6 @@ import {
 import { Navigation } from "@/components/navigation";
 import { supabase, CustomerRequestForm } from "@/lib/supabase";
 import { getActiveOrganisationId } from "@/lib/organisations";
-import { decryptTokenClient } from "@/lib/client-encryption";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Eye, Copy, Link2 } from "lucide-react";
@@ -42,7 +41,7 @@ export default function FormsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [linearToken, setLinearToken] = useState<string | null>(null);
+  const [hasLinearToken, setHasLinearToken] = useState(false);
   const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -64,13 +63,10 @@ export default function FormsPage() {
 
     setLoading(true);
     try {
-      // Load user profile and forms in parallel
-      const [profileResult, formsResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("linear_api_token")
-          .eq("id", user.id)
-          .single(),
+      // Load token status and forms in parallel. The token itself never leaves
+      // the server - we only learn whether one is configured.
+      const [tokenStatusResponse, formsResult] = await Promise.all([
+        fetch("/api/profile/linear-token", { method: "GET" }),
         supabase
           .from("customer_request_forms")
           .select("*")
@@ -81,17 +77,15 @@ export default function FormsPage() {
       const orgId = await getActiveOrganisationId(supabase, user.id);
       setActiveOrgId(orgId);
 
-      // Handle profile
-      if (profileResult.data?.linear_api_token) {
-        try {
-          const decryptedToken = await decryptTokenClient(
-            profileResult.data.linear_api_token,
-          );
-          setLinearToken(decryptedToken);
-          await fetchProjects(decryptedToken);
-        } catch (error) {
-          console.error("Error decrypting token:", error);
-        }
+      let tokenConfigured = false;
+      if (tokenStatusResponse.ok) {
+        const data = (await tokenStatusResponse.json()) as { hasToken?: boolean };
+        tokenConfigured = Boolean(data.hasToken);
+      }
+      setHasLinearToken(tokenConfigured);
+
+      if (tokenConfigured) {
+        await fetchProjects();
       }
 
       // Handle forms
@@ -117,12 +111,12 @@ export default function FormsPage() {
     loadUserData();
   }, [user, authLoading, router, loadUserData]);
 
-  const fetchProjects = async (token: string) => {
+  const fetchProjects = async () => {
     try {
       const response = await fetch("/api/linear/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiToken: token }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -151,7 +145,7 @@ export default function FormsPage() {
   };
 
   const createForm = async () => {
-    if (!user || !linearToken) return;
+    if (!user || !hasLinearToken) return;
 
     setSubmitting(true);
     setMessage(null);
@@ -367,7 +361,7 @@ export default function FormsPage() {
           </div>
 
           <div className="text-center">
-            {linearToken ? (
+            {hasLinearToken ? (
               <Button
                 onClick={() => setShowCreateForm(true)}
                 disabled={!activeOrgId || projects.length === 0}

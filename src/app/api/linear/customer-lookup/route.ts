@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedLinearToken } from "@/lib/linear-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiToken, email } = (await request.json()) as {
-      apiToken: string;
+    const auth = await getAuthenticatedLinearToken(request);
+    if (!auth.ok) return auth.response;
+    const { linearToken } = auth;
+
+    const { email } = (await request.json()) as {
       email: string;
     };
 
-    if (!apiToken || !email) {
+    if (!email) {
       return NextResponse.json(
-        { error: "Missing required fields: apiToken, email" },
+        { error: "Missing required field: email" },
         { status: 400 },
       );
     }
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: apiToken.trim(),
+        Authorization: linearToken.trim(),
       },
       body: JSON.stringify({ query }),
     });

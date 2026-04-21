@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { Navigation } from "@/components/navigation";
 import { supabase, Roadmap } from "@/lib/supabase";
-import { decryptTokenClient } from "@/lib/client-encryption";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Eye, Copy, Globe, Lock, Plus, Map } from "lucide-react";
@@ -42,7 +41,7 @@ export default function RoadmapsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showCreateRoadmap, setShowCreateRoadmap] = useState(false);
-  const [linearToken, setLinearToken] = useState<string | null>(null);
+  const [hasLinearToken, setHasLinearToken] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -68,13 +67,10 @@ export default function RoadmapsPage() {
       // Get the session token
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Load user profile and roadmaps in parallel
-      const [profileResult, roadmapsResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("linear_api_token")
-          .eq("id", user.id)
-          .single(),
+      // Load token status and roadmaps in parallel. The token itself never
+      // leaves the server - we only learn whether one is configured.
+      const [tokenStatusResponse, roadmapsResult] = await Promise.all([
+        fetch("/api/profile/linear-token", { method: "GET" }),
         fetch("/api/roadmaps", {
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
@@ -82,17 +78,15 @@ export default function RoadmapsPage() {
         }),
       ]);
 
-      // Handle profile
-      if (profileResult.data?.linear_api_token) {
-        try {
-          const decryptedToken = await decryptTokenClient(
-            profileResult.data.linear_api_token,
-          );
-          setLinearToken(decryptedToken);
-          await fetchProjects(decryptedToken);
-        } catch (error) {
-          console.error("Error decrypting token:", error);
-        }
+      let tokenConfigured = false;
+      if (tokenStatusResponse.ok) {
+        const data = (await tokenStatusResponse.json()) as { hasToken?: boolean };
+        tokenConfigured = Boolean(data.hasToken);
+      }
+      setHasLinearToken(tokenConfigured);
+
+      if (tokenConfigured) {
+        await fetchProjects();
       }
 
       // Handle roadmaps
@@ -117,12 +111,12 @@ export default function RoadmapsPage() {
     loadUserData();
   }, [user, authLoading, router, loadUserData]);
 
-  const fetchProjects = async (token: string) => {
+  const fetchProjects = async () => {
     try {
       const response = await fetch("/api/linear/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiToken: token }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -295,7 +289,7 @@ export default function RoadmapsPage() {
             </div>
             <Button
               onClick={() => setShowCreateRoadmap(true)}
-              disabled={!linearToken}
+              disabled={!hasLinearToken}
             >
               <Plus className="h-4 w-4 mr-2" />
               New roadmap
@@ -316,7 +310,7 @@ export default function RoadmapsPage() {
           )}
 
           {/* No Linear token warning */}
-          {!linearToken && (
+          {!hasLinearToken && (
             <Card className="mb-6 border-amber-200 bg-amber-50">
               <CardContent className="pt-6">
                 <p className="text-amber-800">
@@ -502,7 +496,7 @@ export default function RoadmapsPage() {
                   <p className="text-muted-foreground mb-4">
                     Create your first public product roadmap
                   </p>
-                  {linearToken && (
+                  {hasLinearToken && (
                     <Button onClick={() => setShowCreateRoadmap(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create roadmap

@@ -24,7 +24,6 @@ import {
 import { Navigation } from "@/components/navigation";
 import { supabase, PublicView } from "@/lib/supabase";
 import { getActiveOrganisationId } from "@/lib/organisations";
-import { decryptTokenClient } from "@/lib/client-encryption";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Eye, Copy, Globe, Lock, Edit3 } from "lucide-react";
@@ -52,7 +51,7 @@ export default function PublicViewsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showCreateView, setShowCreateView] = useState(false);
-  const [linearToken, setLinearToken] = useState<string | null>(null);
+  const [hasLinearToken, setHasLinearToken] = useState(false);
   const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -111,13 +110,10 @@ export default function PublicViewsPage() {
 
     setLoading(true);
     try {
-      // Load user profile and views in parallel
-      const [profileResult, viewsResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("linear_api_token")
-          .eq("id", user.id)
-          .single(),
+      // Load token status and views in parallel. The token itself never
+      // leaves the server - we only learn whether one is configured.
+      const [tokenStatusResponse, viewsResult] = await Promise.all([
+        fetch("/api/profile/linear-token", { method: "GET" }),
         supabase
           .from("public_views")
           .select("*")
@@ -127,20 +123,15 @@ export default function PublicViewsPage() {
       const orgId = await getActiveOrganisationId(supabase, user.id);
       setActiveOrgId(orgId);
 
-      // Handle profile
-      if (profileResult.data?.linear_api_token) {
-        try {
-          const decryptedToken = await decryptTokenClient(
-            profileResult.data.linear_api_token,
-          );
-          setLinearToken(decryptedToken);
-          await Promise.all([
-            fetchProjects(decryptedToken),
-            fetchTeams(decryptedToken),
-          ]);
-        } catch (error) {
-          console.error("Error decrypting token:", error);
-        }
+      let tokenConfigured = false;
+      if (tokenStatusResponse.ok) {
+        const data = (await tokenStatusResponse.json()) as { hasToken?: boolean };
+        tokenConfigured = Boolean(data.hasToken);
+      }
+      setHasLinearToken(tokenConfigured);
+
+      if (tokenConfigured) {
+        await Promise.all([fetchProjects(), fetchTeams()]);
       }
 
       // Handle views
@@ -166,12 +157,12 @@ export default function PublicViewsPage() {
     loadUserData();
   }, [user, authLoading, router, loadUserData]);
 
-  const fetchProjects = async (token: string) => {
+  const fetchProjects = async () => {
     try {
       const response = await fetch("/api/linear/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiToken: token }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -183,12 +174,12 @@ export default function PublicViewsPage() {
     }
   };
 
-  const fetchTeams = async (token: string) => {
+  const fetchTeams = async () => {
     try {
       const response = await fetch("/api/linear/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiToken: token }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -217,7 +208,7 @@ export default function PublicViewsPage() {
   };
 
   const createView = async () => {
-    if (!user || !linearToken) return;
+    if (!user || !hasLinearToken) return;
 
     setSubmitting(true);
     setMessage(null);
@@ -384,7 +375,7 @@ export default function PublicViewsPage() {
 
   const fetchPickerIssues = useCallback(
     async (sourceProjectId?: string, sourceTeamId?: string) => {
-      if (!linearToken || (!sourceProjectId && !sourceTeamId)) return;
+      if (!hasLinearToken || (!sourceProjectId && !sourceTeamId)) return;
 
       setLoadingIssues(true);
       try {
@@ -392,7 +383,6 @@ export default function PublicViewsPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            apiToken: linearToken,
             projectId: sourceProjectId || undefined,
             teamId: sourceTeamId || undefined,
           }),
@@ -410,7 +400,7 @@ export default function PublicViewsPage() {
         setLoadingIssues(false);
       }
     },
-    [linearToken],
+    [hasLinearToken],
   );
 
   const startEditView = (view: PublicView) => {
@@ -601,7 +591,7 @@ export default function PublicViewsPage() {
           </div>
 
           <div className="text-center">
-            {linearToken ? (
+            {hasLinearToken ? (
               <Button
                 onClick={() => {
                   setShowCreateView(true);

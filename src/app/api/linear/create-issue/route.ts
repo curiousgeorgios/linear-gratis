@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedLinearToken } from '@/lib/linear-auth';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
 interface IssueCreateRequest {
-  apiToken: string;
   title: string;
   description?: string;
   stateId?: string;
@@ -16,8 +16,11 @@ interface IssueCreateRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthenticatedLinearToken(request);
+    if (!auth.ok) return auth.response;
+    const { linearToken } = auth;
+
     const {
-      apiToken,
       title,
       description,
       stateId,
@@ -28,9 +31,9 @@ export async function POST(request: NextRequest) {
       labelIds
     }: IssueCreateRequest = await request.json();
 
-    if (!apiToken || !title?.trim()) {
+    if (!title?.trim()) {
       return NextResponse.json(
-        { error: 'API token and title are required' },
+        { error: 'Title is required' },
         { status: 400 }
       );
     }
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': apiToken,
+        'Authorization': linearToken,
       },
       body: JSON.stringify({
         query: mutation,
