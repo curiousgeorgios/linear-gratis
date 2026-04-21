@@ -3,7 +3,7 @@ import { getAuthenticatedLinearToken } from "@/lib/linear-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedLinearToken(request);
+    const auth = await getAuthenticatedLinearToken();
     if (!auth.ok) return auth.response;
     const { linearToken } = auth;
 

@@ -7,6 +7,10 @@ import { decryptToken, encryptToken, isLegacyCiphertext } from './encryption'
  * v2 and update profiles.linear_api_token for the given user. Failures to
  * rotate are logged but swallowed: the decrypted plaintext is still returned
  * so the caller can proceed with whatever Linear request they were making.
+ *
+ * Log format: single-line JSON with event tag. Alert on a non-zero rate of
+ * `encryption.rotation.failure` in your log drain to catch silent regressions
+ * (e.g. a schema change that breaks the profiles UPDATE).
  */
 export async function decryptAndRotateTokenIfNeeded(
   ciphertext: string,
@@ -23,12 +27,25 @@ export async function decryptAndRotateTokenIfNeeded(
       .update({ linear_api_token: v2 })
       .eq('id', ctx.userId)
     if (error) {
-      console.error('[encryption-rotation] failed to persist v2 ciphertext:', error.message)
+      console.warn(
+        JSON.stringify({
+          event: 'encryption.rotation.failure',
+          level: 'warn',
+          stage: 'update',
+          userId: ctx.userId,
+          error: error.message,
+        }),
+      )
     }
   } catch (error) {
-    console.error(
-      '[encryption-rotation] unexpected error during rotation:',
-      error instanceof Error ? error.name : 'unknown',
+    console.warn(
+      JSON.stringify({
+        event: 'encryption.rotation.failure',
+        level: 'warn',
+        stage: 'encrypt',
+        userId: ctx.userId,
+        error: error instanceof Error ? error.name : 'unknown',
+      }),
     )
   }
   return plaintext
