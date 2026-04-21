@@ -20,10 +20,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all custom domains (shared across authenticated users)
+    // Fetch only the caller's custom domains. supabaseAdmin bypasses RLS, so the
+    // user_id filter here is load-bearing — without it, every authenticated caller
+    // sees every user's domains.
     const { data, error } = await supabaseAdmin
       .from('custom_domains')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

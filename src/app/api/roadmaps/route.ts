@@ -30,10 +30,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    // Fetch all roadmaps (shared across authenticated users)
+    // Fetch only the caller's roadmaps. supabaseAdmin bypasses RLS, so the
+    // user_id filter here is load-bearing.
     const { data: roadmaps, error } = await supabaseAdmin
       .from('roadmaps')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
