@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { decryptToken } from '@/lib/encryption'
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 import * as z from 'zod'
 
 const submitSchema = z.object({
@@ -171,7 +171,10 @@ export async function POST(
     // Decrypt server-side only; token never leaves the server.
     let linearToken: string
     try {
-      linearToken = decryptToken(profile.linear_api_token)
+      linearToken = await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
+        userId: form.user_id,
+        admin: supabaseAdmin,
+      })
     } catch {
       return NextResponse.json(
         { success: false, error: 'Form configuration error. Please contact the form owner.' },

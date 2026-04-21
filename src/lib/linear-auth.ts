@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { decryptToken } from '@/lib/encryption'
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 
 export type LinearAuthFailure = {
   ok: false
@@ -52,7 +52,10 @@ export async function getAuthenticatedLinearToken(
 
   let linearToken: string
   try {
-    linearToken = decryptToken(profile.linear_api_token)
+    linearToken = await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
+      userId: user.id,
+      admin: supabaseAdmin,
+    })
   } catch {
     return {
       ok: false,

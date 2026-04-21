@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { Roadmap, KanbanColumn } from '@/lib/supabase';
-import { decryptToken } from '@/lib/encryption';
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { fetchRoadmapIssues, type RoadmapIssue } from '@/lib/linear';
 import {
   authoriseRoadmap,
@@ -168,7 +168,10 @@ async function fetchRoadmapData(roadmap: Roadmap) {
   }
 
   // Decrypt the token and fetch issues from Linear API
-  const decryptedToken = decryptToken(profileData.linear_api_token);
+  const decryptedToken = await decryptAndRotateTokenIfNeeded(
+    profileData.linear_api_token,
+    { userId: roadmap.user_id, admin: supabaseAdmin },
+  );
 
   if (!roadmap.project_ids || roadmap.project_ids.length === 0) {
     return NextResponse.json(

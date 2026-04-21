@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { decryptToken } from '@/lib/encryption';
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { authorisePublicView } from '@/lib/public-view-auth';
 
 export type IssueComment = {
@@ -113,7 +113,10 @@ export async function GET(
       );
     }
 
-    const decryptedToken = decryptToken(profileData.linear_api_token);
+    const decryptedToken = await decryptAndRotateTokenIfNeeded(
+      profileData.linear_api_token,
+      { userId: viewData.user_id, admin: supabaseAdmin },
+    );
 
     // Gate comments and history via GraphQL @include. Keeps the query text
     // static (cacheable, readable) while view settings control the flags.
