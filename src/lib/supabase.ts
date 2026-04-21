@@ -30,9 +30,26 @@ export type Profile = {
   updated_at: string
 }
 
+export type Organisation = {
+  id: string
+  name: string
+  slug: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export type OrganisationMember = {
+  organisation_id: string
+  user_id: string
+  role: 'owner' | 'member'
+  created_at: string
+}
+
 export type CustomerRequestForm = {
   id: string
   user_id: string
+  organisation_id: string
   name: string
   slug: string
   project_id: string
@@ -47,6 +64,7 @@ export type CustomerRequestForm = {
 export type PublicView = {
   id: string
   user_id: string
+  organisation_id: string
   name: string
   slug: string
   project_id?: string
@@ -76,6 +94,7 @@ export type PublicView = {
 export type BrandingSettings = {
   id: string
   user_id: string
+  organisation_id: string
   logo_url?: string
   logo_height?: number
   favicon_url?: string
@@ -106,6 +125,7 @@ export type BrandingSettings = {
 export type CustomDomain = {
   id: string
   user_id: string
+  organisation_id: string
   domain: string
   subdomain?: string
   verification_token: string
@@ -140,6 +160,7 @@ export type KanbanColumn = {
 export type Roadmap = {
   id: string
   user_id: string
+  organisation_id: string
   name: string
   slug: string
   title: string
