@@ -13,7 +13,7 @@ CREATE TABLE organisations (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   slug        TEXT NOT NULL UNIQUE,
-  created_by  UUID NOT NULL REFERENCES profiles(id),
+  created_by  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -56,7 +56,7 @@ CREATE INDEX idx_roadmaps_organisation_id               ON roadmaps(organisation
 INSERT INTO organisations (name, slug, created_by)
 SELECT
   COALESCE(NULLIF(split_part(email, '@', 1), ''), 'workspace') || '''s workspace',
-  'u-' || replace(substring(id::text, 1, 18), '-', ''),
+  'u-' || replace(id::text, '-', ''),
   id
 FROM profiles;
 
@@ -98,6 +98,13 @@ BEGIN
   SELECT COUNT(*) INTO org_count     FROM organisations;
   IF org_count < profile_count THEN
     RAISE EXCEPTION 'expected >= % orgs (one per profile), found %', profile_count, org_count;
+  END IF;
+
+  -- Every org must have at least one owner. Protects against a silently-broken
+  -- seed (e.g. if section 3's second INSERT ever regresses).
+  IF (SELECT COUNT(DISTINCT organisation_id) FROM organisation_members WHERE role = 'owner') < org_count THEN
+    RAISE EXCEPTION 'expected every org to have >= 1 owner, found % org(s) without an owner',
+      org_count - (SELECT COUNT(DISTINCT organisation_id) FROM organisation_members WHERE role = 'owner');
   END IF;
 END $$;
 
@@ -316,7 +323,7 @@ BEGIN
   VALUES (
     new_org_id,
     COALESCE(NULLIF(split_part(NEW.email, '@', 1), ''), 'workspace') || '''s workspace',
-    'u-' || replace(substring(new_org_id::text, 1, 18), '-', ''),
+    'u-' || replace(new_org_id::text, '-', ''),
     NEW.id
   );
 
