@@ -608,7 +608,7 @@ export default function PublicViewsPage() {
                   setShowEditView(false);
                   setEditingView(null);
                 }}
-                disabled={projects.length === 0 && teams.length === 0}
+                disabled={!activeOrgId || (projects.length === 0 && teams.length === 0)}
                 size="lg"
                 className="h-12 px-8 font-semibold"
               >
@@ -1345,7 +1345,7 @@ export default function PublicViewsPage() {
                     setShowEditView(false);
                     setEditingView(null);
                   }}
-                  disabled={projects.length === 0 && teams.length === 0}
+                  disabled={!activeOrgId || (projects.length === 0 && teams.length === 0)}
                 >
                   Create your first view
                 </Button>
