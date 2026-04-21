@@ -7,7 +7,6 @@ import {
   authoriseRoadmap,
   setRoadmapAccessCookie,
 } from '@/lib/roadmap-auth';
-import bcrypt from 'bcryptjs';
 
 type VoteCount = {
   issue_id: string;
@@ -124,6 +123,7 @@ export async function POST(
       );
     }
 
+    const bcrypt = (await import('bcryptjs')).default;
     const isPasswordValid = await bcrypt.compare(password, roadmap.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(

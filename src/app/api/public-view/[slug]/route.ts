@@ -7,7 +7,6 @@ import {
   authorisePublicView,
   setPublicViewAccessCookie,
 } from '@/lib/public-view-auth';
-import bcrypt from 'bcryptjs';
 
 export async function GET(
   request: NextRequest,
@@ -86,6 +85,7 @@ export async function POST(
       );
     }
 
+    const bcrypt = (await import('bcryptjs')).default;
     const isPasswordValid = await bcrypt.compare(password, view.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(
