@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveOrganisationIdAdmin } from '@/lib/organisations';
 import { addCustomHostname } from '@/lib/dns';
 
 interface DomainCreateBody {
@@ -125,11 +126,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const organisationId = await getActiveOrganisationIdAdmin(supabaseAdmin, user.id);
+    if (!organisationId) {
+      return NextResponse.json(
+        { error: 'No active organisation for this user' },
+        { status: 500 }
+      );
+    }
+
     // Insert domain with Cloudflare data
     const { data, error } = await supabaseAdmin
       .from('custom_domains')
       .insert({
         user_id: user.id,
+        organisation_id: organisationId,
         domain,
         verification_token: '', // No longer used - Cloudflare handles verification
         dns_records,

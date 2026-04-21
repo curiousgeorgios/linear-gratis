@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Roadmap } from '@/lib/supabase';
+import { getActiveOrganisationIdAdmin } from '@/lib/organisations';
 import bcrypt from 'bcryptjs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -108,11 +109,20 @@ export async function POST(request: NextRequest) {
       passwordHash = await bcrypt.hash(body.password, 10);
     }
 
+    const organisationId = await getActiveOrganisationIdAdmin(supabaseAdmin, user.id);
+    if (!organisationId) {
+      return NextResponse.json(
+        { error: 'No active organisation for this user' },
+        { status: 500 }
+      );
+    }
+
     // Create the roadmap
     const { data: roadmap, error } = await supabaseAdmin
       .from('roadmaps')
       .insert({
         user_id: user.id,
+        organisation_id: organisationId,
         name: body.name,
         slug: body.slug,
         title: body.title,

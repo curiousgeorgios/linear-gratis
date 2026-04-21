@@ -30,3 +30,27 @@ export async function getActiveOrganisationId(
   }
   return data?.organisation_id ?? null
 }
+
+/**
+ * Server-side variant: resolve the active org id using the service-role client.
+ * Safe because we always filter by a caller-provided user id that we've already
+ * authenticated upstream.
+ */
+export async function getActiveOrganisationIdAdmin(
+  admin: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await admin
+    .from('organisation_members')
+    .select('organisation_id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[organisations] failed to resolve active org id (admin):', error)
+    return null
+  }
+  return data?.organisation_id ?? null
+}
