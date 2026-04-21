@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Navigation } from "@/components/navigation";
 import { supabase, CustomerRequestForm } from "@/lib/supabase";
+import { getActiveOrganisationId } from "@/lib/organisations";
 import { decryptTokenClient } from "@/lib/client-encryption";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +43,7 @@ export default function FormsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [linearToken, setLinearToken] = useState<string | null>(null);
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -74,6 +76,9 @@ export default function FormsPage() {
           .select("*")
           .order("created_at", { ascending: false }),
       ]);
+
+      const orgId = await getActiveOrganisationId(supabase, user.id);
+      setActiveOrgId(orgId);
 
       // Handle profile
       if (profileResult.data?.linear_api_token) {
@@ -159,8 +164,15 @@ export default function FormsPage() {
         return;
       }
 
+      if (!activeOrgId) {
+        setMessage({ type: "error", text: "No active organisation. Reload the page and try again." });
+        setSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from("customer_request_forms").insert({
         user_id: user.id,
+        organisation_id: activeOrgId,
         name: formName,
         slug: formSlug,
         project_id: selectedProject,
@@ -651,16 +663,14 @@ export default function FormsPage() {
                             Preview
                           </Button>
                         </Link>
-                        {form.user_id === user?.id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteForm(form.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteForm(form.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
