@@ -136,6 +136,7 @@ export async function PATCH(
       .from('roadmaps')
       .update(updateData)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select()
       .single();
 

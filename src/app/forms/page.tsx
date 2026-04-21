@@ -74,6 +74,7 @@ export default function FormsPage() {
         supabase
           .from("customer_request_forms")
           .select("*")
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
 

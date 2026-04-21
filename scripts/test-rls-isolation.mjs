@@ -83,6 +83,34 @@ async function main() {
     }
   }
 
+  // Cross-tenant UPDATE attempt: A tries to rename one of B's views
+  const bViews = await b.client.from('public_views').select('id').eq('user_id', b.userId).limit(1)
+  const bViewId = bViews.data?.[0]?.id
+  if (bViewId) {
+    const updated = await a.client.from('public_views').update({ name: 'pwned' }).eq('id', bViewId).select('id')
+    if (updated.error) {
+      console.log(`[public_views] OK - cross-tenant UPDATE was rejected: ${updated.error.message}`)
+    } else if ((updated.data ?? []).length > 0) {
+      console.error(`[public_views] A updated ${updated.data.length} of B's rows - RLS broken`)
+      failures++
+    } else {
+      console.log(`[public_views] OK - cross-tenant UPDATE silently affected 0 rows`)
+    }
+  }
+
+  // Cross-tenant DELETE attempt: A tries to delete one of B's views
+  if (bViewId) {
+    const deleted = await a.client.from('public_views').delete().eq('id', bViewId).select('id')
+    if (deleted.error) {
+      console.log(`[public_views] OK - cross-tenant DELETE was rejected: ${deleted.error.message}`)
+    } else if ((deleted.data ?? []).length > 0) {
+      console.error(`[public_views] A deleted ${deleted.data.length} of B's rows - RLS broken`)
+      failures++
+    } else {
+      console.log(`[public_views] OK - cross-tenant DELETE silently affected 0 rows`)
+    }
+  }
+
   if (failures > 0) {
     console.error(`\nFAIL: ${failures} isolation failures`)
     process.exit(1)
