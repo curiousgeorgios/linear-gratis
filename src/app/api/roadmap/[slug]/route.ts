@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 import type { Roadmap, KanbanColumn } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
 import { fetchRoadmapIssues, type RoadmapIssue } from '@/lib/linear';
+import {
+  authoriseRoadmap,
+  setRoadmapAccessCookie,
+} from '@/lib/roadmap-auth';
 import bcrypt from 'bcryptjs';
 
 type VoteCount = {
@@ -48,48 +52,10 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    const auth = await authoriseRoadmap(slug, request);
+    if (!auth.ok) return auth.response;
 
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Slug parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if roadmap exists and is active
-    const { data: roadmapData, error: roadmapError } = await supabaseAdmin
-      .from('roadmaps')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (roadmapError || !roadmapData) {
-      return NextResponse.json(
-        { error: 'Roadmap not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    const roadmap = roadmapData as Roadmap;
-
-    // Check if roadmap has expired
-    if (roadmap.expires_at && new Date(roadmap.expires_at) < new Date()) {
-      return NextResponse.json(
-        { error: 'This roadmap has expired' },
-        { status: 410 }
-      );
-    }
-
-    // Check if roadmap requires password
-    if (roadmap.password_protected) {
-      return NextResponse.json(
-        { error: 'Password required', requiresPassword: true },
-        { status: 401 }
-      );
-    }
-
-    return await fetchRoadmapData(roadmap);
+    return await fetchRoadmapData(auth.roadmap);
 
   } catch (error) {
     console.error('Roadmap API error:', error);
@@ -118,7 +84,8 @@ export async function POST(
       );
     }
 
-    // Check if roadmap exists and is active
+    // Load the row. POST owns its own flow so it can set the cookie after
+    // validating the password.
     const { data: roadmapData, error: roadmapError } = await supabaseAdmin
       .from('roadmaps')
       .select('*')
@@ -135,26 +102,7 @@ export async function POST(
 
     const roadmap = roadmapData as Roadmap;
 
-    // Check password if roadmap is password protected
-    if (roadmap.password_protected) {
-      if (!password) {
-        return NextResponse.json(
-          { error: 'Password required', requiresPassword: true },
-          { status: 401 }
-        );
-      }
-
-      // Check password against hash
-      const isPasswordValid = await bcrypt.compare(password, roadmap.password_hash || '');
-      if (!isPasswordValid) {
-        return NextResponse.json(
-          { error: 'Invalid password', requiresPassword: true },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Check if roadmap has expired
+    // Expiry BEFORE password so expired rows never run bcrypt.
     if (roadmap.expires_at && new Date(roadmap.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'This roadmap has expired' },
@@ -162,7 +110,35 @@ export async function POST(
       );
     }
 
-    return await fetchRoadmapData(roadmap);
+    if (!roadmap.password_protected || !roadmap.password_hash) {
+      return NextResponse.json(
+        { error: 'Roadmap is not password protected' },
+        { status: 400 }
+      );
+    }
+
+    if (!password) {
+      return NextResponse.json(
+        { error: 'Password required', requiresPassword: true },
+        { status: 401 }
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, roadmap.password_hash);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'Invalid password', requiresPassword: true },
+        { status: 401 }
+      );
+    }
+
+    const response = await fetchRoadmapData(roadmap);
+    // Only set the access cookie on a 2xx response so we do not vouch for a
+    // caller whose Linear fetch blew up.
+    if (response.status >= 200 && response.status < 300) {
+      setRoadmapAccessCookie(response, roadmap);
+    }
+    return response;
 
   } catch (error) {
     console.error('Roadmap password validation error:', error);

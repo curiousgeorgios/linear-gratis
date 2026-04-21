@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
+import { authorisePublicView } from '@/lib/public-view-auth';
 
 export type IssueComment = {
   id: string;
@@ -77,31 +78,25 @@ export async function GET(
   try {
     const { slug, issueId } = await params;
 
-    if (!slug || !issueId) {
+    if (!issueId) {
       return NextResponse.json(
-        { error: 'Slug and issueId parameters are required' },
+        { error: 'issueId parameter is required' },
         { status: 400 }
       );
     }
 
-    const { data: viewData, error: viewError } = await supabaseAdmin
-      .from('public_views')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
+    // Auth first: is_active + expiry + password cookie.
+    const auth = await authorisePublicView(slug, request);
+    if (!auth.ok) return auth.response;
+    const viewData = auth.view;
 
-    if (viewError || !viewData) {
+    // Respect the view's issue restrictions. Without these checks, any
+    // visitor who knows the slug + issueId could pull an excluded issue or
+    // an issue outside the allowed statuses.
+    if (viewData.excluded_issue_ids?.includes(issueId)) {
       return NextResponse.json(
-        { error: 'Public view not found or inactive' },
+        { error: 'Issue not found' },
         { status: 404 }
-      );
-    }
-
-    if (viewData.expires_at && new Date(viewData.expires_at) < new Date()) {
-      return NextResponse.json(
-        { error: 'This public view has expired' },
-        { status: 410 }
       );
     }
 
@@ -307,11 +302,27 @@ export async function GET(
 
     const issue = result.data.issue;
 
+    // Enforce the view's allowed_statuses filter. Matches the list route's
+    // behaviour: an issue outside the allowed set is not visible through
+    // this view at all.
+    if (
+      viewData.allowed_statuses &&
+      viewData.allowed_statuses.length > 0 &&
+      !viewData.allowed_statuses.includes(issue.state.name)
+    ) {
+      return NextResponse.json(
+        { error: 'Issue not found' },
+        { status: 404 }
+      );
+    }
+
+    const descriptionsVisible = viewData.show_descriptions !== false;
+
     const issueDetail: IssueDetail = {
       id: issue.id,
       identifier: issue.identifier,
       title: issue.title,
-      description: issue.description,
+      description: descriptionsVisible ? issue.description : undefined,
       priority: issue.priority,
       priorityLabel: issue.priorityLabel,
       estimate: issue.estimate,

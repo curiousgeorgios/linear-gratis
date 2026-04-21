@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import type { PublicView } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
 import { fetchLinearIssues } from '@/lib/linear';
+import {
+  authorisePublicView,
+  setPublicViewAccessCookie,
+} from '@/lib/public-view-auth';
 import bcrypt from 'bcryptjs';
 
 export async function GET(
@@ -10,105 +15,10 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    const auth = await authorisePublicView(slug, request);
+    if (!auth.ok) return auth.response;
 
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Slug parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if view exists and is active
-    const { data: viewData, error: viewError } = await supabaseAdmin
-      .from('public_views')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (viewError || !viewData) {
-      return NextResponse.json(
-        { error: 'Public view not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    // Check if view has expired
-    if (viewData.expires_at && new Date(viewData.expires_at) < new Date()) {
-      return NextResponse.json(
-        { error: 'This public view has expired' },
-        { status: 410 }
-      );
-    }
-
-    // Check if view requires password
-    if (viewData.password_protected) {
-      return NextResponse.json(
-        { error: 'Password required', requiresPassword: true },
-        { status: 401 }
-      );
-    }
-
-    // Get the user's Linear token
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('linear_api_token')
-      .eq('id', viewData.user_id)
-      .single();
-
-    if (profileError || !profileData?.linear_api_token) {
-      return NextResponse.json(
-        { error: 'Unable to load data - Linear API token not found' },
-        { status: 500 }
-      );
-    }
-
-    // Decrypt the token and fetch issues directly from Linear API
-    const decryptedToken = decryptToken(profileData.linear_api_token);
-
-    const issuesResult = await fetchLinearIssues(decryptedToken, {
-      projectId: viewData.project_id || undefined,
-      teamId: viewData.team_id || undefined,
-      statuses: viewData.allowed_statuses?.length > 0 ? viewData.allowed_statuses : undefined,
-    });
-
-    if (!issuesResult.success) {
-      throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
-    }
-
-    // Strip out any issues the view owner has excluded. Filtering happens
-    // server-side so excluded IDs never leave the server.
-    const excludedIds = new Set<string>(viewData.excluded_issue_ids ?? []);
-    const visibleIssues = excludedIds.size > 0
-      ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
-      : issuesResult.issues;
-
-    return NextResponse.json({
-      success: true,
-      view: {
-        id: viewData.id,
-        user_id: viewData.user_id,
-        name: viewData.name,
-        slug: viewData.slug,
-        view_title: viewData.view_title,
-        description: viewData.description,
-        project_id: viewData.project_id,
-        project_name: viewData.project_name,
-        team_id: viewData.team_id,
-        team_name: viewData.team_name,
-        show_assignees: viewData.show_assignees,
-        show_labels: viewData.show_labels,
-        show_priorities: viewData.show_priorities,
-        show_descriptions: viewData.show_descriptions,
-        show_comments: viewData.show_comments ?? false,
-        show_activity: viewData.show_activity ?? false,
-        show_project_updates: viewData.show_project_updates ?? true,
-        allow_issue_creation: viewData.allow_issue_creation,
-        created_at: viewData.created_at
-      },
-      issues: visibleIssues
-    });
-
+    return await respondWithViewPayload(auth.view);
   } catch (error) {
     console.error('Public view API error:', error);
     return NextResponse.json(
@@ -126,9 +36,8 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const { slug } = resolvedParams;
-    const { password } = await request.json() as { password?: string };
+    const { slug } = await params;
+    const { password } = (await request.json()) as { password?: string };
 
     if (!slug) {
       return NextResponse.json(
@@ -137,7 +46,8 @@ export async function POST(
       );
     }
 
-    // Check if view exists and is active
+    // Load the row. POST manages its own flow because it may be the caller
+    // that actually sets the cookie, so we do not delegate to the helper.
     const { data: viewData, error: viewError } = await supabaseAdmin
       .from('public_views')
       .select('*')
@@ -152,92 +62,45 @@ export async function POST(
       );
     }
 
-    // Check password if view is password protected
-    if (viewData.password_protected) {
-      if (!password) {
-        return NextResponse.json(
-          { error: 'Password required', requiresPassword: true },
-          { status: 401 }
-        );
-      }
+    const view = viewData as PublicView;
 
-      // Check password against hash
-      const isPasswordValid = await bcrypt.compare(password, viewData.password_hash);
-      if (!isPasswordValid) {
-        return NextResponse.json(
-          { error: 'Invalid password', requiresPassword: true },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Check if view has expired
-    if (viewData.expires_at && new Date(viewData.expires_at) < new Date()) {
+    // Expiry BEFORE password so expired rows never run bcrypt.
+    if (view.expires_at && new Date(view.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'This public view has expired' },
         { status: 410 }
       );
     }
 
-    // Get the user's Linear token
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('linear_api_token')
-      .eq('id', viewData.user_id)
-      .single();
-
-    if (profileError || !profileData?.linear_api_token) {
+    if (!view.password_protected || !view.password_hash) {
       return NextResponse.json(
-        { error: 'Unable to load data - Linear API token not found' },
-        { status: 500 }
+        { error: 'View is not password protected' },
+        { status: 400 }
       );
     }
 
-    // Decrypt the token and fetch issues directly from Linear API
-    const decryptedToken = decryptToken(profileData.linear_api_token);
-
-    const issuesResult = await fetchLinearIssues(decryptedToken, {
-      projectId: viewData.project_id || undefined,
-      teamId: viewData.team_id || undefined,
-      statuses: viewData.allowed_statuses?.length > 0 ? viewData.allowed_statuses : undefined,
-    });
-
-    if (!issuesResult.success) {
-      throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
+    if (!password) {
+      return NextResponse.json(
+        { error: 'Password required', requiresPassword: true },
+        { status: 401 }
+      );
     }
 
-    const excludedIds = new Set<string>(viewData.excluded_issue_ids ?? []);
-    const visibleIssues = excludedIds.size > 0
-      ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
-      : issuesResult.issues;
+    const isPasswordValid = await bcrypt.compare(password, view.password_hash);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'Invalid password', requiresPassword: true },
+        { status: 401 }
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      view: {
-        id: viewData.id,
-        user_id: viewData.user_id,
-        name: viewData.name,
-        slug: viewData.slug,
-        view_title: viewData.view_title,
-        description: viewData.description,
-        project_id: viewData.project_id,
-        project_name: viewData.project_name,
-        team_id: viewData.team_id,
-        team_name: viewData.team_name,
-        show_assignees: viewData.show_assignees,
-        show_labels: viewData.show_labels,
-        show_priorities: viewData.show_priorities,
-        show_descriptions: viewData.show_descriptions,
-        show_comments: viewData.show_comments ?? false,
-        show_activity: viewData.show_activity ?? false,
-        show_project_updates: viewData.show_project_updates ?? true,
-        password_protected: viewData.password_protected,
-        allow_issue_creation: viewData.allow_issue_creation,
-        created_at: viewData.created_at
-      },
-      issues: visibleIssues
-    });
-
+    const response = await respondWithViewPayload(view);
+    // Only set the access cookie on a 2xx response so we do not vouch for a
+    // caller whose Linear fetch blew up.
+    if (response.status >= 200 && response.status < 300) {
+      setPublicViewAccessCookie(response, view);
+    }
+    return response;
   } catch (error) {
     console.error('Public view password validation error:', error);
     return NextResponse.json(
@@ -248,4 +111,67 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
+  const { data: profileData, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('linear_api_token')
+    .eq('id', view.user_id)
+    .single();
+
+  if (profileError || !profileData?.linear_api_token) {
+    return NextResponse.json(
+      { error: 'Unable to load data - Linear API token not found' },
+      { status: 500 }
+    );
+  }
+
+  const decryptedToken = decryptToken(profileData.linear_api_token);
+
+  const issuesResult = await fetchLinearIssues(decryptedToken, {
+    projectId: view.project_id || undefined,
+    teamId: view.team_id || undefined,
+    statuses:
+      view.allowed_statuses?.length > 0 ? view.allowed_statuses : undefined,
+  });
+
+  if (!issuesResult.success) {
+    throw new Error(`Failed to fetch issues from Linear: ${issuesResult.error}`);
+  }
+
+  // Strip out any issues the view owner has excluded. Filtering happens
+  // server-side so excluded IDs never leave the server.
+  const excludedIds = new Set<string>(view.excluded_issue_ids ?? []);
+  const visibleIssues =
+    excludedIds.size > 0
+      ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
+      : issuesResult.issues;
+
+  return NextResponse.json({
+    success: true,
+    view: {
+      id: view.id,
+      user_id: view.user_id,
+      name: view.name,
+      slug: view.slug,
+      view_title: view.view_title,
+      description: view.description,
+      project_id: view.project_id,
+      project_name: view.project_name,
+      team_id: view.team_id,
+      team_name: view.team_name,
+      show_assignees: view.show_assignees,
+      show_labels: view.show_labels,
+      show_priorities: view.show_priorities,
+      show_descriptions: view.show_descriptions,
+      show_comments: view.show_comments ?? false,
+      show_activity: view.show_activity ?? false,
+      show_project_updates: view.show_project_updates ?? true,
+      password_protected: view.password_protected,
+      allow_issue_creation: view.allow_issue_creation,
+      created_at: view.created_at,
+    },
+    issues: visibleIssues,
+  });
 }
