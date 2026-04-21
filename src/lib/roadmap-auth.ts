@@ -1,7 +1,16 @@
+import { timingSafeEqual } from 'node:crypto'
+import { Buffer } from 'node:buffer'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Roadmap } from '@/lib/supabase'
+
+function constantTimeEquals(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
+}
 
 export type AuthoriseRoadmapResult =
   | { ok: true; roadmap: Roadmap }
@@ -59,7 +68,7 @@ export async function authoriseRoadmap(
     if (
       !cookieValue ||
       !roadmap.password_hash ||
-      cookieValue !== roadmap.password_hash
+      !constantTimeEquals(cookieValue, roadmap.password_hash)
     ) {
       return {
         ok: false,
@@ -90,7 +99,10 @@ export function setRoadmapAccessCookie(
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
-    path: '/',
+    // Scoped to the roadmap API surface so the cookie is not sent to unrelated
+    // endpoints. The roadmap page itself renders via client fetches to
+    // /api/roadmap/..., which receive the cookie as expected.
+    path: '/api/roadmap/',
     maxAge: 60 * 60 * 24, // 24h
   })
 }

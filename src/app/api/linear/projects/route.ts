@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { paginateLinearConnection, type LinearConnection } from '@/lib/linear';
 import { getAuthenticatedLinearToken } from '@/lib/linear-auth';
 
@@ -9,9 +9,9 @@ type ProjectNode = {
   createdAt: string
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const auth = await getAuthenticatedLinearToken(request);
+    const auth = await getAuthenticatedLinearToken();
     if (!auth.ok) return auth.response;
     const { linearToken } = auth;
 

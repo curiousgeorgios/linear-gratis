@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
@@ -21,9 +21,7 @@ export type LinearAuthResult = LinearAuthFailure | LinearAuthSuccess
  * API token. If anything fails, returns a response the caller should return as-is.
  * The plaintext token never leaves the server.
  */
-export async function getAuthenticatedLinearToken(
-  _request?: NextRequest,
-): Promise<LinearAuthResult> {
+export async function getAuthenticatedLinearToken(): Promise<LinearAuthResult> {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
