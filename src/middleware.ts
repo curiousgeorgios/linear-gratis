@@ -64,7 +64,17 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_APP_DOMAIN || '',
   ].filter(Boolean);
 
-  const isMainDomain = mainDomains.some((domain) => hostname.includes(domain));
+  // Strip the port before comparing so that "localhost:3000" still matches
+  // the "localhost" entry, and so that an attacker cannot smuggle a main
+  // domain into the port portion of the Host header.
+  const hostnameWithoutPort = hostname.split(':')[0];
+  const isMainDomain = mainDomains.some((domain) => {
+    const domainWithoutPort = domain.split(':')[0];
+    return (
+      hostnameWithoutPort === domainWithoutPort ||
+      hostnameWithoutPort.endsWith(`.${domainWithoutPort}`)
+    );
+  });
 
   // If it's not the main domain, check if it's a verified custom domain
   if (!isMainDomain) {

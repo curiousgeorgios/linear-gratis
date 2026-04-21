@@ -6,24 +6,20 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
+  // Only allow same-origin relative paths in `next`. Anything that starts with
+  // `//` (protocol-relative) or a full URL would let an attacker turn the
+  // callback into an open redirect after a successful login.
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Successful auth - redirect to the intended destination
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-
-      if (isLocalEnv) {
-        // In development, redirect to origin
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        // In production behind a proxy, use the forwarded host
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+      // Always redirect to the request's own origin. Do not trust
+      // X-Forwarded-Host because it can be set by an attacker via a permissive
+      // intermediary and turned into a post-auth open redirect.
+      return NextResponse.redirect(`${origin}${safeNext}`)
     }
   }
 
