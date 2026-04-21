@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedLinearToken } from '@/lib/linear-auth';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
 interface MetadataRequest {
-  apiToken: string;
   teamId?: string;
   projectId?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiToken, teamId, projectId }: MetadataRequest = await request.json();
+    const auth = await getAuthenticatedLinearToken(request);
+    if (!auth.ok) return auth.response;
+    const { linearToken } = auth;
 
-    if (!apiToken) {
-      return NextResponse.json(
-        { error: 'API token is required' },
-        { status: 400 }
-      );
-    }
+    const { teamId, projectId }: MetadataRequest = await request.json();
 
     let query: string;
     let variables: Record<string, unknown> = {};
@@ -120,7 +117,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': apiToken,
+        'Authorization': linearToken,
       },
       body: JSON.stringify({
         query,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { paginateLinearConnection, type LinearConnection } from '@/lib/linear';
+import { getAuthenticatedLinearToken } from '@/lib/linear-auth';
 
 export type Team = {
   id: string
@@ -12,14 +13,9 @@ type TeamNode = Team;
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiToken } = await request.json() as { apiToken: string };
-
-    if (!apiToken) {
-      return NextResponse.json(
-        { error: 'Missing required field: apiToken' },
-        { status: 400 }
-      );
-    }
+    const auth = await getAuthenticatedLinearToken(request);
+    if (!auth.ok) return auth.response;
+    const { linearToken } = auth;
 
     const query = `
       query Teams($after: String) {
@@ -39,7 +35,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const result = await paginateLinearConnection<TeamNode>({
-      apiToken,
+      apiToken: linearToken,
       query,
       extract: (data) =>
         (data as { teams: LinearConnection<TeamNode> }).teams,

@@ -6,13 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { supabase } from '@/lib/supabase'
-import { encryptTokenClient, decryptTokenClient } from '@/lib/client-encryption'
 import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
   const { user, signOut, loading: authLoading } = useAuth()
   const [linearToken, setLinearToken] = useState('')
+  const [hasLinearToken, setHasLinearToken] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -23,23 +22,17 @@ export default function ProfilePage() {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('linear_api_token')
-        .eq('id', user.id)
-        .single()
+      const response = await fetch('/api/profile/linear-token', {
+        method: 'GET',
+      })
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error loading profile:', error)
-      } else if (data?.linear_api_token) {
-        try {
-          const decryptedToken = await decryptTokenClient(data.linear_api_token)
-          setLinearToken(decryptedToken)
-        } catch (error) {
-          console.error('Error decrypting token:', error)
-          setMessage({ type: 'error', text: 'Error loading saved token. Please re-enter your token.' })
-        }
+      if (!response.ok) {
+        console.error('Error loading profile status:', response.status)
+        return
       }
+
+      const data = (await response.json()) as { hasToken?: boolean }
+      setHasLinearToken(Boolean(data.hasToken))
     } catch (error) {
       console.error('Error loading profile:', error)
     } finally {
@@ -55,47 +48,65 @@ export default function ProfilePage() {
       return
     }
 
-    // Load existing token
+    // Load existing token status
     loadProfile()
   }, [user, authLoading, router, loadProfile])
 
   const saveProfile = async () => {
     if (!user) return
 
+    if (!linearToken.trim()) {
+      setMessage({ type: 'error', text: 'Enter a Linear API token to save.' })
+      return
+    }
+
     setSaving(true)
     setMessage(null)
 
     try {
-      let encryptedToken = null
-      if (linearToken) {
-        try {
-          encryptedToken = await encryptTokenClient(linearToken)
-        } catch (error) {
-          setMessage({ type: 'error', text: 'Failed to encrypt token. Please try again.' })
-          console.error('Error encrypting token:', error)
-          setSaving(false)
-          return
-        }
-      }
+      const response = await fetch('/api/profile/linear-token', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: linearToken.trim() }),
+      })
 
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          email: user.email!,
-          linear_api_token: encryptedToken,
-          updated_at: new Date().toISOString()
-        })
-
-      if (error) {
+      if (!response.ok) {
         setMessage({ type: 'error', text: 'Failed to save profile. Please try again.' })
-        console.error('Error saving profile:', error)
+        console.error('Error saving profile:', response.status)
       } else {
         setMessage({ type: 'success', text: 'Profile saved successfully!' })
+        setHasLinearToken(true)
+        setLinearToken('')
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save profile. Please try again.' })
       console.error('Error saving profile:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const clearToken = async () => {
+    if (!user) return
+
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/profile/linear-token', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        setMessage({ type: 'error', text: 'Failed to remove token. Please try again.' })
+      } else {
+        setMessage({ type: 'success', text: 'Linear token removed.' })
+        setHasLinearToken(false)
+        setLinearToken('')
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to remove token. Please try again.' })
+      console.error('Error clearing token:', error)
     } finally {
       setSaving(false)
     }
@@ -196,7 +207,7 @@ export default function ProfilePage() {
                     <Input
                       id="linear-token"
                       type="password"
-                      placeholder={linearToken ? "Token is configured" : "Paste your Linear API token here"}
+                      placeholder={hasLinearToken ? "Token is configured (enter a new one to replace it)" : "Paste your Linear API token here"}
                       value={linearToken}
                       onChange={(e) => setLinearToken(e.target.value)}
                       autoComplete="current-password"
@@ -223,13 +234,25 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  <Button
-                    type="submit"
-                    disabled={saving || !linearToken.trim()}
-                    className="w-full"
-                  >
-                    {saving ? 'Saving token...' : linearToken ? 'Save Linear token' : 'Enter token to continue'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={saving || !linearToken.trim()}
+                      className="flex-1"
+                    >
+                      {saving ? 'Saving token...' : hasLinearToken ? 'Replace Linear token' : 'Save Linear token'}
+                    </Button>
+                    {hasLinearToken && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearToken}
+                        disabled={saving}
+                      >
+                        Remove token
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </>
             )}
