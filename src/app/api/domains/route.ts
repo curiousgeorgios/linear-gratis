@@ -21,7 +21,7 @@ export async function GET() {
     }
 
     // Fetch only the caller's custom domains. supabaseAdmin bypasses RLS, so the
-    // user_id filter here is load-bearing — without it, every authenticated caller
+    // user_id filter here is load-bearing: without it, every authenticated caller
     // sees every user's domains.
     const { data, error } = await supabaseAdmin
       .from('custom_domains')
