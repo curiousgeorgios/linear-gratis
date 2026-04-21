@@ -21,7 +21,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
     }
 
-    const encrypted = encryptToken(parsed.data.token)
+    const encrypted = await encryptToken(parsed.data.token)
 
     const { error } = await supabaseAdmin
       .from('profiles')

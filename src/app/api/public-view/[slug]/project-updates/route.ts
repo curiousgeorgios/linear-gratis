@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { decryptToken } from '@/lib/encryption'
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 import { authorisePublicView } from '@/lib/public-view-auth'
 
 interface RouteContext {
@@ -44,7 +44,10 @@ export async function GET(
     }
 
     // Decrypt the Linear API token
-    const decryptedToken = decryptToken(profile.linear_api_token)
+    const decryptedToken = await decryptAndRotateTokenIfNeeded(
+      profile.linear_api_token,
+      { userId: view.user_id, admin: supabaseAdmin },
+    )
 
     // Fetch project updates from Linear
     const query = `

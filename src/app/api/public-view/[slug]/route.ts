@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { PublicView } from '@/lib/supabase';
-import { decryptToken } from '@/lib/encryption';
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { fetchLinearIssues } from '@/lib/linear';
 import {
   authorisePublicView,
@@ -127,7 +127,10 @@ async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
     );
   }
 
-  const decryptedToken = decryptToken(profileData.linear_api_token);
+  const decryptedToken = await decryptAndRotateTokenIfNeeded(
+    profileData.linear_api_token,
+    { userId: view.user_id, admin: supabaseAdmin },
+  );
 
   const issuesResult = await fetchLinearIssues(decryptedToken, {
     projectId: view.project_id || undefined,

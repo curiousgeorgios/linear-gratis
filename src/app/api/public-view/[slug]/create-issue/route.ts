@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { decryptToken } from '@/lib/encryption';
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { authorisePublicView } from '@/lib/public-view-auth';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
@@ -196,7 +196,10 @@ export async function POST(
     }
 
     // Decrypt the token
-    const decryptedToken = decryptToken(profileData.linear_api_token);
+    const decryptedToken = await decryptAndRotateTokenIfNeeded(
+      profileData.linear_api_token,
+      { userId: viewData.user_id, admin: supabaseAdmin },
+    );
 
     // Fetch team metadata directly from Linear API
     const teamMetadata = await fetchTeamMetadata(decryptedToken, viewData.team_id);
