@@ -369,7 +369,7 @@ export default function FormsPage() {
             {linearToken ? (
               <Button
                 onClick={() => setShowCreateForm(true)}
-                disabled={projects.length === 0}
+                disabled={!activeOrgId || projects.length === 0}
                 size="lg"
                 className="h-12 px-8 font-semibold"
               >
@@ -579,7 +579,7 @@ export default function FormsPage() {
                 </p>
                 <Button
                   onClick={() => setShowCreateForm(true)}
-                  disabled={projects.length === 0}
+                  disabled={!activeOrgId || projects.length === 0}
                 >
                   Create your first form
                 </Button>
