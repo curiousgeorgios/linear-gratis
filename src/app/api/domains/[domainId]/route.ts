@@ -115,6 +115,66 @@ export async function PATCH(
     const { domainId } = await params;
     const body = await request.json() as DomainUpdateBody;
 
+    // Load the existing row so that partial target updates can be validated
+    // against the stored values, and so that we confirm the caller owns the
+    // domain before touching anything.
+    const { data: currentDomain, error: currentError } = await supabaseAdmin!
+      .from('custom_domains')
+      .select('target_type, target_slug')
+      .eq('id', domainId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (currentError || !currentDomain) {
+      return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
+    }
+
+    const existingTargetType = currentDomain.target_type as string | null;
+    const existingTargetSlug = currentDomain.target_slug as string | null;
+
+    if (body.target_type !== undefined || body.target_slug !== undefined) {
+      // If target fields are being updated, both must resolve to a concrete
+      // value and the target resource must belong to the caller. This closes
+      // a phishing vector where a user could retarget their own verified
+      // custom domain at another user's public view, form or roadmap.
+      const nextTargetType = body.target_type ?? existingTargetType;
+      const nextTargetSlug = body.target_slug ?? existingTargetSlug;
+
+      if (!nextTargetType || !nextTargetSlug) {
+        return NextResponse.json(
+          { error: 'target_type and target_slug must both be set' },
+          { status: 400 },
+        );
+      }
+
+      const tableByType: Record<string, string> = {
+        view: 'public_views',
+        form: 'customer_request_forms',
+        roadmap: 'roadmaps',
+      };
+      const targetTable = tableByType[nextTargetType];
+      if (!targetTable) {
+        return NextResponse.json(
+          { error: 'Unknown target_type' },
+          { status: 400 },
+        );
+      }
+
+      const { data: targetRow, error: targetError } = await supabaseAdmin!
+        .from(targetTable)
+        .select('user_id')
+        .eq('slug', nextTargetSlug)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (targetError || !targetRow) {
+        return NextResponse.json(
+          { error: 'Target not found or not owned by caller' },
+          { status: 403 },
+        );
+      }
+    }
+
     const { data, error } = await supabaseAdmin!
       .from('custom_domains')
       .update({
