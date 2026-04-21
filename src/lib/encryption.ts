@@ -26,7 +26,7 @@ export function encryptToken(token: string): string {
     const encrypted = CryptoJS.AES.encrypt(token, ENCRYPTION_KEY).toString()
     return encrypted
   } catch (error) {
-    console.error('Error encrypting token:', error)
+    console.error('Error encrypting token:', error instanceof Error ? error.name : 'unknown')
     throw new Error('Failed to encrypt token')
   }
 }
@@ -48,7 +48,7 @@ export function decryptToken(encryptedToken: string): string {
     const decrypted = bytes.toString(CryptoJS.enc.Utf8)
     return decrypted
   } catch (error) {
-    console.error('Error decrypting token:', error)
+    console.error('Error decrypting token:', error instanceof Error ? error.name : 'unknown')
     throw new Error('Failed to decrypt token')
   }
 }
