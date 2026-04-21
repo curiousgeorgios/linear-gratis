@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import type { Roadmap } from '@/lib/supabase';
+import { authoriseRoadmap } from '@/lib/roadmap-auth';
 import crypto from 'crypto';
 
 function hashIP(ip: string): string {
@@ -56,22 +56,12 @@ export async function POST(
       );
     }
 
-    // Check if roadmap exists, is active, and allows voting
-    const { data: roadmapData, error: roadmapError } = await supabaseAdmin
-      .from('roadmaps')
-      .select('id, allow_voting, is_active')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (roadmapError || !roadmapData) {
-      return NextResponse.json(
-        { error: 'Roadmap not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    const roadmap = roadmapData as Pick<Roadmap, 'id' | 'allow_voting' | 'is_active'>;
+    // Auth first: is_active + expiry + password cookie. Visitors authenticate
+    // via the main roadmap password POST which sets the rm_access cookie, so
+    // password-protected roadmaps stay gated here too.
+    const auth = await authoriseRoadmap(slug, request);
+    if (!auth.ok) return auth.response;
+    const roadmap = auth.roadmap;
 
     if (!roadmap.allow_voting) {
       return NextResponse.json(
@@ -154,22 +144,10 @@ export async function DELETE(
       );
     }
 
-    // Check if roadmap exists and is active
-    const { data: roadmapData, error: roadmapError } = await supabaseAdmin
-      .from('roadmaps')
-      .select('id, is_active')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (roadmapError || !roadmapData) {
-      return NextResponse.json(
-        { error: 'Roadmap not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    const roadmap = roadmapData as Pick<Roadmap, 'id' | 'is_active'>;
+    // Auth first: is_active + expiry + password cookie.
+    const auth = await authoriseRoadmap(slug, request);
+    if (!auth.ok) return auth.response;
+    const roadmap = auth.roadmap;
 
     // Delete the vote
     const { error: deleteError } = await supabaseAdmin

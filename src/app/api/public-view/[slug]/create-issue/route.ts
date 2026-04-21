@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptToken } from '@/lib/encryption';
+import { authorisePublicView } from '@/lib/public-view-auth';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
@@ -160,24 +161,15 @@ export async function POST(
     const { slug } = await params;
     const issueData: IssueCreateRequest = await request.json();
 
-    // Get the public view
-    const { data: viewData, error: viewError } = await supabaseAdmin
-      .from('public_views')
-      .select('*')
-      .eq('slug', slug)
-      .single();
-
-    if (viewError || !viewData) {
-      return NextResponse.json(
-        { error: 'View not found' },
-        { status: 404 }
-      );
-    }
+    // Auth first: is_active + expiry + password cookie.
+    const auth = await authorisePublicView(slug, request);
+    if (!auth.ok) return auth.response;
+    const viewData = auth.view;
 
     // Check if issue creation is allowed
     if (!viewData.allow_issue_creation) {
       return NextResponse.json(
-        { error: 'Issue creation is not allowed for this view' },
+        { error: 'Issue creation not allowed on this view' },
         { status: 403 }
       );
     }

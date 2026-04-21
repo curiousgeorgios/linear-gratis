@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import type { Roadmap, RoadmapComment } from '@/lib/supabase';
+import type { RoadmapComment } from '@/lib/supabase';
+import { authoriseRoadmap } from '@/lib/roadmap-auth';
 import crypto from 'crypto';
 
 function hashIP(ip: string): string {
@@ -53,22 +54,12 @@ export async function GET(
       );
     }
 
-    // Check if roadmap exists and is active
-    const { data: roadmapData, error: roadmapError } = await supabaseAdmin
-      .from('roadmaps')
-      .select('id, is_active')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (roadmapError || !roadmapData) {
-      return NextResponse.json(
-        { error: 'Roadmap not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    const roadmap = roadmapData as Pick<Roadmap, 'id' | 'is_active'>;
+    // Auth first: is_active + expiry + password cookie. Comments on a
+    // password-protected roadmap should require the cookie the main POST
+    // issued.
+    const auth = await authoriseRoadmap(slug, request);
+    if (!auth.ok) return auth.response;
+    const roadmap = auth.roadmap;
 
     // Fetch approved, non-hidden comments for this issue
     const { data: comments, error: commentsError } = await supabaseAdmin
@@ -131,22 +122,10 @@ export async function POST(
       );
     }
 
-    // Check if roadmap exists, is active, and allows comments
-    const { data: roadmapData, error: roadmapError } = await supabaseAdmin
-      .from('roadmaps')
-      .select('id, allow_comments, require_email_for_comments, moderate_comments, is_active')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (roadmapError || !roadmapData) {
-      return NextResponse.json(
-        { error: 'Roadmap not found or inactive' },
-        { status: 404 }
-      );
-    }
-
-    const roadmap = roadmapData as Pick<Roadmap, 'id' | 'allow_comments' | 'require_email_for_comments' | 'moderate_comments' | 'is_active'>;
+    // Auth first: is_active + expiry + password cookie.
+    const auth = await authoriseRoadmap(slug, request);
+    if (!auth.ok) return auth.response;
+    const roadmap = auth.roadmap;
 
     if (!roadmap.allow_comments) {
       return NextResponse.json(
