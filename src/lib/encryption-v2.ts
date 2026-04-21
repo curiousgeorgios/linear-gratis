@@ -3,19 +3,22 @@
 // decryptToken in src/lib/encryption.ts fall back to the legacy CryptoJS
 // (v1) path for rows written before this module existed.
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
-if (!ENCRYPTION_KEY) {
-  throw new Error('ENCRYPTION_KEY environment variable is required')
-}
-
 const VERSION_PREFIX = 'v2:'
 
 let cachedKey: CryptoKey | null = null
 
+function getEncryptionKey(): string {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY environment variable is required')
+  }
+  return key
+}
+
 async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey
   const encoder = new TextEncoder()
-  const keyMaterial = encoder.encode(ENCRYPTION_KEY)
+  const keyMaterial = encoder.encode(getEncryptionKey())
   const keyBytes = await crypto.subtle.digest('SHA-256', keyMaterial)
   cachedKey = await crypto.subtle.importKey(
     'raw',
