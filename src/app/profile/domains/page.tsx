@@ -107,6 +107,7 @@ export default function CustomDomainsPage() {
         supabase
           .from("customer_request_forms")
           .select("id, name, slug")
+          .eq("user_id", user.id)
           .eq("is_active", true)
           .order("name", { ascending: true }),
       ]);

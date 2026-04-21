@@ -2,6 +2,11 @@
 -- Manual rollback for 015_organisations.sql.
 -- NOT tracked as a migration. Run via `supabase db execute` or psql only if needed.
 -- Restores the RLS state from migrations 003 / 012 (owner-scoped SELECT + WITH CHECK UPDATE/DELETE).
+--
+-- IMPORTANT: Before running this rollback, revert the application code to a
+-- commit from BEFORE migration 015 shipped. The current code path writes
+-- organisation_id on INSERT; after this rollback, that column no longer
+-- exists and every resource create would fail.
 
 BEGIN;
 
