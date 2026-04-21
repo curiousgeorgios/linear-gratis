@@ -11,29 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase, CustomerRequestForm } from '@/lib/supabase'
-import { LinearCustomerRequestManager } from '@/lib/linear'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
-
-// Helper function to decrypt tokens via API
-async function decryptTokenViaAPI(encryptedToken: string): Promise<string> {
-  const response = await fetch('/api/decrypt-token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ encryptedToken })
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to decrypt token')
-  }
-
-  const data = await response.json() as { success: boolean; token?: string; error?: string }
-
-  if (!data.success || !data.token) {
-    throw new Error(data.error || 'Token decryption failed')
-  }
-
-  return data.token
-}
 
 const formSchema = z.object({
   customerName: z.string().min(1, 'Your name is required'),
@@ -133,76 +111,39 @@ export default function PublicFormPage() {
     setResult(null)
 
     try {
-      // Get the user's encrypted Linear token
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('linear_api_token')
-        .eq('id', formConfig.user_id)
-        .single()
+      const response = await fetch(`/api/form/${encodeURIComponent(slug)}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      })
 
-      if (profileError || !profile?.linear_api_token) {
-        setResult({
-          success: false,
-          message: 'Form configuration error. Please contact the form owner.',
-        })
-        return
+      const data = (await response.json()) as {
+        success: boolean
+        error?: string
+        data?: {
+          customer?: { id: string }
+          request?: { id: string }
+        }
       }
 
-      // Decrypt the token
-      let linearToken: string
-      try {
-        linearToken = await decryptTokenViaAPI(profile.linear_api_token)
-      } catch (error) {
-        console.error('Error decrypting token:', error)
-        setResult({
-          success: false,
-          message: 'Form configuration error. Please contact the form owner.',
-        })
-        return
-      }
-
-      // Create the Linear request
-      const linearManager = new LinearCustomerRequestManager(linearToken)
-
-      const customerData = {
-        name: values.customerName,
-        email: values.customerEmail,
-        ...(values.externalId && { externalId: values.externalId }),
-      }
-
-      const requestData = {
-        title: values.issueTitle,
-        body: values.issueBody,
-        ...(values.attachmentUrl && { attachmentUrl: values.attachmentUrl }),
-      }
-
-      const response = await linearManager.createRequestWithCustomer(
-        customerData,
-        requestData,
-        formConfig.project_id
-      )
-
-      if (response.success) {
+      if (response.ok && data.success) {
         setResult({
           success: true,
           message: 'Your request has been submitted successfully! We\'ll get back to you soon.',
-          data: {
-            customer: response.customer,
-            request: response.request
-          }
+          data: data.data,
         })
-        // Reset form
         form.reset()
       } else {
         setResult({
           success: false,
-          message: `Failed to submit request: ${response.error || 'Unknown error'}`,
+          message: data.error || 'Failed to submit request. Please try again.',
         })
       }
     } catch (error) {
+      console.error('Error submitting form:', error)
       setResult({
         success: false,
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
+        message: 'Network error. Please try again.',
       })
     } finally {
       setSubmitting(false)
