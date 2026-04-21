@@ -7,12 +7,13 @@
 import CryptoJS from 'crypto-js'
 import { encryptTokenV2, decryptTokenV2, isV2Ciphertext } from './encryption-v2'
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
-if (!ENCRYPTION_KEY) {
-  throw new Error('ENCRYPTION_KEY environment variable is required')
+function getLegacyKey(): string {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY environment variable is required')
+  }
+  return key
 }
-// Narrow for downstream usage; the throw above guarantees this is set.
-const LEGACY_KEY: string = ENCRYPTION_KEY
 
 export async function encryptToken(plaintext: string): Promise<string> {
   return encryptTokenV2(plaintext)
@@ -23,7 +24,7 @@ export async function decryptToken(ciphertext: string): Promise<string> {
     return decryptTokenV2(ciphertext)
   }
   try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, LEGACY_KEY)
+    const bytes = CryptoJS.AES.decrypt(ciphertext, getLegacyKey())
     const plaintext = bytes.toString(CryptoJS.enc.Utf8)
     if (!plaintext) {
       throw new Error('Decryption produced empty result')

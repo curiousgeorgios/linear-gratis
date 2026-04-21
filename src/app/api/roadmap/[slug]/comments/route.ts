@@ -4,15 +4,18 @@ import type { RoadmapComment } from '@/lib/supabase';
 import { authoriseRoadmap } from '@/lib/roadmap-auth';
 import crypto from 'crypto';
 
-const IP_HASH_SALT = process.env.IP_HASH_SALT;
-if (!IP_HASH_SALT) {
-  throw new Error('IP_HASH_SALT environment variable is required');
+function getIpHashSalt(): string {
+  const salt = process.env.IP_HASH_SALT;
+  if (!salt) {
+    throw new Error('IP_HASH_SALT environment variable is required');
+  }
+  return salt;
 }
 
 function hashIP(ip: string): string {
   return crypto
     .createHash('sha256')
-    .update(ip + IP_HASH_SALT)
+    .update(ip + getIpHashSalt())
     .digest('hex');
 }
 
