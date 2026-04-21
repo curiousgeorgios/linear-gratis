@@ -80,6 +80,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Domain already exists' }, { status: 400 });
     }
 
+    // Resolve the caller's active organisation BEFORE touching Cloudflare, so a
+    // missing-org failure doesn't leave an orphan custom hostname behind.
+    const organisationId = await getActiveOrganisationIdAdmin(supabaseAdmin, user.id);
+    if (!organisationId) {
+      return NextResponse.json(
+        { error: 'No active organisation for this user' },
+        { status: 500 }
+      );
+    }
+
     // Create custom hostname in Cloudflare FIRST to get actual verification records
     const cloudflareResult = await addCustomHostname(domain);
 
@@ -124,14 +134,6 @@ export async function POST(request: NextRequest) {
           });
         }
       }
-    }
-
-    const organisationId = await getActiveOrganisationIdAdmin(supabaseAdmin, user.id);
-    if (!organisationId) {
-      return NextResponse.json(
-        { error: 'No active organisation for this user' },
-        { status: 500 }
-      );
     }
 
     // Insert domain with Cloudflare data
