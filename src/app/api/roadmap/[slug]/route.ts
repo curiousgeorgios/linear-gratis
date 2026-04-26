@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import type { Roadmap, KanbanColumn } from '@/lib/supabase';
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { fetchRoadmapIssues, type RoadmapIssue } from '@/lib/linear';
+import { redactRoadmapIssue } from '@/lib/public-redaction';
 import {
   authoriseRoadmap,
   setRoadmapAccessCookie,
@@ -254,7 +255,7 @@ async function fetchRoadmapData(roadmap: Roadmap) {
       require_email_for_comments: roadmap.require_email_for_comments,
       password_protected: roadmap.password_protected,
     },
-    issues: issuesResult.issues,
+    issues: issuesResult.issues.map((issue) => redactRoadmapIssue(issue, roadmap)),
     voteCounts,
     commentCounts,
     projects: Array.from(projectMap.values()),

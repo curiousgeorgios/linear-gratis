@@ -306,28 +306,30 @@ export function FilterDropdown({
 
 
           {/* Priority filter */}
-          <li
-            role="option"
-            data-list-row="true"
-            aria-selected={hoverSections.has('priority')}
-            className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
-            onMouseEnter={(e) => handleSectionMouseEnter('priority', e)}
-            onMouseLeave={() => handleSectionMouseLeave('priority')}
-          >
-            <div className="flex w-full items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 16 16" fill="lch(64.892% 1.933 272 / 1)">
-                  <rect x="1" y="8" width="3" height="6" rx="1"></rect>
-                  <rect x="6" y="5" width="3" height="9" rx="1"></rect>
-                  <rect x="11" y="2" width="3" height="12" rx="1"></rect>
-                </svg>
-                <span className="text-sm font-medium text-foreground">Priority</span>
+          {filterOptions.priorities.length > 0 && (
+            <li
+              role="option"
+              data-list-row="true"
+              aria-selected={hoverSections.has('priority')}
+              className="relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent"
+              onMouseEnter={(e) => handleSectionMouseEnter('priority', e)}
+              onMouseLeave={() => handleSectionMouseLeave('priority')}
+            >
+              <div className="flex w-full items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 16 16" fill="lch(64.892% 1.933 272 / 1)">
+                    <rect x="1" y="8" width="3" height="6" rx="1"></rect>
+                    <rect x="6" y="5" width="3" height="9" rx="1"></rect>
+                    <rect x="11" y="2" width="3" height="12" rx="1"></rect>
+                  </svg>
+                  <span className="text-sm font-medium text-foreground">Priority</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ▶
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                ▶
-              </div>
-            </div>
-          </li>
+            </li>
+          )}
 
 
           {/* Labels filter */}

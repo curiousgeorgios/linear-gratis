@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { supabase, CustomerRequestForm } from '@/lib/supabase'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 
 const formSchema = z.object({
@@ -24,12 +23,23 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
+type PublicFormConfig = {
+  id: string
+  user_id: string
+  name: string
+  slug: string
+  project_name: string
+  form_title: string
+  description?: string
+  is_active: boolean
+}
+
 export default function PublicFormPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const slug = params.slug as string
 
-  const [formConfig, setFormConfig] = useState<CustomerRequestForm | null>(null)
+  const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{
@@ -42,7 +52,10 @@ export default function PublicFormPage() {
   } | null>(null)
 
   // Load branding settings for this form's owner
-  const { branding } = useBrandingSettings(formConfig?.user_id || null)
+  const { branding } = useBrandingSettings(
+    formConfig?.user_id || null,
+    formConfig ? { type: 'form', slug: formConfig.slug } : null,
+  )
 
   // Parse URL parameters for prefilling
   const getUrlPrefillData = useCallback((): Partial<FormData> => {
@@ -74,17 +87,17 @@ export default function PublicFormPage() {
 
   const loadFormConfig = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('customer_request_forms')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_active', true)
-        .single()
+      const response = await fetch(`/api/form/${encodeURIComponent(slug)}`)
+      const data = (await response.json()) as {
+        success?: boolean
+        form?: PublicFormConfig
+        error?: string
+      }
 
-      if (error) {
-        console.error('Error loading form config:', error)
+      if (!response.ok || !data.success || !data.form) {
+        console.error('Error loading form config:', data.error || response.statusText)
       } else {
-        setFormConfig(data)
+        setFormConfig(data.form)
       }
     } catch (error) {
       console.error('Error loading form config:', error)

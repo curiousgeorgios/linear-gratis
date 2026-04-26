@@ -22,11 +22,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    if (!['logo', 'favicon'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
+    }
+
     // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/webp': 'webp',
+    };
+    const fileExtension = allowedTypes[file.type];
+    if (!fileExtension) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only PNG, JPG, SVG, and WebP are allowed.' },
+        { error: 'Invalid file type. Only PNG, JPG, and WebP are allowed.' },
         { status: 400 }
       );
     }
@@ -37,7 +47,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create unique filename
-    const fileExtension = file.name.split('.').pop();
     const fileName = `${user.id}/${type}-${Date.now()}.${fileExtension}`;
 
     // Convert File to ArrayBuffer then to Uint8Array for Supabase storage

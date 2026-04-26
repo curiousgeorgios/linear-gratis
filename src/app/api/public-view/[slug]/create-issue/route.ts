@@ -2,22 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { authorisePublicView } from '@/lib/public-view-auth';
+import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security';
+import * as z from 'zod';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
-interface IssueCreateRequest {
-  title: string;
-  description?: string;
-  stateId?: string;
-  priority?: number;
-  assigneeId?: string;
-  labelIds?: string[];
-}
+const issueCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(10000).optional(),
+  labelIds: z.array(z.string().min(1).max(100)).max(20).optional().default([]),
+});
 
 interface WorkflowState {
   id: string;
   name: string;
   type: string;
+  color: string;
+}
+
+interface LinearLabel {
+  id: string;
+  name: string;
   color: string;
 }
 
@@ -43,6 +48,13 @@ async function fetchTeamMetadata(apiToken: string, teamId: string) {
             color
           }
         }
+        labels(first: 100) {
+          nodes {
+            id
+            name
+            color
+          }
+        }
       }
     }
   `;
@@ -62,6 +74,7 @@ async function fetchTeamMetadata(apiToken: string, teamId: string) {
         triageEnabled?: boolean;
         triageIssueState?: WorkflowState;
         states?: { nodes: WorkflowState[] };
+        labels?: { nodes: LinearLabel[] };
       };
     };
   };
@@ -159,7 +172,21 @@ export async function POST(
 ) {
   try {
     const { slug } = await params;
-    const issueData: IssueCreateRequest = await request.json();
+    const clientIp = getClientIp(request);
+    const rateLimit = await checkRateLimit(`public-view:create-issue:${slug}:${clientIp}`, {
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds);
+
+    const parsed = issueCreateSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid issue payload', issues: parsed.error.issues },
+        { status: 400 }
+      );
+    }
+    const issueData = parsed.data;
 
     // Auth first: is_active + expiry + password cookie.
     const auth = await authorisePublicView(slug, request);
@@ -203,6 +230,17 @@ export async function POST(
 
     // Fetch team metadata directly from Linear API
     const teamMetadata = await fetchTeamMetadata(decryptedToken, viewData.team_id);
+
+    const allowedLabelIds = new Set(
+      teamMetadata?.labels?.nodes.map((label) => label.id) ?? [],
+    );
+    const invalidLabelIds = issueData.labelIds.filter((labelId) => !allowedLabelIds.has(labelId));
+    if (invalidLabelIds.length > 0) {
+      return NextResponse.json(
+        { error: 'One or more labels are not available for this view' },
+        { status: 400 }
+      );
+    }
 
     // Determine the correct state for public issue creation
     // Priority: 1) Triage state if enabled, 2) First unstarted state, 3) First available state

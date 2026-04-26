@@ -313,7 +313,7 @@ export default function BrandingPage() {
                 Logo and favicon
               </CardTitle>
               <CardDescription>
-                Upload your brand logo and favicon (PNG, JPG, SVG, or WebP, max 2MB)
+                Upload your brand logo and favicon (PNG, JPG, or WebP, max 2MB)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -333,7 +333,7 @@ export default function BrandingPage() {
                   <div className="flex gap-2">
                     <Input
                       type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
                       onChange={(e) => handleLogoUpload(e, "logo")}
                       disabled={uploading}
                       className="flex-1"
@@ -380,7 +380,7 @@ export default function BrandingPage() {
                   <div className="flex gap-2">
                     <Input
                       type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
                       onChange={(e) => handleLogoUpload(e, "favicon")}
                       disabled={uploading}
                       className="flex-1"

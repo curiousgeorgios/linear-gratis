@@ -16,6 +16,9 @@ interface IssueDetailModalProps {
   showComments?: boolean
   showActivity?: boolean
   showDescriptions?: boolean
+  showAssignees?: boolean
+  showLabels?: boolean
+  showPriorities?: boolean
 }
 
 const getStateIcon = (stateType: string, color: string) => {
@@ -71,6 +74,9 @@ export function IssueDetailModal({
   showComments = false,
   showActivity = false,
   showDescriptions = true,
+  showAssignees = true,
+  showLabels = true,
+  showPriorities = true,
 }: IssueDetailModalProps) {
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -225,6 +231,7 @@ export function IssueDetailModal({
               {/* Metadata row */}
               <div className="flex items-center gap-3 mb-6 flex-wrap">
                 {/* Priority */}
+                {showPriorities && (
                 <div className="flex items-center gap-1.5 px-2 py-1 bg-accent/50 rounded-md">
                   <PriorityIcon
                     priority={issue.priority}
@@ -233,9 +240,10 @@ export function IssueDetailModal({
                   />
                   <span className="text-xs font-medium text-foreground">{issue.priorityLabel}</span>
                 </div>
+                )}
 
                 {/* Estimate */}
-                {issue.estimate != null && issue.estimate > 0 && (
+                {showPriorities && issue.estimate != null && issue.estimate > 0 && (
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-accent/50 rounded-md">
                     <EstimateIcon className="w-4 h-4" />
                     <span className="text-xs font-medium text-foreground">{issue.estimate}</span>
@@ -243,7 +251,7 @@ export function IssueDetailModal({
                 )}
 
                 {/* Assignee */}
-                {issue.assignee && (
+                {showAssignees && issue.assignee && (
                   <div className="flex items-center gap-2 px-2 py-1 bg-accent/50 rounded-md">
                     <UserAvatar name={issue.assignee.name} avatarUrl={issue.assignee.avatarUrl} />
                     <span className="text-xs font-medium text-foreground">{issue.assignee.name}</span>
@@ -251,7 +259,7 @@ export function IssueDetailModal({
                 )}
 
                 {/* Labels */}
-                {issue.labels.map((label) => (
+                {showLabels && issue.labels.map((label) => (
                   <div
                     key={label.id}
                     className="flex items-center gap-1.5 px-2 py-1 bg-accent/50 rounded-md"

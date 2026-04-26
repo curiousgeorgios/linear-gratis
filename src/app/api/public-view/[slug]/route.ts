@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import type { PublicView } from '@/lib/supabase';
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { fetchLinearIssues } from '@/lib/linear';
+import { redactPublicViewIssue } from '@/lib/public-redaction';
 import {
   authorisePublicView,
   setPublicViewAccessCookie,
@@ -150,6 +151,9 @@ async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
     excludedIds.size > 0
       ? issuesResult.issues.filter((issue) => !excludedIds.has(issue.id))
       : issuesResult.issues;
+  const redactedIssues = visibleIssues.map((issue) =>
+    redactPublicViewIssue(issue, view)
+  );
 
   return NextResponse.json({
     success: true,
@@ -175,6 +179,6 @@ async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
       allow_issue_creation: view.allow_issue_creation,
       created_at: view.created_at,
     },
-    issues: visibleIssues,
+    issues: redactedIssues,
   });
 }

@@ -21,6 +21,13 @@ export async function GET(
     if (!auth.ok) return auth.response
     const view = auth.view
 
+    if (view.show_project_updates === false) {
+      return NextResponse.json(
+        { error: 'Project updates are disabled for this view' },
+        { status: 403 }
+      )
+    }
+
     // Check if this view has a project
     if (!view.project_id) {
       return NextResponse.json(
@@ -69,7 +76,6 @@ export async function GET(
                 name
                 displayName
                 avatarUrl
-                email
               }
               diffMarkdown
               isDiffHidden
@@ -122,7 +128,6 @@ export async function GET(
                 name: string
                 displayName: string
                 avatarUrl?: string
-                email: string
               }
               diffMarkdown?: string
               isDiffHidden: boolean

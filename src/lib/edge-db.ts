@@ -7,31 +7,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export type CustomDomain = {
-  id: string
-  user_id: string
   domain: string
-  subdomain?: string
-  verification_token: string
-  verification_status: 'pending' | 'verified' | 'failed'
-  verified_at?: string
-  dns_records?: {
-    type: string
-    name: string
-    value: string
-    purpose?: 'routing' | 'ownership' | 'ssl'
-  }[]
-  ssl_status: 'pending' | 'active' | 'failed'
-  ssl_issued_at?: string
   redirect_to_https?: boolean
-  is_active: boolean
   target_type?: 'form' | 'view' | 'roadmap'
   target_slug?: string
-  last_checked_at?: string
-  error_message?: string
-  cloudflare_hostname_id?: string
-  cloudflare_hostname_status?: 'pending' | 'active' | 'pending_deletion' | 'moved' | 'deleted'
-  created_at: string
-  updated_at: string
 }
 
 /**
@@ -49,11 +28,11 @@ export async function lookupCustomDomain(
   | { success: false; notFound?: undefined; error: string }
 > {
   try {
+    const normalizedHostname = hostname.trim().toLowerCase()
     // Use direct REST API call for edge compatibility
-    const url = new URL(`${supabaseUrl}/rest/v1/custom_domains`)
-    url.searchParams.set('domain', `eq.${hostname}`)
-    url.searchParams.set('verification_status', 'eq.verified')
-    url.searchParams.set('is_active', 'eq.true')
+    const url = new URL(`${supabaseUrl}/rest/v1/public_custom_domain_routes`)
+    url.searchParams.set('select', 'domain,target_type,target_slug,redirect_to_https')
+    url.searchParams.set('domain', `eq.${normalizedHostname}`)
     url.searchParams.set('limit', '1')
 
     const response = await fetch(url.toString(), {

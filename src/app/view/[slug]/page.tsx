@@ -18,6 +18,18 @@ interface PublicViewPageProps {
   }>
 }
 
+function getVisibleFilterOptions(issues: LinearIssue[], view: PublicView): FilterOptions {
+  const options = generateFilterOptions(issues)
+
+  return {
+    ...options,
+    assignees: view.show_assignees !== false ? options.assignees : [],
+    priorities: view.show_priorities !== false ? options.priorities : [],
+    labels: view.show_labels !== false ? options.labels : [],
+    creators: view.show_assignees !== false ? options.creators : [],
+  }
+}
+
 export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [view, setView] = useState<PublicView | null>(null)
   const [issues, setIssues] = useState<LinearIssue[]>([])
@@ -53,7 +65,10 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const filterButtonRef = useRef<HTMLButtonElement>(null)
 
   // Load branding settings for this view's owner
-  const { branding } = useBrandingSettings(view?.user_id || null)
+  const { branding } = useBrandingSettings(
+    view?.user_id || null,
+    view ? { type: 'view', slug: view.slug } : null,
+  )
 
   useEffect(() => {
     const initParams = async () => {
@@ -93,10 +108,11 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         }
       }
 
-      setView(data.view as PublicView)
+      const viewData = data.view as PublicView
+      setView(viewData)
       const issuesData = data.issues as LinearIssue[] || []
       setIssues(issuesData)
-      setFilterOptions(generateFilterOptions(issuesData))
+      setFilterOptions(getVisibleFilterOptions(issuesData, viewData))
       setLastUpdated(new Date())
       setRequiresPassword(false)
 
@@ -128,7 +144,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       if (response.ok) {
         const issuesData = data.issues || []
         setIssues(issuesData)
-        setFilterOptions(generateFilterOptions(issuesData))
+        if (view) {
+          setFilterOptions(getVisibleFilterOptions(issuesData, view))
+        }
         setLastUpdated(new Date())
       }
     } catch (err) {
@@ -552,6 +570,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           showComments={view?.show_comments}
           showActivity={view?.show_activity}
           showDescriptions={view?.show_descriptions}
+          showAssignees={view?.show_assignees}
+          showLabels={view?.show_labels}
+          showPriorities={view?.show_priorities}
         />
       )}
 

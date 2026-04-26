@@ -1,13 +1,24 @@
 import { useState, useEffect } from 'react';
 import { BrandingSettings } from '@/lib/supabase';
 
-export function useBrandingSettings(userId: string | null) {
+type BrandingContext =
+  | { type: 'view'; slug: string }
+  | { type: 'roadmap'; slug: string }
+  | { type: 'form'; slug: string }
+
+export function useBrandingSettings(
+  userId: string | null,
+  context: BrandingContext | null = null,
+) {
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const contextType = context?.type;
+  const contextSlug = context?.slug;
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !contextType || !contextSlug) {
+      setBranding(null);
       setLoading(false);
       return;
     }
@@ -17,7 +28,11 @@ export function useBrandingSettings(userId: string | null) {
       setError(null);
 
       try {
-        const response = await fetch(`/api/branding/${userId}`);
+        const params = new URLSearchParams({
+          type: contextType,
+          slug: contextSlug,
+        });
+        const response = await fetch(`/api/branding/${userId}?${params.toString()}`);
 
         if (response.ok) {
           const data = (await response.json()) as { branding: BrandingSettings | null };
@@ -34,7 +49,7 @@ export function useBrandingSettings(userId: string | null) {
     };
 
     loadBranding();
-  }, [userId]);
+  }, [userId, contextType, contextSlug]);
 
   return { branding, loading, error };
 }
