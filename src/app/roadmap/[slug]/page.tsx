@@ -85,7 +85,10 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
   const [showItemDetail, setShowItemDetail] = useState(false)
 
   // Load branding settings for this roadmap's owner
-  const { branding } = useBrandingSettings(roadmap?.user_id || null)
+  const { branding } = useBrandingSettings(
+    roadmap?.user_id || null,
+    roadmap ? { type: 'roadmap', slug: roadmap.slug } : null,
+  )
 
   // Generate fingerprint on mount
   useEffect(() => {

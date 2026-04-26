@@ -1,16 +1,13 @@
-import { timingSafeEqual } from 'node:crypto'
-import { Buffer } from 'node:buffer'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { PublicView } from '@/lib/supabase'
+import {
+  createPasswordAccessToken,
+  verifyPasswordAccessToken,
+} from '@/lib/access-cookie'
 
-function constantTimeEquals(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
+const PUBLIC_VIEW_ACCESS_MAX_AGE_SECONDS = 60 * 60 * 24
 
 export type AuthorisePublicViewResult =
   | { ok: true; view: PublicView }
@@ -25,9 +22,8 @@ export type AuthorisePublicViewResult =
  *      mismatched). We check expiry BEFORE password so expired rows never
  *      run a bcrypt compare.
  *
- * The cookie value is the row's `password_hash` itself. Rationale: the hash
- * is already non-reversible, so a leaked cookie yields nothing the attacker
- * couldn't derive from a DB leak. Avoids signing infrastructure.
+ * Password access cookies are signed, scoped, and tied to the current
+ * password hash fingerprint. The bcrypt hash itself is never sent to clients.
  */
 export async function authorisePublicView(
   slug: string,
@@ -76,7 +72,7 @@ export async function authorisePublicView(
     if (
       !cookieValue ||
       !view.password_hash ||
-      !constantTimeEquals(cookieValue, view.password_hash)
+      !verifyPasswordAccessToken(cookieValue, view.id, view.password_hash)
     ) {
       return {
         ok: false,
@@ -103,7 +99,11 @@ export function setPublicViewAccessCookie(
   if (!view.password_hash) return
   response.cookies.set({
     name: publicViewAccessCookieName(view.id),
-    value: view.password_hash,
+    value: createPasswordAccessToken(
+      view.id,
+      view.password_hash,
+      PUBLIC_VIEW_ACCESS_MAX_AGE_SECONDS,
+    ),
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
@@ -111,6 +111,6 @@ export function setPublicViewAccessCookie(
     // unrelated endpoints. The view page itself renders via client fetches
     // to /api/public-view/..., which receive the cookie as expected.
     path: '/api/public-view/',
-    maxAge: 60 * 60 * 24, // 24h
+    maxAge: PUBLIC_VIEW_ACCESS_MAX_AGE_SECONDS,
   })
 }

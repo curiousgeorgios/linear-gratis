@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
+import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security'
 import * as z from 'zod'
 
 const submitSchema = z.object({
@@ -131,6 +132,13 @@ export async function POST(
     if (!slug) {
       return NextResponse.json({ success: false, error: 'Slug is required' }, { status: 400 })
     }
+
+    const clientIp = getClientIp(request)
+    const rateLimit = await checkRateLimit(`form-submit:${slug}:${clientIp}`, {
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    })
+    if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds)
 
     const body = (await request.json()) as unknown
     const parsed = submitSchema.safeParse(body)

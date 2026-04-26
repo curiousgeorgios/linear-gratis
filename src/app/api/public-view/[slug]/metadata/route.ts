@@ -19,8 +19,6 @@ type LinearMetadataResponse = {
       triageEnabled: boolean;
       triageIssueState: TriageState | null;
       states: { nodes: unknown[] };
-      members: { nodes: { active: boolean }[] };
-      labels: { nodes: unknown[] };
     };
     project?: {
       teams: {
@@ -28,8 +26,6 @@ type LinearMetadataResponse = {
           triageEnabled: boolean;
           triageIssueState: TriageState | null;
           states: { nodes: unknown[] };
-          members: { nodes: { active: boolean }[] };
-          labels: { nodes: unknown[] };
         }[];
       };
     };
@@ -64,21 +60,6 @@ async function fetchLinearMetadata(
               color
             }
           }
-          members(first: 50, filter: { active: { eq: true } }) {
-            nodes {
-              id
-              displayName
-              avatarUrl
-              active
-            }
-          }
-          labels(first: 50) {
-            nodes {
-              id
-              name
-              color
-            }
-          }
         }
       }
     `;
@@ -105,21 +86,6 @@ async function fetchLinearMetadata(
                   id
                   name
                   type
-                  color
-                }
-              }
-              members(first: 50, filter: { active: { eq: true } }) {
-                nodes {
-                  id
-                  displayName
-                  avatarUrl
-                  active
-                }
-              }
-              labels(first: 50) {
-                nodes {
-                  id
-                  name
                   color
                 }
               }
@@ -200,23 +166,22 @@ export async function GET(
       );
     }
 
-    // Process the response to flatten project data if needed
+    // Process the response to flatten project data if needed. Public issue
+    // creation only needs workflow state hints; member and label metadata
+    // would expose workspace internals and is intentionally not returned.
     let metadata: unknown = {};
 
     if (viewData.team_id && data.data?.team) {
       metadata = {
-        team: data.data.team,
         states: data.data.team.states.nodes,
-        users: data.data.team.members.nodes,
-        labels: data.data.team.labels.nodes,
+        users: [],
+        labels: [],
         triageEnabled: data.data.team.triageEnabled,
         triageIssueState: data.data.team.triageIssueState,
       };
     } else if (viewData.project_id && data.data?.project) {
       const project = data.data.project;
       const allStates: unknown[] = [];
-      const allUsers: unknown[] = [];
-      const allLabels: unknown[] = [];
 
       const firstTeam = project.teams.nodes[0];
       const triageEnabled = firstTeam?.triageEnabled ?? false;
@@ -224,25 +189,15 @@ export async function GET(
 
       project.teams.nodes.forEach((team) => {
         allStates.push(...team.states.nodes);
-        allUsers.push(...team.members.nodes);
-        allLabels.push(...team.labels.nodes);
       });
 
       const uniqueStates = allStates.filter((state, index, self) =>
         index === self.findIndex((s) => (s as { id: string }).id === (state as { id: string }).id)
       );
-      const uniqueUsers = allUsers.filter((user, index, self) =>
-        index === self.findIndex((u) => (u as { id: string }).id === (user as { id: string }).id)
-      );
-      const uniqueLabels = allLabels.filter((label, index, self) =>
-        index === self.findIndex((l) => (l as { id: string }).id === (label as { id: string }).id)
-      );
-
       metadata = {
-        project,
         states: uniqueStates,
-        users: uniqueUsers,
-        labels: uniqueLabels,
+        users: [],
+        labels: [],
         triageEnabled,
         triageIssueState,
       };

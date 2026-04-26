@@ -134,6 +134,12 @@ export async function GET(
           priorityLabel
           estimate
           url
+          team {
+            id
+          }
+          project {
+            id
+          }
           state {
             id
             name
@@ -226,6 +232,12 @@ export async function GET(
           priorityLabel: string;
           estimate?: number;
           url: string;
+          team?: {
+            id: string;
+          } | null;
+          project?: {
+            id: string;
+          } | null;
           state: {
             id: string;
             name: string;
@@ -304,6 +316,18 @@ export async function GET(
     }
 
     const issue = result.data.issue;
+    const issueBelongsToView = viewData.project_id
+      ? issue.project?.id === viewData.project_id
+      : viewData.team_id
+        ? issue.team?.id === viewData.team_id
+        : false;
+
+    if (!issueBelongsToView || viewData.excluded_issue_ids?.includes(issue.id)) {
+      return NextResponse.json(
+        { error: 'Issue not found' },
+        { status: 404 }
+      );
+    }
 
     // Enforce the view's allowed_statuses filter. Matches the list route's
     // behaviour: an issue outside the allowed set is not visible through
@@ -320,19 +344,22 @@ export async function GET(
     }
 
     const descriptionsVisible = viewData.show_descriptions !== false;
+    const prioritiesVisible = viewData.show_priorities !== false;
+    const assigneesVisible = viewData.show_assignees !== false;
+    const labelsVisible = viewData.show_labels !== false;
 
     const issueDetail: IssueDetail = {
       id: issue.id,
       identifier: issue.identifier,
       title: issue.title,
       description: descriptionsVisible ? issue.description : undefined,
-      priority: issue.priority,
-      priorityLabel: issue.priorityLabel,
-      estimate: issue.estimate,
+      priority: prioritiesVisible ? issue.priority : 0,
+      priorityLabel: prioritiesVisible ? issue.priorityLabel : 'No priority',
+      estimate: prioritiesVisible ? issue.estimate : undefined,
       url: issue.url,
       state: issue.state,
-      assignee: issue.assignee,
-      labels: issue.labels.nodes,
+      assignee: assigneesVisible ? issue.assignee : undefined,
+      labels: labelsVisible ? issue.labels.nodes : [],
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,
       comments: issue.comments?.nodes ?? [],
@@ -341,10 +368,10 @@ export async function GET(
         createdAt: h.createdAt,
         fromState: h.fromState,
         toState: h.toState,
-        fromAssignee: h.fromAssignee,
-        toAssignee: h.toAssignee,
-        fromPriority: h.fromPriority,
-        toPriority: h.toPriority,
+        fromAssignee: assigneesVisible ? h.fromAssignee : undefined,
+        toAssignee: assigneesVisible ? h.toAssignee : undefined,
+        fromPriority: prioritiesVisible ? h.fromPriority : undefined,
+        toPriority: prioritiesVisible ? h.toPriority : undefined,
         user: { name: h.actor.name, avatarUrl: h.actor.avatarUrl },
       })),
     };

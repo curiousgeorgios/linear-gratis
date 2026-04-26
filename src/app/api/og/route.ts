@@ -1,14 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function getSafeQueryText(
+  searchParams: URLSearchParams,
+  key: string,
+  fallback: string,
+  maxLength: number,
+): string {
+  const value = searchParams.get(key) || fallback
+  return escapeHtml(value.slice(0, maxLength))
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
     // Get parameters from URL
-    const title = searchParams.get('title') || 'Stop losing customer feedback in Slack and email'
-    const subtitle = searchParams.get('subtitle') || 'Give your customers a direct line to your Linear workspace with free, open source forms.'
+    const title = getSafeQueryText(
+      searchParams,
+      'title',
+      'Stop losing customer feedback in Slack and email',
+      140,
+    )
+    const subtitle = getSafeQueryText(
+      searchParams,
+      'subtitle',
+      'Give your customers a direct line to your Linear workspace with free, open source forms.',
+      240,
+    )
     const type = searchParams.get('type') || 'default'
-    const category = searchParams.get('category') || ''
+    const category = getSafeQueryText(searchParams, 'category', '', 80)
 
     // Different styles based on type
     const getGradient = (type: string) => {

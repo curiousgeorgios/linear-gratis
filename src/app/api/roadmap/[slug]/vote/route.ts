@@ -1,42 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { authoriseRoadmap } from '@/lib/roadmap-auth';
-import crypto from 'crypto';
+import { resolveRoadmapIssue } from '@/lib/roadmap-issue-access';
+import { checkRateLimit, getClientIp, hashIp, rateLimitResponse } from '@/lib/request-security';
+import * as z from 'zod';
 
-function getIpHashSalt(): string {
-  const salt = process.env.IP_HASH_SALT;
-  if (!salt) {
-    throw new Error('IP_HASH_SALT environment variable is required');
-  }
-  return salt;
-}
-
-function hashIP(ip: string): string {
-  return crypto
-    .createHash('sha256')
-    .update(ip + getIpHashSalt())
-    .digest('hex');
-}
-
-function getClientIP(request: NextRequest): string {
-  // Try various headers for the real IP
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
-  }
-
-  const realIP = request.headers.get('x-real-ip');
-  if (realIP) {
-    return realIP;
-  }
-
-  const cfConnectingIP = request.headers.get('cf-connecting-ip');
-  if (cfConnectingIP) {
-    return cfConnectingIP;
-  }
-
-  return 'unknown';
-}
+const voteSchema = z.object({
+  issueId: z.string().trim().min(1).max(120),
+  fingerprint: z.string().trim().min(16).max(200),
+});
 
 export async function POST(
   request: NextRequest,
@@ -44,10 +16,6 @@ export async function POST(
 ) {
   try {
     const { slug } = await params;
-    const { issueId, fingerprint } = await request.json() as {
-      issueId?: string;
-      fingerprint?: string;
-    };
 
     if (!slug) {
       return NextResponse.json(
@@ -56,12 +24,21 @@ export async function POST(
       );
     }
 
-    if (!issueId || !fingerprint) {
+    const clientIp = getClientIp(request);
+    const rateLimit = await checkRateLimit(`roadmap-vote:${slug}:${clientIp}`, {
+      limit: 60,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds);
+
+    const parsed = voteSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
         { error: 'issueId and fingerprint are required' },
         { status: 400 }
       );
     }
+    const { issueId, fingerprint } = parsed.data;
 
     // Auth first: is_active + expiry + password cookie. Visitors authenticate
     // via the main roadmap password POST which sets the rm_access cookie, so
@@ -77,16 +54,18 @@ export async function POST(
       );
     }
 
+    const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
+    if (!issueAccess.ok) return issueAccess.response;
+
     // Hash the client IP for additional verification
-    const clientIP = getClientIP(request);
-    const ipHash = hashIP(clientIP);
+    const ipHash = hashIp(clientIp);
 
     // Try to insert the vote (will fail if duplicate due to UNIQUE constraint)
     const { error: insertError } = await supabaseAdmin
       .from('roadmap_votes')
       .insert({
         roadmap_id: roadmap.id,
-        issue_id: issueId,
+        issue_id: issueAccess.issueId,
         visitor_fingerprint: fingerprint,
         ip_hash: ipHash,
       });
@@ -107,7 +86,7 @@ export async function POST(
       .from('roadmap_votes')
       .select('*', { count: 'exact', head: true })
       .eq('roadmap_id', roadmap.id)
-      .eq('issue_id', issueId);
+      .eq('issue_id', issueAccess.issueId);
 
     return NextResponse.json({
       success: true,
@@ -132,10 +111,6 @@ export async function DELETE(
 ) {
   try {
     const { slug } = await params;
-    const { issueId, fingerprint } = await request.json() as {
-      issueId?: string;
-      fingerprint?: string;
-    };
 
     if (!slug) {
       return NextResponse.json(
@@ -144,24 +119,36 @@ export async function DELETE(
       );
     }
 
-    if (!issueId || !fingerprint) {
+    const clientIp = getClientIp(request);
+    const rateLimit = await checkRateLimit(`roadmap-vote-delete:${slug}:${clientIp}`, {
+      limit: 60,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds);
+
+    const parsed = voteSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
         { error: 'issueId and fingerprint are required' },
         { status: 400 }
       );
     }
+    const { issueId, fingerprint } = parsed.data;
 
     // Auth first: is_active + expiry + password cookie.
     const auth = await authoriseRoadmap(slug, request);
     if (!auth.ok) return auth.response;
     const roadmap = auth.roadmap;
 
+    const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
+    if (!issueAccess.ok) return issueAccess.response;
+
     // Delete the vote
     const { error: deleteError } = await supabaseAdmin
       .from('roadmap_votes')
       .delete()
       .eq('roadmap_id', roadmap.id)
-      .eq('issue_id', issueId)
+      .eq('issue_id', issueAccess.issueId)
       .eq('visitor_fingerprint', fingerprint);
 
     if (deleteError) {
@@ -173,7 +160,7 @@ export async function DELETE(
       .from('roadmap_votes')
       .select('*', { count: 'exact', head: true })
       .eq('roadmap_id', roadmap.id)
-      .eq('issue_id', issueId);
+      .eq('issue_id', issueAccess.issueId);
 
     return NextResponse.json({
       success: true,

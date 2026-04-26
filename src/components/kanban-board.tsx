@@ -54,7 +54,9 @@ const getStateIcon = (stateType: string, color: string) => {
 export function KanbanBoard({
   issues,
   showAssignees = true,
+  showLabels = true,
   showPriorities = true,
+  showDescriptions = true,
   className = '',
   filters,
   onIssueClick
@@ -66,7 +68,7 @@ export function KanbanBoard({
       const searchLower = filters.search.toLowerCase()
       if (!issue.title.toLowerCase().includes(searchLower) &&
           !issue.identifier.toLowerCase().includes(searchLower) &&
-          !(issue.description?.toLowerCase().includes(searchLower))) {
+          !(showDescriptions && issue.description?.toLowerCase().includes(searchLower))) {
         return false
       }
     }
@@ -77,19 +79,19 @@ export function KanbanBoard({
     }
 
     // Assignee filter
-    if (filters.assignees.length > 0) {
+    if (showAssignees && filters.assignees.length > 0) {
       if (!issue.assignee || !filters.assignees.includes(issue.assignee.id)) {
         return false
       }
     }
 
     // Priority filter
-    if (filters.priorities.length > 0 && !filters.priorities.includes(issue.priority)) {
+    if (showPriorities && filters.priorities.length > 0 && !filters.priorities.includes(issue.priority)) {
       return false
     }
 
     // Labels filter
-    if (filters.labels.length > 0) {
+    if (showLabels && filters.labels.length > 0) {
       const hasMatchingLabel = issue.labels.some(label => filters.labels.includes(label.id))
       if (!hasMatchingLabel) {
         return false
@@ -247,7 +249,7 @@ export function KanbanBoard({
                                 )}
 
                                 {/* Label badges */}
-                                {issue.labels.map((label) => (
+                                {showLabels && issue.labels.map((label) => (
                                   <div key={label.id} className={CARD_BADGE_CLASS}>
                                     <div
                                       className="w-2 h-2 rounded-full"

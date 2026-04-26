@@ -1,25 +1,20 @@
-import { timingSafeEqual } from 'node:crypto'
-import { Buffer } from 'node:buffer'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Roadmap } from '@/lib/supabase'
+import {
+  createPasswordAccessToken,
+  verifyPasswordAccessToken,
+} from '@/lib/access-cookie'
 
-function constantTimeEquals(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
+const ROADMAP_ACCESS_MAX_AGE_SECONDS = 60 * 60 * 24
 
 export type AuthoriseRoadmapResult =
   | { ok: true; roadmap: Roadmap }
   | { ok: false; response: NextResponse }
 
 /**
- * Gate every `/api/roadmap/[slug]/*` sub-route through this helper. Mirrors
- * {@link authorisePublicView}; see that file for the threat-model rationale
- * around using `password_hash` as the cookie value.
+ * Gate every `/api/roadmap/[slug]/*` sub-route through this helper.
  */
 export async function authoriseRoadmap(
   slug: string,
@@ -68,7 +63,7 @@ export async function authoriseRoadmap(
     if (
       !cookieValue ||
       !roadmap.password_hash ||
-      !constantTimeEquals(cookieValue, roadmap.password_hash)
+      !verifyPasswordAccessToken(cookieValue, roadmap.id, roadmap.password_hash)
     ) {
       return {
         ok: false,
@@ -95,7 +90,11 @@ export function setRoadmapAccessCookie(
   if (!roadmap.password_hash) return
   response.cookies.set({
     name: roadmapAccessCookieName(roadmap.id),
-    value: roadmap.password_hash,
+    value: createPasswordAccessToken(
+      roadmap.id,
+      roadmap.password_hash,
+      ROADMAP_ACCESS_MAX_AGE_SECONDS,
+    ),
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
@@ -103,6 +102,6 @@ export function setRoadmapAccessCookie(
     // endpoints. The roadmap page itself renders via client fetches to
     // /api/roadmap/..., which receive the cookie as expected.
     path: '/api/roadmap/',
-    maxAge: 60 * 60 * 24, // 24h
+    maxAge: ROADMAP_ACCESS_MAX_AGE_SECONDS,
   })
 }

@@ -10,6 +10,45 @@ interface DomainCreateBody {
   target_slug: string;
 }
 
+async function validateTargetOwnership(
+  userId: string,
+  targetType: string,
+  targetSlug: string,
+): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+  const tableByType: Record<string, string> = {
+    view: 'public_views',
+    form: 'customer_request_forms',
+    roadmap: 'roadmaps',
+  };
+
+  const targetTable = tableByType[targetType];
+  if (!targetTable) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Unknown target_type' }, { status: 400 }),
+    };
+  }
+
+  const { data: targetRow, error: targetError } = await supabaseAdmin
+    .from(targetTable)
+    .select('user_id')
+    .eq('slug', targetSlug)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (targetError || !targetRow) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'Target not found or not owned by caller' },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true };
+}
+
 // GET - Fetch user's custom domains
 export async function GET() {
   try {
@@ -55,8 +94,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json() as DomainCreateBody;
     const { domain, target_type, target_slug } = body;
+    const normalizedDomain = domain?.trim().toLowerCase();
+    const normalizedTargetType = target_type?.trim();
+    const normalizedTargetSlug = target_slug?.trim();
 
-    if (!domain || !target_type || !target_slug) {
+    if (!normalizedDomain || !normalizedTargetType || !normalizedTargetSlug) {
       return NextResponse.json(
         { error: 'Domain, target type, and target slug are required' },
         { status: 400 }
@@ -65,15 +107,22 @@ export async function POST(request: NextRequest) {
 
     // Validate domain format (basic validation)
     const domainRegex = /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i;
-    if (!domainRegex.test(domain)) {
+    if (!domainRegex.test(normalizedDomain)) {
       return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
     }
+
+    const targetValidation = await validateTargetOwnership(
+      user.id,
+      normalizedTargetType,
+      normalizedTargetSlug,
+    );
+    if (!targetValidation.ok) return targetValidation.response;
 
     // Check if domain already exists
     const { data: existing } = await supabaseAdmin
       .from('custom_domains')
       .select('id')
-      .eq('domain', domain)
+      .eq('domain', normalizedDomain)
       .single();
 
     if (existing) {
@@ -91,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create custom hostname in Cloudflare FIRST to get actual verification records
-    const cloudflareResult = await addCustomHostname(domain);
+    const cloudflareResult = await addCustomHostname(normalizedDomain);
 
     if (!cloudflareResult.success) {
       console.error('Failed to register domain with Cloudflare:', cloudflareResult.error);
@@ -142,11 +191,11 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         organisation_id: organisationId,
-        domain,
+        domain: normalizedDomain,
         verification_token: '', // No longer used - Cloudflare handles verification
         dns_records,
-        target_type,
-        target_slug,
+        target_type: normalizedTargetType,
+        target_slug: normalizedTargetSlug,
         verification_status: 'pending',
         ssl_status: cloudflareResult.sslStatus === 'active' ? 'active' : 'pending',
         cloudflare_hostname_id: cloudflareResult.hostnameId,

@@ -80,7 +80,7 @@ export async function middleware(request: NextRequest) {
   if (!isMainDomain) {
     try {
       // Look up the domain directly from the database (no internal fetch)
-      const result = await lookupCustomDomain(hostname);
+      const result = await lookupCustomDomain(hostnameWithoutPort);
 
       if (result.success) {
         const { domain } = result;
