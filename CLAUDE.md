@@ -1,1 +1,0 @@
-- Always make sure any new components are perfect in alignment with the existing design system and more importantly looks just like Linear.app

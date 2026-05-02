@@ -1,281 +1,187 @@
-'use client'
+'use client';
 
-import { LinearIssue } from '@/app/api/linear/issues/route'
-import { FilterState } from '@/components/filter-dropdown'
-import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
-import { UserAvatar } from '@/components/user-avatar'
+import { useState, useRef } from 'react';
+import Link from 'next/link';
+import { PriorityIcon } from '@/components/priority-icon';
+import { StatusIcon } from '@/components/status-icon';
+import { priorityToNumber } from '@/lib/priority';
+import { Plus } from 'lucide-react';
 
-// Shared Tailwind classes for the small metadata badges on a kanban card
-// (priority, estimate, label). Using theme tokens so the badges adapt to
-// whatever colour scheme the branding has set.
-const CARD_BADGE_CLASS =
-  'flex items-center gap-1 h-[22px] px-1 rounded border border-border bg-accent/40 text-muted-foreground text-xs font-medium overflow-hidden flex-shrink-0 max-w-[134px] transition-colors duration-150 hover:text-foreground'
+type Label = { id: string; name: string; color: string };
 
-interface KanbanBoardProps {
-  issues: LinearIssue[]
-  showAssignees?: boolean
-  showLabels?: boolean
-  showPriorities?: boolean
-  showDescriptions?: boolean
-  className?: string
-  filters?: FilterState
-  onIssueClick?: (issueId: string) => void
+export type KanbanIssue = {
+  id: string;
+  title: string;
+  priority: string;
+  estimate: number | null;
+  statusId: string;
+  statusName: string;
+  statusColor: string;
+  statusType: string;
+  projectName: string | null;
+  labels: Label[];
+};
+
+export type KanbanStatus = {
+  id: string;
+  name: string;
+  color: string;
+  type: string;
+};
+
+function IssueCard({
+  issue,
+  onDragStart,
+}: {
+  issue: KanbanIssue;
+  onDragStart: (id: string) => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={() => onDragStart(issue.id)}
+      className="bg-card border border-border rounded-md p-3 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors group"
+    >
+      <Link href={`/issues/${issue.id}`} onClick={e => e.stopPropagation()}>
+        <p className="text-sm mb-2 leading-snug group-hover:text-primary transition-colors">
+          {issue.title}
+        </p>
+      </Link>
+      <div className="flex items-center gap-2">
+        <PriorityIcon priority={priorityToNumber(issue.priority)} className="w-3 h-3" />
+        {issue.labels.map(l => (
+          <span
+            key={l.id}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+            style={{ backgroundColor: `${l.color}20`, color: l.color }}
+          >
+            {l.name}
+          </span>
+        ))}
+        {issue.estimate != null && (
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">{issue.estimate}</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
-const getStateIcon = (stateType: string, color: string) => {
-  const strokeColor = color || '#9ca3af'
+function Column({
+  status,
+  issues,
+  onDrop,
+  onDragStart,
+  onQuickCreate,
+}: {
+  status: KanbanStatus;
+  issues: KanbanIssue[];
+  onDrop: (statusId: string) => void;
+  onDragStart: (id: string) => void;
+  onQuickCreate: (statusId: string, title: string) => void;
+}) {
+  const [over, setOver] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState('');
 
-  if (stateType === 'completed') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill={strokeColor} stroke={strokeColor} strokeWidth="1.5"></circle>
-        <path d="M4.5 7l2 2 3-3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-      </svg>
-    )
-  }
-
-  if (stateType === 'started') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-        <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="6.094689747964199" transform="rotate(-90 7 7)"></circle>
-      </svg>
-    )
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onQuickCreate(status.id, title.trim());
+    setTitle('');
+    setCreating(false);
   }
 
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-      <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="12.189379495928398" transform="rotate(-90 7 7)"></circle>
-    </svg>
-  )
+    <div
+      className={`flex flex-col w-72 shrink-0 rounded-lg border transition-colors ${
+        over ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/20'
+      }`}
+      onDragOver={e => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={() => { setOver(false); onDrop(status.id); }}
+    >
+      {/* Column header */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+        <StatusIcon type={status.type} color={status.color} className="h-3.5 w-3.5" />
+        <span className="text-sm font-medium flex-1">{status.name}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{issues.length}</span>
+        <button
+          onClick={() => setCreating(c => !c)}
+          className="p-0.5 hover:bg-accent rounded transition-colors text-muted-foreground hover:text-foreground"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Cards */}
+      <div className="flex-1 p-2 space-y-2 min-h-16">
+        {issues.map(issue => (
+          <IssueCard key={issue.id} issue={issue} onDragStart={onDragStart} />
+        ))}
+      </div>
+
+      {/* Quick create */}
+      {creating && (
+        <form onSubmit={handleSubmit} className="p-2 border-t border-border">
+          <input
+            autoFocus
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Escape' && setCreating(false)}
+            placeholder="Issue title…"
+            className="w-full text-sm bg-background border border-border rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground"
+          />
+          <div className="flex gap-2 mt-2">
+            <button type="submit" className="flex-1 py-1 bg-primary text-primary-foreground rounded text-xs font-medium hover:bg-primary/90 transition-colors">
+              Save
+            </button>
+            <button type="button" onClick={() => setCreating(false)} className="flex-1 py-1 border border-border rounded text-xs hover:bg-accent transition-colors">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
 }
 
 export function KanbanBoard({
+  statuses,
   issues,
-  showAssignees = true,
-  showLabels = true,
-  showPriorities = true,
-  showDescriptions = true,
-  className = '',
-  filters,
-  onIssueClick
-}: KanbanBoardProps) {
-  // Filter issues based on provided filters
-  const filteredIssues = filters ? issues.filter(issue => {
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      if (!issue.title.toLowerCase().includes(searchLower) &&
-          !issue.identifier.toLowerCase().includes(searchLower) &&
-          !(showDescriptions && issue.description?.toLowerCase().includes(searchLower))) {
-        return false
-      }
+  onStatusChange,
+  onCreateIssue,
+}: {
+  statuses: KanbanStatus[];
+  issues: KanbanIssue[];
+  onStatusChange: (issueId: string, statusId: string) => void;
+  onCreateIssue: (statusId: string, title: string) => void;
+}) {
+  const dragging = useRef<string | null>(null);
+
+  function handleDrop(statusId: string) {
+    if (dragging.current) {
+      onStatusChange(dragging.current, statusId);
+      dragging.current = null;
     }
-
-    // Status filter
-    if (filters.statuses.length > 0 && !filters.statuses.includes(issue.state.name)) {
-      return false
-    }
-
-    // Assignee filter
-    if (showAssignees && filters.assignees.length > 0) {
-      if (!issue.assignee || !filters.assignees.includes(issue.assignee.id)) {
-        return false
-      }
-    }
-
-    // Priority filter
-    if (showPriorities && filters.priorities.length > 0 && !filters.priorities.includes(issue.priority)) {
-      return false
-    }
-
-    // Labels filter
-    if (showLabels && filters.labels.length > 0) {
-      const hasMatchingLabel = issue.labels.some(label => filters.labels.includes(label.id))
-      if (!hasMatchingLabel) {
-        return false
-      }
-    }
-
-    // Creator filter (placeholder - would need additional API data)
-    if (filters.creators.length > 0) {
-      // For now, we'll skip this filter since we don't have creator data
-      // In a real implementation, you'd filter by issue.creator.id
-    }
-
-    return true
-  }) : issues
-
-  // Group filtered issues by their state
-  const groupedIssues = filteredIssues.reduce((acc, issue) => {
-    const stateName = issue.state.name
-    if (!acc[stateName]) {
-      acc[stateName] = {
-        issues: [],
-        color: issue.state.color,
-        type: issue.state.type
-      }
-    }
-    acc[stateName].issues.push(issue)
-    return acc
-  }, {} as Record<string, { issues: LinearIssue[], color: string, type: string }>)
-
-  // Sort columns by workflow order: backlog -> to do -> in progress -> done
-  const stateTypeOrder: Record<string, number> = {
-    'backlog': 0,
-    'unstarted': 1,
-    'started': 2,
-    'completed': 3,
-    'canceled': 4
   }
 
-  const columns = Object.keys(groupedIssues).sort((a, b) => {
-    const typeA = groupedIssues[a].type
-    const typeB = groupedIssues[b].type
-    const orderA = stateTypeOrder[typeA] ?? 999
-    const orderB = stateTypeOrder[typeB] ?? 999
-    return orderA - orderB
-  })
-
-  if (filteredIssues.length === 0 && issues.length > 0) {
-    return (
-      <div className="text-center py-20">
-        <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues match your filters</div>
-          <div className="text-sm">Try adjusting your filter criteria to see more results.</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (issues.length === 0) {
-    return (
-      <div className="text-center py-20">
-        <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues found</div>
-          <div className="text-sm">This view doesn&apos;t contain any issues yet.</div>
-        </div>
-      </div>
-    )
-  }
+  const byStatus = statuses.reduce<Record<string, KanbanIssue[]>>((acc, s) => {
+    acc[s.id] = issues.filter(i => i.statusId === s.id);
+    return acc;
+  }, {});
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Linear-style board container */}
-      <div className="flex gap-1 overflow-x-auto pb-4 px-1">
-        {columns.map((columnName) => {
-          const column = groupedIssues[columnName]
-          const columnColor = column.color || '#9ca3af'
-
-          return (
-            <div key={columnName} className="flex-shrink-0 w-80 sm:w-[356px] group">
-              {/* Column Header - matching Linear's exact structure */}
-              <div className="flex flex-row h-12 w-full pl-1" style={{ paddingLeft: '4px' }}>
-                <div className="w-full" style={{ width: '348px' }}>
-                  <div className="flex items-center justify-between p-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStateIcon(column.type, columnColor)}
-                      <span className="text-sm font-medium text-foreground tracking-tight">
-                        {columnName}
-                      </span>
-                      <div className="flex items-center justify-center px-2 py-0.5 bg-muted/60 rounded-full">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {column.issues.length}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Issues Column - matching Linear's exact structure */}
-              <div className="flex flex-row w-full pl-1" style={{ paddingLeft: '4px' }}>
-                <div className="w-full" style={{ width: '348px' }}>
-                  <div className="space-y-2 px-1">
-                    {column.issues.map((issue) => (
-                      <div key={issue.id} className="linear-hover-lift">
-                          {/* Issue Card - matching Linear's exact structure */}
-                          <button
-                            onClick={() => onIssueClick?.(issue.id)}
-                            className="w-full bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group cursor-pointer text-left"
-                          >
-                            <div className="relative p-3">
-                              {/* Top row: Issue ID, Status Icon, and Assignee */}
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-mono text-muted-foreground/80 tracking-wider font-semibold">
-                                    {issue.identifier}
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    {getStateIcon(issue.state.type, issue.state.color)}
-                                  </div>
-                                </div>
-
-                                {/* Assignee in top right */}
-                                {showAssignees && issue.assignee && (
-                                  <div className="flex-shrink-0">
-                                    <UserAvatar name={issue.assignee.name} avatarUrl={issue.assignee.avatarUrl} />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Issue title */}
-                              <div className="mb-3">
-                                <h4 className="text-sm font-medium text-foreground leading-tight tracking-tight line-clamp-2">
-                                  {issue.title}
-                                </h4>
-                              </div>
-
-                              {/* Bottom badges row */}
-                              <div className="flex items-center gap-1 flex-wrap">
-
-                                {/* Priority badge */}
-                                {showPriorities && (
-                                  <div className={CARD_BADGE_CLASS}>
-                                    <PriorityIcon
-                                      priority={issue.priority}
-                                      priorityLabel={issue.priorityLabel}
-                                    />
-                                  </div>
-                                )}
-
-                                {/* Estimate badge */}
-                                {issue.estimate != null && issue.estimate > 0 && (
-                                  <div className={CARD_BADGE_CLASS}>
-                                    <EstimateIcon />
-                                    <span>{issue.estimate}</span>
-                                  </div>
-                                )}
-
-                                {/* Label badges */}
-                                {showLabels && issue.labels.map((label) => (
-                                  <div key={label.id} className={CARD_BADGE_CLASS}>
-                                    <div
-                                      className="w-2 h-2 rounded-full"
-                                      style={{ backgroundColor: label.color }}
-                                    />
-                                    <span>{label.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </button>
-                      </div>
-                    ))}
-
-                    {column.issues.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground/60">
-                        <div className="text-sm">No issues</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+    <div className="flex gap-4 p-4 overflow-x-auto h-full">
+      {statuses.map(status => (
+        <Column
+          key={status.id}
+          status={status}
+          issues={byStatus[status.id] ?? []}
+          onDrop={handleDrop}
+          onDragStart={id => { dragging.current = id; }}
+          onQuickCreate={onCreateIssue}
+        />
+      ))}
     </div>
-  )
+  );
 }
