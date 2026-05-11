@@ -261,9 +261,19 @@ export default function PublicViewsPage() {
         return;
       }
 
+      const { data: connection } = await supabase
+        .from("organisation_linear_connections")
+        .select("id")
+        .eq("organisation_id", activeOrgId)
+        .order("connected_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
       const { error } = await supabase.from("public_views").insert({
         user_id: user.id,
+        created_by: user.id,
         organisation_id: activeOrgId,
+        linear_connection_id: connection?.id ?? null,
         name: viewName,
         slug: viewSlug,
         view_title: viewTitle,
@@ -281,6 +291,7 @@ export default function PublicViewsPage() {
         show_activity: showActivity,
         show_project_updates: showProjectUpdates,
         excluded_issue_ids: excludedIssueIds,
+        excluded_linear_issue_ids: excludedIssueIds,
         ...sourceData,
       });
 

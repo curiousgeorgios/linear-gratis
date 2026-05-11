@@ -60,12 +60,17 @@ export async function POST(
     // Hash the client IP for additional verification
     const ipHash = hashIp(clientIp);
 
-    // Try to insert the vote (will fail if duplicate due to UNIQUE constraint)
+    // Try to insert the vote (will fail if duplicate due to UNIQUE constraint).
+    // organisation_id is NOT NULL on roadmap_votes after migration 019 and
+    // linear_issue_id is the new home for the Linear issue identifier (sync
+    // trigger keeps issue_id aligned).
     const { error: insertError } = await supabaseAdmin
       .from('roadmap_votes')
       .insert({
         roadmap_id: roadmap.id,
+        organisation_id: roadmap.organisation_id,
         issue_id: issueAccess.issueId,
+        linear_issue_id: issueAccess.issueId,
         visitor_fingerprint: fingerprint,
         ip_hash: ipHash,
       });

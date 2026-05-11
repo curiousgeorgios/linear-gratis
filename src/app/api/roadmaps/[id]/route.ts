@@ -41,12 +41,25 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    const { data: roadmap, error } = await supabaseAdmin
+    // Post-Fix-D ownership check: org membership is the authority, not the
+    // creator. supabaseAdmin bypasses RLS so we re-enforce the org scope here.
+    const roadmapResult = await supabaseAdmin
       .from('roadmaps')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single();
+    const { data: roadmap, error } = roadmapResult;
+    if (roadmap) {
+      const { data: membership } = await supabaseAdmin
+        .from('organisation_members')
+        .select('organisation_id')
+        .eq('user_id', user.id)
+        .eq('organisation_id', roadmap.organisation_id)
+        .maybeSingle();
+      if (!membership) {
+        return NextResponse.json({ error: 'Roadmap not found' }, { status: 404 });
+      }
+    }
 
     if (error || !roadmap) {
       return NextResponse.json(
@@ -84,15 +97,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    // Check ownership
+    // Check ownership via org membership (Fix D).
     const { data: existing, error: checkError } = await supabaseAdmin
       .from('roadmaps')
-      .select('id, user_id')
+      .select('id, organisation_id')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single();
 
     if (checkError || !existing) {
+      return NextResponse.json(
+        { error: 'Roadmap not found' },
+        { status: 404 }
+      );
+    }
+
+    const { data: membership } = await supabaseAdmin
+      .from('organisation_members')
+      .select('organisation_id')
+      .eq('user_id', user.id)
+      .eq('organisation_id', existing.organisation_id)
+      .maybeSingle();
+    if (!membership) {
       return NextResponse.json(
         { error: 'Roadmap not found' },
         { status: 404 }
@@ -110,7 +135,14 @@ export async function PATCH(
     if (body.layout_type !== undefined) updateData.layout_type = body.layout_type;
     if (body.timeline_granularity !== undefined) updateData.timeline_granularity = body.timeline_granularity;
     if (body.kanban_columns !== undefined) updateData.kanban_columns = body.kanban_columns;
-    if (body.project_ids !== undefined) updateData.project_ids = body.project_ids;
+    if (body.project_ids !== undefined) {
+      updateData.project_ids = body.project_ids;
+      updateData.linear_project_ids = body.project_ids;
+    }
+    if (body.linear_project_ids !== undefined) {
+      updateData.linear_project_ids = body.linear_project_ids;
+      updateData.project_ids = body.linear_project_ids;
+    }
     if (body.show_item_descriptions !== undefined) updateData.show_item_descriptions = body.show_item_descriptions;
     if (body.show_item_dates !== undefined) updateData.show_item_dates = body.show_item_dates;
     if (body.show_vote_counts !== undefined) updateData.show_vote_counts = body.show_vote_counts;
@@ -136,7 +168,6 @@ export async function PATCH(
       .from('roadmaps')
       .update(updateData)
       .eq('id', id)
-      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -173,12 +204,30 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
+    // Check org membership before delete (Fix D: org is the authority).
+    const { data: existing } = await supabaseAdmin
+      .from('roadmaps')
+      .select('id, organisation_id')
+      .eq('id', id)
+      .single();
+    if (!existing) {
+      return NextResponse.json({ success: true });
+    }
+    const { data: membership } = await supabaseAdmin
+      .from('organisation_members')
+      .select('organisation_id')
+      .eq('user_id', user.id)
+      .eq('organisation_id', existing.organisation_id)
+      .maybeSingle();
+    if (!membership) {
+      return NextResponse.json({ error: 'Roadmap not found' }, { status: 404 });
+    }
+
     // Delete the roadmap (votes and comments will cascade delete)
     const { error } = await supabaseAdmin
       .from('roadmaps')
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('id', id);
 
     if (error) {
       throw error;

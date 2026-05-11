@@ -147,12 +147,15 @@ export async function POST(
     // Determine if comment should be auto-approved
     const isApproved = !roadmap.moderate_comments;
 
-    // Insert the comment
+    // Insert the comment. organisation_id is NOT NULL after migration 019
+    // and linear_issue_id is the new home for the Linear issue id.
     const { data: newComment, error: insertError } = await supabaseAdmin
       .from('roadmap_comments')
       .insert({
         roadmap_id: roadmap.id,
+        organisation_id: roadmap.organisation_id,
         issue_id: issueAccess.issueId,
+        linear_issue_id: issueAccess.issueId,
         author_name: authorName.trim(),
         author_email: authorEmail,
         author_email_verified: false, // TODO: implement email verification
