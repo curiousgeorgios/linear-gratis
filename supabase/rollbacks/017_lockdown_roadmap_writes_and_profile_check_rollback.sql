@@ -1,5 +1,6 @@
 -- 017_lockdown_roadmap_writes_and_profile_check_rollback.sql
--- Manual rollback for 017. NOT tracked as a migration.
+-- Manual rollback for 017.
+-- Kept outside supabase/migrations so Supabase never applies it as a forward migration.
 --
 -- IMPORTANT: Before running this rollback, make sure no client code has been
 -- written to assume the direct-to-Supabase anon write path is closed. If any
