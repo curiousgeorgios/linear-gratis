@@ -25,6 +25,10 @@ export const supabaseAdmin = supabaseServiceKey
 export type Profile = {
   id: string
   email: string
+  // Deprecated as of migration 022: prefer reading the token from
+  // organisation_linear_connections. The column is dropped in the contract
+  // migration (target v0.11.0). Sync trigger keeps this in sync with the
+  // owner's connection for personal-org setups during the migrate window.
   linear_api_token?: string
   created_at: string
   updated_at: string
@@ -46,14 +50,34 @@ export type OrganisationMember = {
   created_at: string
 }
 
+export type OrganisationLinearConnection = {
+  id: string
+  organisation_id: string
+  linear_workspace_id: string | null
+  linear_workspace_name: string | null
+  // Stored encrypted (see src/lib/encryption.ts). Never returned to clients.
+  linear_api_token: string
+  connected_by: string | null
+  connected_at: string
+  updated_at: string
+}
+
 export type CustomerRequestForm = {
   id: string
+  // Deprecated: prefer created_by. Kept until the contract migration.
   user_id: string
+  created_by: string | null
   organisation_id: string
+  linear_connection_id: string | null
+  public_resource_id: string
   name: string
   slug: string
+  // Deprecated: prefer linear_project_id. Kept until the contract migration.
   project_id: string
+  linear_project_id: string
+  // Deprecated: prefer linear_project_name.
   project_name: string
+  linear_project_name: string
   form_title: string
   description?: string
   is_active: boolean
@@ -64,13 +88,23 @@ export type CustomerRequestForm = {
 export type PublicView = {
   id: string
   user_id: string
+  created_by: string | null
   organisation_id: string
+  linear_connection_id: string | null
+  public_resource_id: string
   name: string
   slug: string
+  // Deprecated columns kept during the migrate window. Use the linear_* shapes.
   project_id?: string
   team_id?: string
   project_name?: string
   team_name?: string
+  excluded_issue_ids: string[]
+  linear_project_id?: string
+  linear_team_id?: string
+  linear_project_name?: string
+  linear_team_name?: string
+  excluded_linear_issue_ids: string[]
   view_title: string
   description?: string
   is_active: boolean
@@ -81,7 +115,6 @@ export type PublicView = {
   show_comments: boolean
   show_activity: boolean
   show_project_updates: boolean
-  excluded_issue_ids: string[]
   allowed_statuses: string[]
   password_protected: boolean
   password_hash?: string
@@ -94,6 +127,7 @@ export type PublicView = {
 export type BrandingSettings = {
   id: string
   user_id: string
+  created_by: string | null
   organisation_id: string
   logo_url?: string
   logo_height?: number
@@ -125,6 +159,7 @@ export type BrandingSettings = {
 export type CustomDomain = {
   id: string
   user_id: string
+  created_by: string | null
   organisation_id: string
   domain: string
   subdomain?: string
@@ -160,7 +195,10 @@ export type KanbanColumn = {
 export type Roadmap = {
   id: string
   user_id: string
+  created_by: string | null
   organisation_id: string
+  linear_connection_id: string | null
+  public_resource_id: string
   name: string
   slug: string
   title: string
@@ -168,7 +206,9 @@ export type Roadmap = {
   layout_type: 'kanban' | 'timeline'
   timeline_granularity: 'month' | 'quarter'
   kanban_columns: KanbanColumn[]
+  // Deprecated: prefer linear_project_ids. Kept until the contract migration.
   project_ids: string[]
+  linear_project_ids: string[]
   show_item_descriptions: boolean
   show_item_dates: boolean
   show_progress_percentage: boolean
@@ -189,7 +229,10 @@ export type Roadmap = {
 export type RoadmapVote = {
   id: string
   roadmap_id: string
+  organisation_id: string
+  // Deprecated: prefer linear_issue_id.
   issue_id: string
+  linear_issue_id: string
   visitor_fingerprint: string
   ip_hash?: string
   created_at: string
@@ -198,7 +241,10 @@ export type RoadmapVote = {
 export type RoadmapComment = {
   id: string
   roadmap_id: string
+  organisation_id: string
+  // Deprecated: prefer linear_issue_id.
   issue_id: string
+  linear_issue_id: string
   author_name: string
   author_email: string
   author_email_verified: boolean
@@ -212,3 +258,16 @@ export type RoadmapComment = {
   updated_at: string
 }
 
+export type PublicResource = {
+  id: string
+  type: 'view' | 'form' | 'roadmap'
+  organisation_id: string
+  slug: string
+  password_hash: string | null
+  expires_at: string | null
+  is_active: boolean
+  created_by: string | null
+  linear_connection_id: string | null
+  created_at: string
+  updated_at: string
+}

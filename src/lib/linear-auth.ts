@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase'
-import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
+import {
+  getAuthenticatedOrgConnection,
+  type LinearConnectionResult,
+} from '@/lib/linear-connection'
 
 export type LinearAuthFailure = {
   ok: false
@@ -12,57 +13,33 @@ export type LinearAuthSuccess = {
   ok: true
   userId: string
   linearToken: string
+  // Exposed so callers can stamp linear_connection_id on resources they create.
+  organisationId: string
+  connectionId: string
 }
 
 export type LinearAuthResult = LinearAuthFailure | LinearAuthSuccess
 
 /**
  * Authenticate the caller via cookie session and return their decrypted Linear
- * API token. If anything fails, returns a response the caller should return as-is.
- * The plaintext token never leaves the server.
+ * API token. If anything fails, returns a response the caller should return
+ * as-is. The plaintext token never leaves the server.
+ *
+ * Post-Fix-E (ADR 0001) this delegates to getAuthenticatedOrgConnection.
+ * The token resolves through the active organisation's
+ * organisation_linear_connections row, not profiles.linear_api_token.
+ * The legacy column on profiles is kept in sync by migration 022's
+ * sync_profile_token_to_connection trigger so any in-flight code that still
+ * reads it continues to work until the contract migration drops it.
  */
 export async function getAuthenticatedLinearToken(): Promise<LinearAuthResult> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Unauthorised' }, { status: 401 }),
-    }
+  const result: LinearConnectionResult = await getAuthenticatedOrgConnection()
+  if (!result.ok) return result
+  return {
+    ok: true,
+    userId: result.userId,
+    linearToken: result.linearToken,
+    organisationId: result.organisationId,
+    connectionId: result.connectionId,
   }
-
-  const { data: profile, error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .select('linear_api_token')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile?.linear_api_token) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: 'Linear API token not set on profile' },
-        { status: 400 },
-      ),
-    }
-  }
-
-  let linearToken: string
-  try {
-    linearToken = await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
-      userId: user.id,
-      admin: supabaseAdmin,
-    })
-  } catch {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: 'Linear API token could not be decrypted' },
-        { status: 500 },
-      ),
-    }
-  }
-
-  return { ok: true, userId: user.id, linearToken }
 }
