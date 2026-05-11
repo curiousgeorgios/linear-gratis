@@ -165,13 +165,28 @@ export default function FormsPage() {
         return;
       }
 
+      // Resolve the org's Linear connection so the new form is tied to it.
+      // Composite FK on (organisation_id, linear_connection_id) ensures we
+      // can't accidentally write a form pointing at another org's connection.
+      const { data: connection } = await supabase
+        .from("organisation_linear_connections")
+        .select("id")
+        .eq("organisation_id", activeOrgId)
+        .order("connected_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
       const { error } = await supabase.from("customer_request_forms").insert({
         user_id: user.id,
+        created_by: user.id,
         organisation_id: activeOrgId,
+        linear_connection_id: connection?.id ?? null,
         name: formName,
         slug: formSlug,
         project_id: selectedProject,
+        linear_project_id: selectedProject,
         project_name: selectedProjectData.name,
+        linear_project_name: selectedProjectData.name,
         form_title: formTitle,
         description: formDescription || null,
       });
