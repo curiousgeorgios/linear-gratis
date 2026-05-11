@@ -62,6 +62,10 @@ openssl rand -base64 32
 2. Set up authentication (email/password recommended)
 3. Create the required database schema by running the migrations in `supabase/migrations`
 
+Manual rollback scripts live in `supabase/rollbacks`. Do not copy them into
+`supabase/migrations`, because Supabase applies every SQL file in that directory
+as a forward migration.
+
 ### Development
 
 Run the development server:

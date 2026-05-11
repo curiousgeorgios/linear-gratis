@@ -404,7 +404,7 @@ This lives in the PR body and an appendix to the README, not in the migration.
 
 ### Rollback
 
-Companion file `015_organisations_rollback.sql` checked into the repo (not registered as a wrangler/supabase migration). Drops policies, drops `organisation_id` columns, drops `organisation_members`, drops `organisations`, drops the enum, reinstates the owner-scoped policies from migration `003`. Run manually only if a critical issue surfaces post-deploy that can't be hot-fixed.
+Companion file `supabase/rollbacks/015_organisations_rollback.sql` checked into the repo outside `supabase/migrations`. Drops policies, drops `organisation_id` columns, drops `organisation_members`, drops `organisations`, drops the enum, reinstates the owner-scoped policies from migration `003`. Run manually only if a critical issue surfaces post-deploy that can't be hot-fixed.
 
 ## Phase 2: team workspaces (outline only)
 
