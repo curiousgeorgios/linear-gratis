@@ -1,16 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type ChangeEvent } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { Paperclip, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
+import {
+  ALLOWED_FORM_ATTACHMENT_TYPES,
+  formatFileSize,
+  validateFormAttachmentFile,
+} from '@/lib/form-attachment'
 
 const formSchema = z.object({
   customerName: z.string().min(1, 'Your name is required'),
@@ -21,7 +27,7 @@ const formSchema = z.object({
   attachmentUrl: z.string().url().optional().or(z.literal('')),
 })
 
-type FormData = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof formSchema>
 
 type PublicFormConfig = {
   id: string
@@ -42,6 +48,9 @@ export default function PublicFormPage() {
   const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [attachmentInputKey, setAttachmentInputKey] = useState(0)
   const [result, setResult] = useState<{
     success: boolean
     message: string
@@ -58,7 +67,7 @@ export default function PublicFormPage() {
   )
 
   // Parse URL parameters for prefilling
-  const getUrlPrefillData = useCallback((): Partial<FormData> => {
+  const getUrlPrefillData = useCallback((): Partial<FormValues> => {
     if (!searchParams) return {}
 
     return {
@@ -73,7 +82,7 @@ export default function PublicFormPage() {
 
   const prefillData = getUrlPrefillData()
 
-  const form = useForm<FormData>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       customerName: prefillData.customerName || '',
@@ -117,17 +126,59 @@ export default function PublicFormPage() {
     }
   }, [branding, formConfig?.form_title])
 
-  const onFormSubmit = async (values: FormData) => {
+  const clearAttachmentFile = () => {
+    setAttachmentFile(null)
+    setAttachmentError(null)
+    setAttachmentInputKey((key) => key + 1)
+  }
+
+  const onAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    setAttachmentError(null)
+
+    if (!file) {
+      setAttachmentFile(null)
+      return
+    }
+
+    const validation = validateFormAttachmentFile(file)
+    if (!validation.ok) {
+      setAttachmentFile(null)
+      setAttachmentError(validation.error)
+      setAttachmentInputKey((key) => key + 1)
+      return
+    }
+
+    setAttachmentFile(file)
+  }
+
+  const onFormSubmit = async (values: FormValues) => {
     if (!formConfig) return
 
-    setSubmitting(true)
     setResult(null)
+    if (attachmentFile) {
+      const validation = validateFormAttachmentFile(attachmentFile)
+      if (!validation.ok) {
+        setAttachmentError(validation.error)
+        return
+      }
+    }
+
+    setSubmitting(true)
 
     try {
+      const payload = new globalThis.FormData()
+      payload.set('customerName', values.customerName)
+      payload.set('customerEmail', values.customerEmail)
+      payload.set('externalId', values.externalId || '')
+      payload.set('issueTitle', values.issueTitle)
+      payload.set('issueBody', values.issueBody)
+      payload.set('attachmentUrl', values.attachmentUrl || '')
+      if (attachmentFile) payload.set('attachmentFile', attachmentFile)
+
       const response = await fetch(`/api/form/${encodeURIComponent(slug)}/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: payload,
       })
 
       const data = (await response.json()) as {
@@ -146,6 +197,7 @@ export default function PublicFormPage() {
           data: data.data,
         })
         form.reset()
+        clearAttachmentFile()
       } else {
         setResult({
           success: false,
@@ -318,13 +370,49 @@ export default function PublicFormPage() {
                   name="attachmentUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Attachment URL (optional)</FormLabel>
+                      <FormLabel>Attachment (optional)</FormLabel>
                       <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://example.com/screenshot.png"
-                          {...field}
-                        />
+                        <div className="space-y-3">
+                          <Input type="hidden" {...field} />
+                          <Input
+                            key={attachmentInputKey}
+                            type="file"
+                            accept={Object.keys(ALLOWED_FORM_ATTACHMENT_TYPES).join(',')}
+                            onChange={onAttachmentChange}
+                          />
+                          {attachmentFile && (
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{attachmentFile.name}</span>
+                                <span className="shrink-0 text-muted-foreground">
+                                  {formatFileSize(attachmentFile.size)}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-7"
+                                onClick={clearAttachmentFile}
+                                aria-label="Remove attachment"
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </div>
+                          )}
+                          {field.value && !attachmentFile && (
+                            <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                              <Paperclip className="size-4 shrink-0" />
+                              <span className="truncate">Linked attachment included</span>
+                            </div>
+                          )}
+                          {attachmentError && (
+                            <p className="text-sm font-medium text-destructive">
+                              {attachmentError}
+                            </p>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

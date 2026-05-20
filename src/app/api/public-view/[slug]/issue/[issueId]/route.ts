@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { authorisePublicView } from '@/lib/public-view-auth';
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
+import { getActiveConnectionIdForOrg, getTokenForConnection } from '@/lib/linear-connection';
+import { supabaseAdmin } from '@/lib/supabase';
+import type { PublicView } from '@/lib/supabase';
+
+const LINEAR_API_URL = 'https://api.linear.app/graphql';
+const ISSUE_IDENTIFIER_PATTERN = /\b[A-Z][A-Z0-9]*-\d+\b/g;
+const MAX_REFERENCED_ISSUES = 100;
 
 export type IssueComment = {
   id: string;
@@ -69,7 +75,180 @@ export type IssueDetail = {
   updatedAt: string;
   comments: IssueComment[];
   history: IssueHistory[];
+  referencedIssues: Record<string, ReferencedIssue>;
 };
+
+export type ReferencedIssue = {
+  id: string;
+  identifier: string;
+  title: string;
+  url: string;
+  state: {
+    id: string;
+    name: string;
+    color: string;
+    type: string;
+  };
+};
+
+function extractReferencedIssueIdentifiers(
+  markdown: string | undefined,
+  currentIdentifier: string,
+): string[] {
+  if (!markdown) return [];
+
+  const identifiers = new Set<string>();
+  for (const match of markdown.matchAll(ISSUE_IDENTIFIER_PATTERN)) {
+    const identifier = match[0].toUpperCase();
+    if (identifier === currentIdentifier.toUpperCase()) continue;
+    identifiers.add(identifier);
+    if (identifiers.size >= MAX_REFERENCED_ISSUES) break;
+  }
+
+  return Array.from(identifiers);
+}
+
+async function resolveLinearTokenForView(view: PublicView): Promise<string | null> {
+  if (view.linear_connection_id) {
+    return getTokenForConnection(view.linear_connection_id);
+  }
+
+  const connectionId = view.organisation_id
+    ? await getActiveConnectionIdForOrg(supabaseAdmin, view.organisation_id)
+    : null;
+  if (connectionId) {
+    await supabaseAdmin
+      .from('public_views')
+      .update({ linear_connection_id: connectionId })
+      .eq('id', view.id)
+      .is('linear_connection_id', null);
+
+    return getTokenForConnection(connectionId);
+  }
+
+  // Legacy fallback while older deployments still store the token on profiles
+  // and have not applied the organisation_linear_connections migration.
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('linear_api_token')
+    .eq('id', view.user_id)
+    .single();
+
+  if (!profile?.linear_api_token) return null;
+
+  try {
+    return await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
+      userId: view.user_id,
+      admin: supabaseAdmin,
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function fetchReferencedIssues(
+  apiToken: string,
+  identifiers: string[],
+  view: PublicView,
+): Promise<Record<string, ReferencedIssue>> {
+  if (identifiers.length === 0) return {};
+
+  const query = `
+    query ReferencedIssues($issueIds: [ID!], $first: Int!) {
+      issues(first: $first, filter: { id: { in: $issueIds } }) {
+        nodes {
+          id
+          identifier
+          title
+          url
+          team {
+            id
+          }
+          project {
+            id
+          }
+          state {
+            id
+            name
+            color
+            type
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(LINEAR_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: apiToken.trim(),
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        issueIds: identifiers,
+        first: identifiers.length,
+      },
+    }),
+  });
+
+  if (!response.ok) return {};
+
+  const result = (await response.json()) as {
+    data?: {
+      issues?: {
+        nodes: Array<{
+          id: string;
+          identifier: string;
+          title: string;
+          url: string;
+          team?: { id: string } | null;
+          project?: { id: string } | null;
+          state: {
+            id: string;
+            name: string;
+            color: string;
+            type: string;
+          };
+        }>;
+      };
+    };
+    errors?: Array<{ message: string }>;
+  };
+
+  if (result.errors || !result.data?.issues?.nodes) return {};
+
+  const references: Record<string, ReferencedIssue> = {};
+  for (const referencedIssue of result.data.issues.nodes) {
+    const issueBelongsToView = view.project_id
+      ? referencedIssue.project?.id === view.project_id
+      : view.team_id
+        ? referencedIssue.team?.id === view.team_id
+        : false;
+
+    if (!issueBelongsToView) continue;
+    if (view.excluded_issue_ids?.includes(referencedIssue.id)) continue;
+    if (view.excluded_issue_ids?.includes(referencedIssue.identifier)) continue;
+    if (
+      view.allowed_statuses &&
+      view.allowed_statuses.length > 0 &&
+      !view.allowed_statuses.includes(referencedIssue.state.name)
+    ) {
+      continue;
+    }
+
+    references[referencedIssue.identifier.toUpperCase()] = {
+      id: referencedIssue.id,
+      identifier: referencedIssue.identifier,
+      title: referencedIssue.title,
+      url: referencedIssue.url,
+      state: referencedIssue.state,
+    };
+  }
+
+  return references;
+}
 
 export async function GET(
   request: NextRequest,
@@ -100,27 +279,17 @@ export async function GET(
       );
     }
 
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('linear_api_token')
-      .eq('id', viewData.user_id)
-      .single();
-
-    if (profileError || !profileData?.linear_api_token) {
+    const decryptedToken = await resolveLinearTokenForView(viewData);
+    if (!decryptedToken) {
       return NextResponse.json(
         { error: 'Unable to load data - Linear API token not found' },
         { status: 500 }
       );
     }
 
-    const decryptedToken = await decryptAndRotateTokenIfNeeded(
-      profileData.linear_api_token,
-      { userId: viewData.user_id, admin: supabaseAdmin },
-    );
-
     // Gate comments and history via GraphQL @include. Keeps the query text
     // static (cacheable, readable) while view settings control the flags.
-    const includeComments = viewData.show_comments ?? false;
+    const includeComments = (viewData.show_comments ?? false) || (viewData.show_activity ?? false);
     const includeActivity = viewData.show_activity ?? false;
 
     const query = `
@@ -203,7 +372,7 @@ export async function GET(
       }
     `;
 
-    const response = await fetch('https://api.linear.app/graphql', {
+    const response = await fetch(LINEAR_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -347,6 +516,22 @@ export async function GET(
     const prioritiesVisible = viewData.show_priorities !== false;
     const assigneesVisible = viewData.show_assignees !== false;
     const labelsVisible = viewData.show_labels !== false;
+    const comments = issue.comments?.nodes ?? [];
+
+    const referenceSourceMarkdown = [
+      descriptionsVisible ? issue.description : undefined,
+      ...comments.map((comment) => comment.body),
+    ]
+      .filter((markdown): markdown is string => Boolean(markdown))
+      .join('\n\n');
+
+    const referencedIssues = referenceSourceMarkdown
+      ? await fetchReferencedIssues(
+          decryptedToken,
+          extractReferencedIssueIdentifiers(referenceSourceMarkdown, issue.identifier),
+          viewData,
+        )
+      : {};
 
     const issueDetail: IssueDetail = {
       id: issue.id,
@@ -362,7 +547,7 @@ export async function GET(
       labels: labelsVisible ? issue.labels.nodes : [],
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,
-      comments: issue.comments?.nodes ?? [],
+      comments,
       history: (issue.history?.nodes ?? []).map((h) => ({
         id: h.id,
         createdAt: h.createdAt,
@@ -374,6 +559,7 @@ export async function GET(
         toPriority: prioritiesVisible ? h.toPriority : undefined,
         user: { name: h.actor.name, avatarUrl: h.actor.avatarUrl },
       })),
+      referencedIssues,
     };
 
     return NextResponse.json({

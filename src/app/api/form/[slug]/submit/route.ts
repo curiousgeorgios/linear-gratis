@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security'
+import { getActiveConnectionIdForOrg, getTokenForConnection } from '@/lib/linear-connection'
+import { uploadFileToLinear } from '@/lib/linear-file-upload'
+import {
+  MAX_FORM_SUBMIT_BODY_BYTES,
+  validateFormAttachmentFile,
+} from '@/lib/form-attachment'
 import * as z from 'zod'
 
 const submitSchema = z.object({
@@ -12,6 +18,122 @@ const submitSchema = z.object({
   issueBody: z.string().min(1).max(10000),
   attachmentUrl: z.string().url().optional().or(z.literal('')),
 })
+
+type SubmitValues = z.infer<typeof submitSchema>
+
+type ParsedSubmitPayload = {
+  values: SubmitValues
+  attachmentFile?: File
+}
+
+type FormLookup = {
+  id: string
+  user_id?: string
+  organisation_id?: string
+  linear_connection_id?: string | null
+  project_id?: string | null
+  linear_project_id?: string | null
+}
+
+function getFormString(formData: FormData, key: string): string {
+  const value = formData.get(key)
+  return typeof value === 'string' ? value : ''
+}
+
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+  return typeof File !== 'undefined' && value instanceof File && value.name.trim().length > 0
+}
+
+async function parseSubmitPayload(request: NextRequest): Promise<ParsedSubmitPayload> {
+  const contentType = request.headers.get('content-type') || ''
+
+  if (contentType.includes('multipart/form-data')) {
+    const formData = await request.formData()
+    const attachmentValue = formData.get('attachmentFile')
+
+    return {
+      values: {
+        customerName: getFormString(formData, 'customerName'),
+        customerEmail: getFormString(formData, 'customerEmail'),
+        externalId: getFormString(formData, 'externalId'),
+        issueTitle: getFormString(formData, 'issueTitle'),
+        issueBody: getFormString(formData, 'issueBody'),
+        attachmentUrl: getFormString(formData, 'attachmentUrl'),
+      },
+      ...(isUploadedFile(attachmentValue) ? { attachmentFile: attachmentValue } : {}),
+    }
+  }
+
+  return { values: (await request.json()) as SubmitValues }
+}
+
+async function loadActiveForm(slug: string): Promise<FormLookup | null> {
+  const expanded = await supabaseAdmin
+    .from('customer_request_forms')
+    .select('id, user_id, organisation_id, linear_connection_id, project_id, linear_project_id')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single()
+
+  if (!expanded.error && expanded.data) return expanded.data as FormLookup
+
+  // Legacy fallback for databases that have not applied the linear_connection_id
+  // and linear_project_id expand migrations yet.
+  if (
+    expanded.error?.code === '42703' ||
+    expanded.error?.message?.includes('linear_connection_id') ||
+    expanded.error?.message?.includes('linear_project_id')
+  ) {
+    const legacy = await supabaseAdmin
+      .from('customer_request_forms')
+      .select('id, user_id, project_id')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single()
+
+    if (!legacy.error && legacy.data) return legacy.data as FormLookup
+  }
+
+  return null
+}
+
+async function resolveLinearTokenForForm(form: FormLookup): Promise<string | null> {
+  if (form.linear_connection_id) {
+    return getTokenForConnection(form.linear_connection_id)
+  }
+
+  const connectionId = form.organisation_id
+    ? await getActiveConnectionIdForOrg(supabaseAdmin, form.organisation_id)
+    : null
+  if (connectionId) {
+    await supabaseAdmin
+      .from('customer_request_forms')
+      .update({ linear_connection_id: connectionId })
+      .eq('id', form.id)
+      .is('linear_connection_id', null)
+
+    return getTokenForConnection(connectionId)
+  }
+
+  if (!form.user_id) return null
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('linear_api_token')
+    .eq('id', form.user_id)
+    .single()
+
+  if (!profile?.linear_api_token) return null
+
+  try {
+    return await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
+      userId: form.user_id,
+      admin: supabaseAdmin,
+    })
+  } catch {
+    return null
+  }
+}
 
 /**
  * Creates a Linear customer need via a direct GraphQL call.
@@ -133,6 +255,14 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Slug is required' }, { status: 400 })
     }
 
+    const contentLength = Number(request.headers.get('content-length') || 0)
+    if (Number.isFinite(contentLength) && contentLength > MAX_FORM_SUBMIT_BODY_BYTES) {
+      return NextResponse.json(
+        { success: false, error: 'Attachment is too large.' },
+        { status: 413 }
+      )
+    }
+
     const clientIp = getClientIp(request)
     const rateLimit = await checkRateLimit(`form-submit:${slug}:${clientIp}`, {
       limit: 10,
@@ -140,8 +270,8 @@ export async function POST(
     })
     if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds)
 
-    const body = (await request.json()) as unknown
-    const parsed = submitSchema.safeParse(body)
+    const payload = await parseSubmitPayload(request)
+    const parsed = submitSchema.safeParse(payload.values)
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'Invalid submission', issues: parsed.error.issues },
@@ -149,45 +279,48 @@ export async function POST(
       )
     }
     const values = parsed.data
+    const attachmentFile = payload.attachmentFile
+    if (attachmentFile) {
+      const fileValidation = validateFormAttachmentFile(attachmentFile)
+      if (!fileValidation.ok) {
+        return NextResponse.json(
+          { success: false, error: fileValidation.error },
+          { status: 400 }
+        )
+      }
+    }
 
-    // Look up the form by slug, active only.
-    const { data: form, error: formError } = await supabaseAdmin
-      .from('customer_request_forms')
-      .select('id, user_id, project_id')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single()
-
-    if (formError || !form) {
+    const form = await loadActiveForm(slug)
+    if (!form) {
       return NextResponse.json({ success: false, error: 'Form not found' }, { status: 404 })
     }
 
-    // Look up the owner's encrypted Linear token server-side.
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('linear_api_token')
-      .eq('id', form.user_id)
-      .single()
-
-    if (profileError || !profile?.linear_api_token) {
+    const projectId = form.linear_project_id || form.project_id
+    if (!projectId) {
       return NextResponse.json(
         { success: false, error: 'Form configuration error. Please contact the form owner.' },
         { status: 500 }
       )
     }
 
-    // Decrypt server-side only; token never leaves the server.
-    let linearToken: string
-    try {
-      linearToken = await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
-        userId: form.user_id,
-        admin: supabaseAdmin,
-      })
-    } catch {
+    const linearToken = await resolveLinearTokenForForm(form)
+    if (!linearToken) {
       return NextResponse.json(
         { success: false, error: 'Form configuration error. Please contact the form owner.' },
         { status: 500 }
       )
+    }
+
+    let attachmentUrl = values.attachmentUrl || undefined
+    if (attachmentFile) {
+      const uploadResult = await uploadFileToLinear(linearToken, attachmentFile)
+      if (!uploadResult.success) {
+        return NextResponse.json(
+          { success: false, error: uploadResult.error || 'Failed to upload attachment' },
+          { status: 502 }
+        )
+      }
+      attachmentUrl = uploadResult.assetUrl
     }
 
     const customerData = {
@@ -198,14 +331,14 @@ export async function POST(
     const requestData = {
       title: values.issueTitle,
       body: values.issueBody,
-      ...(values.attachmentUrl ? { attachmentUrl: values.attachmentUrl } : {}),
+      ...(attachmentUrl ? { attachmentUrl } : {}),
     }
 
     const linearResult = await createLinearCustomerRequest(
       linearToken,
       customerData,
       requestData,
-      form.project_id
+      projectId
     )
 
     if (!linearResult.success) {
