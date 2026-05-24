@@ -138,6 +138,8 @@ async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
     teamId: view.team_id || undefined,
     statuses:
       view.allowed_statuses?.length > 0 ? view.allowed_statuses : undefined,
+    labelIds:
+      view.allowed_label_ids?.length > 0 ? view.allowed_label_ids : undefined,
   });
 
   if (!issuesResult.success) {
@@ -175,6 +177,7 @@ async function respondWithViewPayload(view: PublicView): Promise<NextResponse> {
       show_comments: view.show_comments ?? false,
       show_activity: view.show_activity ?? false,
       show_project_updates: view.show_project_updates ?? true,
+      allowed_label_ids: view.allowed_label_ids ?? [],
       password_protected: view.password_protected,
       allow_issue_creation: view.allow_issue_creation,
       created_at: view.created_at,

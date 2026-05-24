@@ -234,7 +234,10 @@ export async function POST(
     const allowedLabelIds = new Set(
       teamMetadata?.labels?.nodes.map((label) => label.id) ?? [],
     );
-    const invalidLabelIds = issueData.labelIds.filter((labelId) => !allowedLabelIds.has(labelId));
+    const finalLabelIds = Array.from(
+      new Set([...(viewData.allowed_label_ids ?? []), ...issueData.labelIds]),
+    );
+    const invalidLabelIds = finalLabelIds.filter((labelId) => !allowedLabelIds.has(labelId));
     if (invalidLabelIds.length > 0) {
       return NextResponse.json(
         { error: 'One or more labels are not available for this view' },
@@ -271,7 +274,7 @@ export async function POST(
       priority: 0, // Default to no priority for public views
       projectId: viewData.project_id,
       teamId: viewData.team_id,
-      labelIds: issueData.labelIds,
+      labelIds: finalLabelIds,
     });
 
     if (result.errors) {

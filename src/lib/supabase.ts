@@ -116,6 +116,7 @@ export type PublicView = {
   show_activity: boolean
   show_project_updates: boolean
   allowed_statuses: string[]
+  allowed_label_ids: string[]
   password_protected: boolean
   password_hash?: string
   expires_at?: string

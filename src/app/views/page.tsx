@@ -26,7 +26,7 @@ import { supabase, PublicView } from "@/lib/supabase";
 import { getActiveOrganisationId } from "@/lib/organisations";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Eye, Copy, Globe, Lock, Edit3 } from "lucide-react";
+import { Trash2, Eye, Copy, Globe, Lock, Edit3, X } from "lucide-react";
 import bcrypt from "bcryptjs";
 
 type Project = {
@@ -40,6 +40,12 @@ type Team = {
   name: string;
   key: string;
   description?: string;
+};
+
+type LinearLabel = {
+  id: string;
+  name: string;
+  color: string;
 };
 
 export default function PublicViewsPage() {
@@ -75,6 +81,9 @@ export default function PublicViewsPage() {
   const [showActivity, setShowActivity] = useState(false);
   const [showProjectUpdates, setShowProjectUpdates] = useState(true);
   const [excludedIssueIds, setExcludedIssueIds] = useState<string[]>([]);
+  const [allowedLabelIds, setAllowedLabelIds] = useState<string[]>([]);
+  const [availableLabels, setAvailableLabels] = useState<LinearLabel[]>([]);
+  const [loadingLabels, setLoadingLabels] = useState(false);
   const [availableIssues, setAvailableIssues] = useState<Array<{ id: string; identifier: string; title: string }>>([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [issueFilter, setIssueFilter] = useState("");
@@ -104,6 +113,53 @@ export default function PublicViewsPage() {
         : [...prev, issueId],
     );
   }, []);
+
+  const toggleAllowedLabel = useCallback((labelId: string) => {
+    setAllowedLabelIds((prev) =>
+      prev.includes(labelId)
+        ? prev.filter((id) => id !== labelId)
+        : [...prev, labelId],
+    );
+  }, []);
+
+  const resetSourceScopedSelections = useCallback(() => {
+    setAllowedLabelIds([]);
+    setAvailableLabels([]);
+    setExcludedIssueIds([]);
+    setAvailableIssues([]);
+    setIssueFilter("");
+  }, []);
+
+  const handleSourceTypeChange = useCallback(
+    (value: string) => {
+      const nextSourceType = value as "project" | "team";
+      if (nextSourceType === sourceType) return;
+
+      setSourceType(nextSourceType);
+      setSelectedProject("");
+      setSelectedTeam("");
+      resetSourceScopedSelections();
+    },
+    [resetSourceScopedSelections, sourceType],
+  );
+
+  const handleProjectChange = useCallback(
+    (projectId: string) => {
+      setSelectedProject(projectId);
+      setSelectedTeam("");
+      resetSourceScopedSelections();
+    },
+    [resetSourceScopedSelections],
+  );
+
+  const handleTeamChange = useCallback(
+    (teamId: string) => {
+      setSelectedTeam(teamId);
+      setSelectedProject("");
+      resetSourceScopedSelections();
+    },
+    [resetSourceScopedSelections],
+  );
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -292,6 +348,7 @@ export default function PublicViewsPage() {
         show_project_updates: showProjectUpdates,
         excluded_issue_ids: excludedIssueIds,
         excluded_linear_issue_ids: excludedIssueIds,
+        allowed_label_ids: allowedLabelIds,
         ...sourceData,
       });
 
@@ -377,12 +434,52 @@ export default function PublicViewsPage() {
     setShowActivity(false);
     setShowProjectUpdates(true);
     setExcludedIssueIds([]);
+    setAllowedLabelIds([]);
+    setAvailableLabels([]);
+    setLoadingLabels(false);
     setAvailableIssues([]);
     setIssueFilter("");
     setShowCreateView(false);
     setEditingView(null);
     setShowEditView(false);
   };
+
+  const fetchSourceLabels = useCallback(
+    async (sourceProjectId?: string, sourceTeamId?: string) => {
+      if (!hasLinearToken || (!sourceProjectId && !sourceTeamId)) {
+        setAvailableLabels([]);
+        return;
+      }
+
+      setLoadingLabels(true);
+      try {
+        const response = await fetch("/api/linear/metadata", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: sourceProjectId || undefined,
+            teamId: sourceTeamId || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as {
+            metadata?: { labels?: LinearLabel[] };
+          };
+          const labels = data.metadata?.labels ?? [];
+          setAvailableLabels(labels);
+        } else {
+          setAvailableLabels([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch labels for view filter:", error);
+        setAvailableLabels([]);
+      } finally {
+        setLoadingLabels(false);
+      }
+    },
+    [hasLinearToken],
+  );
 
   const fetchPickerIssues = useCallback(
     async (sourceProjectId?: string, sourceTeamId?: string) => {
@@ -414,6 +511,36 @@ export default function PublicViewsPage() {
     [hasLinearToken],
   );
 
+  useEffect(() => {
+    if (!showCreateView && !showEditView) return;
+
+    const sourceProjectId = sourceType === "project" ? selectedProject : undefined;
+    const sourceTeamId = sourceType === "team" ? selectedTeam : undefined;
+
+    if (!sourceProjectId && !sourceTeamId) {
+      setAvailableLabels([]);
+      setLoadingLabels(false);
+      if (showEditView) {
+        setAvailableIssues([]);
+        setLoadingIssues(false);
+      }
+      return;
+    }
+
+    fetchSourceLabels(sourceProjectId, sourceTeamId);
+    if (showEditView) {
+      fetchPickerIssues(sourceProjectId, sourceTeamId);
+    }
+  }, [
+    fetchPickerIssues,
+    fetchSourceLabels,
+    selectedProject,
+    selectedTeam,
+    showCreateView,
+    showEditView,
+    sourceType,
+  ]);
+
   const startEditView = (view: PublicView) => {
     setEditingView(view);
     setViewName(view.name);
@@ -427,8 +554,10 @@ export default function PublicViewsPage() {
     setShowActivity(view.show_activity ?? false);
     setShowProjectUpdates(view.show_project_updates ?? true);
     setExcludedIssueIds(view.excluded_issue_ids ?? []);
+    setAllowedLabelIds(view.allowed_label_ids ?? []);
+    setAvailableLabels([]);
+    setAvailableIssues([]);
     setIssueFilter("");
-    fetchPickerIssues(view.project_id, view.team_id);
 
     // Set source type and selection based on existing view
     if (view.project_id) {
@@ -514,6 +643,8 @@ export default function PublicViewsPage() {
           show_activity: showActivity,
           show_project_updates: showProjectUpdates,
           excluded_issue_ids: excludedIssueIds,
+          excluded_linear_issue_ids: excludedIssueIds,
+          allowed_label_ids: allowedLabelIds,
           ...sourceData,
         })
         .eq("id", editingView.id);
@@ -538,6 +669,87 @@ export default function PublicViewsPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderIncludedLabelsSection = () => {
+    const hasSelectedSource =
+      sourceType === "project" ? Boolean(selectedProject) : Boolean(selectedTeam);
+
+    return (
+      <div className="space-y-3">
+        <div>
+          <Label className="text-sm font-medium">Included labels</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave empty to include every issue in this source. Select labels to
+            show only issues with at least one selected label.
+          </p>
+        </div>
+        {!hasSelectedSource ? (
+          <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
+            Select a source to load labels.
+          </p>
+        ) : loadingLabels ? (
+          <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
+            Loading labels…
+          </p>
+        ) : availableLabels.length === 0 ? (
+          <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
+            No labels found for this source.
+          </p>
+        ) : (
+          <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {availableLabels.map((label) => {
+              const isSelected = allowedLabelIds.includes(label.id);
+              return (
+              <div
+                key={label.id}
+                role="checkbox"
+                aria-checked={isSelected}
+                tabIndex={0}
+                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer min-w-0"
+                onClick={() => toggleAllowedLabel(label.id)}
+                onKeyDown={(event) => {
+                  if (event.key === " " || event.key === "Enter") {
+                    event.preventDefault();
+                    toggleAllowedLabel(label.id);
+                  }
+                }}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onChange={() => toggleAllowedLabel(label.id)}
+                  onClick={(event) => event.stopPropagation()}
+                />
+                <span
+                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: label.color }}
+                  aria-hidden="true"
+                />
+                <span className="text-sm truncate">{label.name}</span>
+              </div>
+              );
+            })}
+          </div>
+        )}
+        {allowedLabelIds.length > 0 && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {allowedLabelIds.length} label{allowedLabelIds.length === 1 ? "" : "s"} selected.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAllowedLabelIds([])}
+              className="h-8 px-2 gap-1"
+            >
+              <X className="h-3 w-3" />
+              Clear
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (authLoading) {
@@ -605,9 +817,8 @@ export default function PublicViewsPage() {
             {hasLinearToken ? (
               <Button
                 onClick={() => {
+                  resetForm();
                   setShowCreateView(true);
-                  setShowEditView(false);
-                  setEditingView(null);
                 }}
                 disabled={!activeOrgId || (projects.length === 0 && teams.length === 0)}
                 size="lg"
@@ -715,9 +926,7 @@ export default function PublicViewsPage() {
                     <Label>Source type *</Label>
                     <Select
                       value={sourceType}
-                      onValueChange={(value) =>
-                        setSourceType(value as "project" | "team")
-                      }
+                      onValueChange={handleSourceTypeChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose data source type" />
@@ -734,7 +943,7 @@ export default function PublicViewsPage() {
                       <Label htmlFor="project">Linear project *</Label>
                       <Select
                         value={selectedProject}
-                        onValueChange={setSelectedProject}
+                        onValueChange={handleProjectChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose which project to share" />
@@ -753,7 +962,7 @@ export default function PublicViewsPage() {
                       <Label htmlFor="team">Linear team *</Label>
                       <Select
                         value={selectedTeam}
-                        onValueChange={setSelectedTeam}
+                        onValueChange={handleTeamChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose which team to share" />
@@ -768,6 +977,7 @@ export default function PublicViewsPage() {
                       </Select>
                     </div>
                   )}
+                  {renderIncludedLabelsSection()}
                 </div>
               </div>
 
@@ -1021,9 +1231,7 @@ export default function PublicViewsPage() {
                     <Label>Source type *</Label>
                     <Select
                       value={sourceType}
-                      onValueChange={(value) =>
-                        setSourceType(value as "project" | "team")
-                      }
+                      onValueChange={handleSourceTypeChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose data source type" />
@@ -1040,7 +1248,7 @@ export default function PublicViewsPage() {
                       <Label htmlFor="edit-project">Linear project *</Label>
                       <Select
                         value={selectedProject}
-                        onValueChange={setSelectedProject}
+                        onValueChange={handleProjectChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose which project to share" />
@@ -1059,7 +1267,7 @@ export default function PublicViewsPage() {
                       <Label htmlFor="edit-team">Linear team *</Label>
                       <Select
                         value={selectedTeam}
-                        onValueChange={setSelectedTeam}
+                        onValueChange={handleTeamChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose which team to share" />
@@ -1074,6 +1282,7 @@ export default function PublicViewsPage() {
                       </Select>
                     </div>
                   )}
+                  {renderIncludedLabelsSection()}
                 </div>
               </div>
 
@@ -1342,9 +1551,8 @@ export default function PublicViewsPage() {
                 </p>
                 <Button
                   onClick={() => {
+                    resetForm();
                     setShowCreateView(true);
-                    setShowEditView(false);
-                    setEditingView(null);
                   }}
                   disabled={!activeOrgId || (projects.length === 0 && teams.length === 0)}
                 >

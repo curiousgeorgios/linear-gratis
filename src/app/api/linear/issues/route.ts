@@ -41,6 +41,7 @@ export type RequestBody = {
   projectId?: string;
   teamId?: string;
   statuses?: string[];
+  labelIds?: string[];
 };
 
 type IssueNode = {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (!auth.ok) return auth.response;
     const { linearToken } = auth;
 
-    const { projectId, teamId, statuses } =
+    const { projectId, teamId, statuses, labelIds } =
       (await request.json()) as RequestBody;
 
     if (!projectId && !teamId) {
@@ -86,6 +87,9 @@ export async function POST(request: NextRequest) {
     }
     if (statuses && statuses.length > 0) {
       filter.state = { name: { in: statuses } };
+    }
+    if (labelIds && labelIds.length > 0) {
+      filter.labels = { some: { id: { in: labelIds } } };
     }
 
     const query = `
