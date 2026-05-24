@@ -135,10 +135,11 @@ export async function fetchLinearIssues(
     projectId?: string;
     teamId?: string;
     statuses?: string[];
+    labelIds?: string[];
   }
 ): Promise<{ success: true; issues: LinearIssue[] } | { success: false; error: string }> {
   try {
-    const { projectId, teamId, statuses } = options;
+    const { projectId, teamId, statuses, labelIds } = options;
 
     if (!projectId && !teamId) {
       return { success: false, error: 'Either projectId or teamId must be provided' };
@@ -153,13 +154,17 @@ export async function fetchLinearIssues(
     if (statuses && statuses.length > 0) {
       filter.state = { name: { in: statuses } };
     }
+    if (labelIds && labelIds.length > 0) {
+      filter.labels = { some: { id: { in: labelIds } } };
+    }
 
     const query = `
-      query Issues($filter: IssueFilter) {
+      query Issues($after: String, $filter: IssueFilter) {
         issues(
           filter: $filter
           orderBy: updatedAt
-          first: 50
+          first: 250
+          after: $after
         ) {
           nodes {
             id
@@ -191,71 +196,58 @@ export async function fetchLinearIssues(
             createdAt
             updatedAt
           }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
     `;
 
-    const response = await fetch('https://api.linear.app/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: apiToken.trim(),
-      },
-      body: JSON.stringify({ query, variables: { filter } }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: `Linear API error: ${response.status} ${response.statusText} - ${errorText}` };
-    }
-
-    const result = await response.json() as {
-      data?: {
-        issues: {
-          nodes: Array<{
-            id: string;
-            identifier: string;
-            title: string;
-            description?: string;
-            priority: number;
-            priorityLabel: string;
-            estimate?: number;
-            url: string;
-            state: {
-              id: string;
-              name: string;
-              color: string;
-              type: string;
-            };
-            assignee?: {
-              id: string;
-              name: string;
-              avatarUrl?: string;
-            };
-            labels: {
-              nodes: Array<{
-                id: string;
-                name: string;
-                color: string;
-              }>;
-            };
-            createdAt: string;
-            updatedAt: string;
-          }>;
-        };
+    type IssueNode = {
+      id: string;
+      identifier: string;
+      title: string;
+      description?: string;
+      priority: number;
+      priorityLabel: string;
+      estimate?: number;
+      url: string;
+      state: {
+        id: string;
+        name: string;
+        color: string;
+        type: string;
       };
-      errors?: Array<{ message: string }>;
+      assignee?: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+      };
+      labels: {
+        nodes: Array<{
+          id: string;
+          name: string;
+          color: string;
+        }>;
+      };
+      createdAt: string;
+      updatedAt: string;
     };
 
-    if (result.errors) {
-      return { success: false, error: `GraphQL errors: ${result.errors.map((e) => e.message).join(', ')}` };
+    const result = await paginateLinearConnection<IssueNode>({
+      apiToken,
+      query,
+      variables: { filter },
+      extract: (data) =>
+        (data as { issues: LinearConnection<IssueNode> }).issues,
+    });
+
+    if (!result.success) {
+      return result;
     }
 
-    if (!result.data) {
-      return { success: false, error: 'No data returned from Linear API' };
-    }
-
-    const issues: LinearIssue[] = result.data.issues.nodes.map((issue) => ({
+    const issues: LinearIssue[] = result.nodes.map((issue) => ({
       id: issue.id,
       identifier: issue.identifier,
       title: issue.title,

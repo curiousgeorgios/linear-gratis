@@ -108,6 +108,18 @@ function extractReferencedIssueIdentifiers(
   return Array.from(identifiers);
 }
 
+function issueMatchesAllowedLabels(
+  view: PublicView,
+  labels: Array<{ id: string }>,
+): boolean {
+  if (!view.allowed_label_ids || view.allowed_label_ids.length === 0) {
+    return true;
+  }
+
+  const allowedLabels = new Set(view.allowed_label_ids);
+  return labels.some((label) => allowedLabels.has(label.id));
+}
+
 async function resolveLinearTokenForView(view: PublicView): Promise<string | null> {
   if (view.linear_connection_id) {
     return getTokenForConnection(view.linear_connection_id);
@@ -173,6 +185,11 @@ async function fetchReferencedIssues(
             color
             type
           }
+          labels {
+            nodes {
+              id
+            }
+          }
         }
       }
     }
@@ -211,6 +228,9 @@ async function fetchReferencedIssues(
             color: string;
             type: string;
           };
+          labels: {
+            nodes: Array<{ id: string }>;
+          };
         }>;
       };
     };
@@ -237,6 +257,7 @@ async function fetchReferencedIssues(
     ) {
       continue;
     }
+    if (!issueMatchesAllowedLabels(view, referencedIssue.labels.nodes)) continue;
 
     references[referencedIssue.identifier.toUpperCase()] = {
       id: referencedIssue.id,
@@ -506,6 +527,12 @@ export async function GET(
       viewData.allowed_statuses.length > 0 &&
       !viewData.allowed_statuses.includes(issue.state.name)
     ) {
+      return NextResponse.json(
+        { error: 'Issue not found' },
+        { status: 404 }
+      );
+    }
+    if (!issueMatchesAllowedLabels(viewData, issue.labels.nodes)) {
       return NextResponse.json(
         { error: 'Issue not found' },
         { status: 404 }
