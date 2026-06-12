@@ -15,6 +15,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { decryptToken, encryptToken, isLegacyCiphertext } from '@/lib/encryption'
+import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
+import { isMissingSchemaError } from '@/lib/supabase-errors'
 
 export type LinearConnectionFailure = {
   ok: false
@@ -60,7 +62,23 @@ export async function getAuthenticatedOrgConnection(): Promise<LinearConnectionR
     .limit(1)
     .maybeSingle()
 
-  if (memberError || !membership) {
+  if (memberError) {
+    if (isMissingSchemaError(memberError)) {
+      return getLegacyProfileConnection(user.id, null)
+    }
+    console.error('[linear-connection] membership lookup failed:', memberError)
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'Unable to resolve organisation for this user' },
+        { status: 500 },
+      ),
+    }
+  }
+
+  if (!membership) {
+    const legacy = await getLegacyProfileConnection(user.id, null)
+    if (legacy.ok) return legacy
     return {
       ok: false,
       response: NextResponse.json(
@@ -78,7 +96,23 @@ export async function getAuthenticatedOrgConnection(): Promise<LinearConnectionR
     .limit(1)
     .maybeSingle()
 
-  if (connectionError || !connection) {
+  if (connectionError) {
+    if (isMissingSchemaError(connectionError)) {
+      return getLegacyProfileConnection(user.id, membership.organisation_id)
+    }
+    console.error('[linear-connection] connection lookup failed:', connectionError)
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'Unable to resolve Linear connection for this organisation' },
+        { status: 500 },
+      ),
+    }
+  }
+
+  if (!connection) {
+    const legacy = await getLegacyProfileConnection(user.id, membership.organisation_id)
+    if (legacy.ok) return legacy
     return {
       ok: false,
       response: NextResponse.json(
@@ -107,6 +141,50 @@ export async function getAuthenticatedOrgConnection(): Promise<LinearConnectionR
     organisationId: connection.organisation_id,
     connectionId: connection.id,
     linearToken,
+  }
+}
+
+async function getLegacyProfileConnection(
+  userId: string,
+  organisationId: string | null,
+): Promise<LinearConnectionResult> {
+  const { data: profile, error } = await supabaseAdmin
+    .from('profiles')
+    .select('linear_api_token')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !profile?.linear_api_token) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'No Linear connection configured for this user' },
+        { status: 400 },
+      ),
+    }
+  }
+
+  try {
+    const linearToken = await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
+      userId,
+      admin: supabaseAdmin,
+    })
+
+    return {
+      ok: true,
+      userId,
+      organisationId: organisationId ?? '',
+      connectionId: '',
+      linearToken,
+    }
+  } catch {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'Linear API token could not be decrypted' },
+        { status: 500 },
+      ),
+    }
   }
 }
 
@@ -155,6 +233,7 @@ export async function getTokenForConnection(
     .select('id, linear_api_token, linear_workspace_id')
     .eq('id', connectionId)
     .maybeSingle()
+  if (isMissingSchemaError(error)) return null
   if (error || !connection?.linear_api_token) return null
 
   const token = await decryptAndRotateConnectionToken(

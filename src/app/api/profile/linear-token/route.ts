@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { encryptToken } from '@/lib/encryption'
+import { isMissingSchemaError } from '@/lib/supabase-errors'
 import * as z from 'zod'
 
 const bodySchema = z.object({
@@ -18,11 +19,26 @@ async function clearLinearConnectionReferences(organisationId: string) {
       .eq('organisation_id', organisationId)
 
     if (error) {
+      if (isMissingSchemaError(error)) continue
       return { table, error }
     }
   }
 
   return null
+}
+
+async function saveLegacyProfileToken(userId: string, encrypted: string) {
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ linear_api_token: encrypted })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('[api/profile/linear-token] legacy profile save failed:', error)
+    return NextResponse.json({ error: 'Failed to save token' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }
 
 // Post-Fix-E (ADR 0001) the canonical Linear token home is
@@ -55,29 +71,50 @@ export async function PUT(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    if (memberError || !membership) {
-      return NextResponse.json(
-        { error: 'No active organisation for this user' },
-        { status: 400 },
-      )
+    if (memberError) {
+      if (isMissingSchemaError(memberError)) {
+        return saveLegacyProfileToken(user.id, encrypted)
+      }
+      console.error('[api/profile/linear-token PUT] membership lookup failed:', memberError)
+      return NextResponse.json({ error: 'Failed to save token' }, { status: 500 })
     }
 
-    // UPSERT-style: update the existing connection for this org if one exists,
-    // otherwise insert a new one. Each org has at most one connection until
-    // the multi-workspace UI ships.
-    const { data: existing } = await supabaseAdmin
+    if (!membership) {
+      // Some early accounts can predate org creation. Keep the legacy profile
+      // token path working so the user can still connect Linear.
+      return saveLegacyProfileToken(user.id, encrypted)
+    }
+
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from('organisation_linear_connections')
       .select('id')
       .eq('organisation_id', membership.organisation_id)
       .limit(1)
       .maybeSingle()
 
+    if (existingError) {
+      if (isMissingSchemaError(existingError)) {
+        return saveLegacyProfileToken(user.id, encrypted)
+      }
+      console.error('[api/profile/linear-token PUT] connection lookup failed:', existingError)
+      return NextResponse.json(
+        { error: 'Failed to save token' },
+        { status: 500 },
+      )
+    }
+
+    // UPSERT-style: update the existing connection for this org if one exists,
+    // otherwise insert a new one. Each org has at most one connection until
+    // the multi-workspace UI ships.
     if (existing) {
       const { error } = await supabaseAdmin
         .from('organisation_linear_connections')
         .update({ linear_api_token: encrypted, connected_by: user.id })
         .eq('id', existing.id)
       if (error) {
+        if (isMissingSchemaError(error)) {
+          return saveLegacyProfileToken(user.id, encrypted)
+        }
         console.error('[api/profile/linear-token PUT] connection update failed:', error)
         return NextResponse.json({ error: 'Failed to save token' }, { status: 500 })
       }
@@ -90,6 +127,9 @@ export async function PUT(request: NextRequest) {
           connected_by: user.id,
         })
       if (error) {
+        if (isMissingSchemaError(error)) {
+          return saveLegacyProfileToken(user.id, encrypted)
+        }
         console.error('[api/profile/linear-token PUT] connection insert failed:', error)
         return NextResponse.json({ error: 'Failed to save token' }, { status: 500 })
       }
@@ -146,8 +186,12 @@ export async function DELETE() {
         .delete()
         .eq('organisation_id', membership.organisation_id)
       if (error) {
-        console.error('[api/profile/linear-token DELETE] connection delete failed:', error)
-        return NextResponse.json({ error: 'Failed to clear token' }, { status: 500 })
+        if (isMissingSchemaError(error)) {
+          // Legacy schema: no org-scoped connection row exists to delete.
+        } else {
+          console.error('[api/profile/linear-token DELETE] connection delete failed:', error)
+          return NextResponse.json({ error: 'Failed to clear token' }, { status: 500 })
+        }
       }
     }
 
