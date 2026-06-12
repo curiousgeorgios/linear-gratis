@@ -180,21 +180,37 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     projectId?: string;
     teamId?: string;
     labelIds: string[];
+    attachmentFiles?: File[];
   }) => {
-    const response = await fetch(`/api/public-view/${slug}/create-issue`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: issueData.title,
-        description: issueData.description,
-        stateId: issueData.stateId,
-        priority: issueData.priority,
-        assigneeId: issueData.assigneeId,
-        labelIds: issueData.labelIds,
-      }),
-    })
+    const attachmentFiles = issueData.attachmentFiles ?? []
+    const hasAttachments = attachmentFiles.length > 0
+
+    const response = await fetch(`/api/public-view/${slug}/create-issue`, hasAttachments
+      ? {
+          method: 'POST',
+          body: (() => {
+            const payload = new globalThis.FormData()
+            payload.set('title', issueData.title)
+            payload.set('description', issueData.description)
+            payload.set('labelIds', JSON.stringify(issueData.labelIds))
+            attachmentFiles.forEach(file => payload.append('attachmentFiles', file))
+            return payload
+          })(),
+        }
+      : {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: issueData.title,
+            description: issueData.description,
+            stateId: issueData.stateId,
+            priority: issueData.priority,
+            assigneeId: issueData.assigneeId,
+            labelIds: issueData.labelIds,
+          }),
+        })
 
     const result = await response.json() as { success?: boolean; issue?: unknown; error?: string }
 
