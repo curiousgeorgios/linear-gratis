@@ -3,15 +3,30 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { authorisePublicView } from '@/lib/public-view-auth';
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security';
+import { uploadFileToLinear } from '@/lib/linear-file-upload';
+import {
+  MAX_FORM_ATTACHMENT_SIZE_BYTES,
+  validateFormAttachmentFile,
+} from '@/lib/form-attachment';
 import * as z from 'zod';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
+const MAX_ISSUE_ATTACHMENT_FILES = 3;
+const MAX_ISSUE_CREATE_BODY_BYTES =
+  MAX_ISSUE_ATTACHMENT_FILES * MAX_FORM_ATTACHMENT_SIZE_BYTES + 512 * 1024;
 
 const issueCreateSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().max(10000).optional(),
   labelIds: z.array(z.string().min(1).max(100)).max(20).optional().default([]),
 });
+
+type IssueCreateValues = z.infer<typeof issueCreateSchema>;
+
+type ParsedIssueCreatePayload = {
+  values: IssueCreateValues;
+  attachmentFiles: File[];
+};
 
 interface WorkflowState {
   id: string;
@@ -46,6 +61,75 @@ type LinearMetadataResponse = {
     } | null;
   };
 };
+
+function getFormString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === 'string' ? value : '';
+}
+
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+  return typeof File !== 'undefined' && value instanceof File && value.name.trim().length > 0;
+}
+
+function parseLabelIds(formData: FormData): string[] {
+  const jsonValue = getFormString(formData, 'labelIds');
+  if (jsonValue) {
+    try {
+      const parsed = JSON.parse(jsonValue) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((labelId): labelId is string => typeof labelId === 'string');
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  return formData
+    .getAll('labelId')
+    .filter((labelId): labelId is string => typeof labelId === 'string');
+}
+
+async function parseIssueCreatePayload(request: NextRequest): Promise<ParsedIssueCreatePayload> {
+  const contentType = request.headers.get('content-type') || '';
+
+  if (contentType.includes('multipart/form-data')) {
+    const formData = await request.formData();
+    const attachmentFiles = formData
+      .getAll('attachmentFiles')
+      .filter(isUploadedFile);
+
+    return {
+      values: {
+        title: getFormString(formData, 'title'),
+        description: getFormString(formData, 'description'),
+        labelIds: parseLabelIds(formData),
+      },
+      attachmentFiles,
+    };
+  }
+
+  return {
+    values: (await request.json()) as IssueCreateValues,
+    attachmentFiles: [],
+  };
+}
+
+function escapeMarkdownAltText(value: string): string {
+  return value.replace(/[[\]\\]/g, '\\$&');
+}
+
+function appendAttachmentMarkdown(
+  description: string | undefined,
+  attachments: Array<{ fileName: string; assetUrl: string }>,
+): string | undefined {
+  if (attachments.length === 0) return description;
+
+  const attachmentMarkdown = attachments
+    .map(({ fileName, assetUrl }) => `![${escapeMarkdownAltText(fileName)}](${assetUrl})`)
+    .join('\n\n');
+
+  return [description?.trim(), attachmentMarkdown].filter(Boolean).join('\n\n');
+}
 
 // Fetch metadata directly from Linear API for the source used by the view.
 async function fetchSourceMetadata(
@@ -252,6 +336,14 @@ export async function POST(
 ) {
   try {
     const { slug } = await params;
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_ISSUE_CREATE_BODY_BYTES) {
+      return NextResponse.json(
+        { error: 'Attachment is too large' },
+        { status: 413 }
+      );
+    }
+
     const clientIp = getClientIp(request);
     const rateLimit = await checkRateLimit(`public-view:create-issue:${slug}:${clientIp}`, {
       limit: 10,
@@ -259,7 +351,15 @@ export async function POST(
     });
     if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds);
 
-    const parsed = issueCreateSchema.safeParse(await request.json());
+    const payload = await parseIssueCreatePayload(request);
+    if (payload.attachmentFiles.length > MAX_ISSUE_ATTACHMENT_FILES) {
+      return NextResponse.json(
+        { error: `You can attach up to ${MAX_ISSUE_ATTACHMENT_FILES} files` },
+        { status: 400 }
+      );
+    }
+
+    const parsed = issueCreateSchema.safeParse(payload.values);
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid issue payload', issues: parsed.error.issues },
@@ -267,6 +367,15 @@ export async function POST(
       );
     }
     const issueData = parsed.data;
+    for (const attachmentFile of payload.attachmentFiles) {
+      const validation = validateFormAttachmentFile(attachmentFile);
+      if (!validation.ok) {
+        return NextResponse.json(
+          { error: validation.error },
+          { status: 400 }
+        );
+      }
+    }
 
     // Auth first: is_active + expiry + password cookie.
     const auth = await authorisePublicView(slug, request);
@@ -379,11 +488,26 @@ export async function POST(
       }
     }
 
+    const uploadedAttachments: Array<{ fileName: string; assetUrl: string }> = [];
+    for (const attachmentFile of payload.attachmentFiles) {
+      const uploadResult = await uploadFileToLinear(decryptedToken, attachmentFile);
+      if (!uploadResult.success) {
+        return NextResponse.json(
+          { error: uploadResult.error || 'Failed to upload attachment' },
+          { status: 502 }
+        );
+      }
+      uploadedAttachments.push({
+        fileName: attachmentFile.name,
+        assetUrl: uploadResult.assetUrl,
+      });
+    }
+
     // Create the issue with enforced restrictions
     // Note: priority and assigneeId are intentionally not passed for public views
     const result = await createLinearIssue(decryptedToken, {
       title: issueData.title,
-      description: issueData.description,
+      description: appendAttachmentMarkdown(issueData.description, uploadedAttachments),
       stateId: finalStateId, // Enforced triage/unstarted state
       priority: 0, // Default to no priority for public views
       projectId: viewProjectId,

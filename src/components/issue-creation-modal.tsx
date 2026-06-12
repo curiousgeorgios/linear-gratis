@@ -3,7 +3,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { X, Maximize2, ChevronDown } from 'lucide-react'
+import { X, Maximize2, ChevronDown, Paperclip } from 'lucide-react'
+import {
+  ALLOWED_FORM_ATTACHMENT_TYPES,
+  formatFileSize,
+  validateFormAttachmentFile,
+} from '@/lib/form-attachment'
+
+const MAX_ISSUE_ATTACHMENT_FILES = 3
 
 interface IssueCreationModalProps {
   isOpen: boolean
@@ -27,6 +34,7 @@ interface IssueFormData {
   projectId?: string
   teamId?: string
   labelIds: string[]
+  attachmentFiles?: File[]
 }
 
 interface WorkflowState {
@@ -159,6 +167,9 @@ export function IssueCreationModal({
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
   const [showLabelsDropdown, setShowLabelsDropdown] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([])
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [attachmentInputKey, setAttachmentInputKey] = useState(0)
 
   const titleRef = useRef<HTMLDivElement>(null)
   const descriptionRef = useRef<HTMLDivElement>(null)
@@ -249,6 +260,25 @@ export function IssueCreationModal({
     }
   }, [isOpen, viewSlug, loadMetadata])
 
+  const resetDraft = () => {
+    setFormData({
+      title: '',
+      description: '',
+      priority: 0,
+      labelIds: [],
+      teamId,
+      projectId,
+    })
+    setSelectedAssignee(null)
+    setSelectedLabels([])
+    setAttachmentFiles([])
+    setAttachmentError(null)
+    setAttachmentInputKey(key => key + 1)
+
+    if (titleRef.current) titleRef.current.textContent = ''
+    if (descriptionRef.current) descriptionRef.current.textContent = ''
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -272,8 +302,10 @@ export function IssueCreationModal({
         stateId: selectedState?.id,
         assigneeId: selectedAssignee?.id,
         labelIds: selectedLabels.map(label => label.id),
+        attachmentFiles,
       }
       await onSubmit(submitData)
+      resetDraft()
       onClose()
     } catch (error) {
       console.error('Failed to create issue:', error)
@@ -291,6 +323,73 @@ export function IssueCreationModal({
   const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const text = e.currentTarget.textContent || ''
     setFormData(prev => ({ ...prev, description: text }))
+  }
+
+  const normaliseAttachmentFile = (file: File) => {
+    if (file.name.trim()) return file
+
+    const rawExtension = file.type.split('/')[1] || 'png'
+    const extension = rawExtension === 'jpeg' ? 'jpg' : rawExtension
+    return new File([file], `screenshot-${Date.now()}.${extension}`, {
+      type: file.type || 'image/png',
+      lastModified: file.lastModified,
+    })
+  }
+
+  const addAttachmentFiles = (files: File[]) => {
+    setAttachmentError(null)
+    if (files.length === 0) return false
+
+    const acceptedFiles: File[] = []
+    for (const file of files) {
+      if (attachmentFiles.length + acceptedFiles.length >= MAX_ISSUE_ATTACHMENT_FILES) {
+        setAttachmentError(`You can attach up to ${MAX_ISSUE_ATTACHMENT_FILES} files`)
+        break
+      }
+
+      const normalisedFile = normaliseAttachmentFile(file)
+      const validation = validateFormAttachmentFile(normalisedFile)
+      if (!validation.ok) {
+        setAttachmentError(validation.error)
+        continue
+      }
+
+      acceptedFiles.push(normalisedFile)
+    }
+
+    if (acceptedFiles.length > 0) {
+      setAttachmentFiles(prev => [...prev, ...acceptedFiles])
+      setAttachmentInputKey(key => key + 1)
+      return true
+    }
+
+    return false
+  }
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addAttachmentFiles(Array.from(e.target.files ?? []))
+  }
+
+  const handleDescriptionPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const files = Array.from(e.clipboardData.files).filter(file => file.type.startsWith('image/'))
+    if (files.length === 0) return
+
+    e.preventDefault()
+    addAttachmentFiles(files)
+  }
+
+  const handleDescriptionDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length === 0) return
+
+    e.preventDefault()
+    addAttachmentFiles(files)
+  }
+
+  const removeAttachmentFile = (index: number) => {
+    setAttachmentFiles(prev => prev.filter((_, fileIndex) => fileIndex !== index))
+    setAttachmentError(null)
+    setAttachmentInputKey(key => key + 1)
   }
 
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -392,23 +491,59 @@ export function IssueCreationModal({
                 />
               </div>
 
-              <div className="min-h-[120px]">
-                <div
-                  ref={descriptionRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={handleDescriptionInput}
-                  className="w-full p-3 bg-transparent border-none outline-none resize-none text-foreground placeholder-muted-foreground"
-                  style={{
-                    minHeight: '80px',
-                    lineHeight: '1.6',
-                    fontFamily: 'var(--font-regular)',
-                  }}
-                  data-placeholder="Add description…"
-                  onFocus={() => setError(null)}
-                />
+                <div className="min-h-[120px]">
+                  <div
+                    ref={descriptionRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={handleDescriptionInput}
+                    onPaste={handleDescriptionPaste}
+                    onDrop={handleDescriptionDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="w-full p-3 bg-transparent border-none outline-none resize-none text-foreground placeholder-muted-foreground"
+                    style={{
+                      minHeight: '80px',
+                      lineHeight: '1.6',
+                      fontFamily: 'var(--font-regular)',
+                    }}
+                    data-placeholder="Add description…"
+                    onFocus={() => setError(null)}
+                  />
+                  {(attachmentFiles.length > 0 || attachmentError) && (
+                    <div className="mt-3 space-y-2">
+                      {attachmentFiles.map((file, index) => (
+                        <div
+                          key={`${file.name}-${file.lastModified}-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                          style={{
+                            border: '0.5px solid lch(24.833 4.707 272)',
+                            backgroundColor: 'lch(8.3 1.867 272)',
+                          }}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Paperclip className="h-4 w-4 shrink-0" style={{ color: 'lch(64.892% 1.933 272 / 1)' }} />
+                            <span className="truncate">{file.name}</span>
+                            <span className="shrink-0" style={{ color: 'lch(64.892% 1.933 272 / 1)' }}>
+                              {formatFileSize(file.size)}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachmentFile(index)}
+                            className="rounded p-1 hover:bg-accent transition-colors"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {attachmentError && (
+                        <p className="text-sm text-red-500">{attachmentError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
             {/* Issue properties */}
             <div className="flex items-center gap-2 px-4 py-3 border-t flex-wrap" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
@@ -699,7 +834,28 @@ export function IssueCreationModal({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end px-4 py-3 border-t" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
+              <label
+                className={`inline-flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors hover:bg-accent ${
+                  isSubmitting ? 'pointer-events-none opacity-50' : ''
+                }`}
+                style={{
+                  border: '0.5px solid lch(24.833 4.707 272)',
+                  backgroundColor: 'lch(8.3 1.867 272)',
+                }}
+              >
+                <Paperclip className="h-4 w-4" />
+                <span>Attach</span>
+                <input
+                  key={attachmentInputKey}
+                  type="file"
+                  multiple
+                  accept={Object.keys(ALLOWED_FORM_ATTACHMENT_TYPES).join(',')}
+                  className="sr-only"
+                  onChange={handleAttachmentChange}
+                  disabled={isSubmitting}
+                />
+              </label>
               <Button
                 type="submit"
                 disabled={!formData.title.trim() || isSubmitting}
