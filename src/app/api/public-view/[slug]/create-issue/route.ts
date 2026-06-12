@@ -26,33 +26,111 @@ interface LinearLabel {
   color: string;
 }
 
-// Fetch team metadata directly from Linear API
-async function fetchTeamMetadata(apiToken: string, teamId: string) {
-  const query = `
-    query TeamMetadata($teamId: String!) {
-      team(id: $teamId) {
-        id
-        name
-        triageEnabled
-        triageIssueState {
+interface LinearTeamMetadata {
+  id: string;
+  name: string;
+  triageEnabled?: boolean;
+  triageIssueState?: WorkflowState | null;
+  states?: { nodes: WorkflowState[] };
+  labels?: { nodes: LinearLabel[] };
+}
+
+type LinearMetadataResponse = {
+  errors?: unknown[];
+  data?: {
+    team?: LinearTeamMetadata | null;
+    project?: {
+      teams?: {
+        nodes: LinearTeamMetadata[];
+      };
+    } | null;
+  };
+};
+
+// Fetch metadata directly from Linear API for the source used by the view.
+async function fetchSourceMetadata(
+  apiToken: string,
+  options: { teamId?: string | null; projectId?: string | null },
+): Promise<LinearMetadataResponse> {
+  if (options.teamId) {
+    const query = `
+      query TeamMetadata($teamId: String!) {
+        team(id: $teamId) {
           id
           name
-          type
-          color
-        }
-        states {
-          nodes {
+          triageEnabled
+          triageIssueState {
             id
             name
             type
             color
           }
+          states {
+            nodes {
+              id
+              name
+              type
+              color
+            }
+          }
+          labels(first: 100) {
+            nodes {
+              id
+              name
+              color
+            }
+          }
         }
-        labels(first: 100) {
+      }
+    `;
+
+    const response = await fetch(LINEAR_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': apiToken,
+      },
+      body: JSON.stringify({ query, variables: { teamId: options.teamId } }),
+    });
+
+    return response.json() as Promise<LinearMetadataResponse>;
+  }
+
+  if (!options.projectId) {
+    throw new Error('Either teamId or projectId is required');
+  }
+
+  const query = `
+    query ProjectIssueCreationMetadata($projectId: String!) {
+      project(id: $projectId) {
+        id
+        name
+        teams(first: 10) {
           nodes {
             id
             name
-            color
+            triageEnabled
+            triageIssueState {
+              id
+              name
+              type
+              color
+            }
+            states {
+              nodes {
+                id
+                name
+                type
+                color
+              }
+            }
+            labels(first: 100) {
+              nodes {
+                id
+                name
+                color
+              }
+            }
           }
         }
       }
@@ -65,21 +143,23 @@ async function fetchTeamMetadata(apiToken: string, teamId: string) {
       'Content-Type': 'application/json',
       'Authorization': apiToken,
     },
-    body: JSON.stringify({ query, variables: { teamId } }),
+    body: JSON.stringify({ query, variables: { projectId: options.projectId } }),
   });
 
-  const data = await response.json() as {
-    data?: {
-      team?: {
-        triageEnabled?: boolean;
-        triageIssueState?: WorkflowState;
-        states?: { nodes: WorkflowState[] };
-        labels?: { nodes: LinearLabel[] };
-      };
-    };
-  };
+  return response.json() as Promise<LinearMetadataResponse>;
+}
 
-  return data.data?.team;
+function pickTeamForIssueCreation(
+  teams: LinearTeamMetadata[],
+  requiredLabelIds: string[],
+): LinearTeamMetadata | undefined {
+  if (teams.length === 0) return undefined;
+  if (requiredLabelIds.length === 0) return teams[0];
+
+  return teams.find((team) => {
+    const teamLabelIds = new Set(team.labels?.nodes.map((label) => label.id) ?? []);
+    return requiredLabelIds.every((labelId) => teamLabelIds.has(labelId));
+  });
 }
 
 // Create issue directly via Linear API
@@ -201,9 +281,11 @@ export async function POST(
       );
     }
 
-    if (!viewData.team_id) {
+    const viewTeamId = viewData.linear_team_id || viewData.team_id;
+    const viewProjectId = viewData.linear_project_id || viewData.project_id;
+    if (!viewTeamId && !viewProjectId) {
       return NextResponse.json(
-        { error: 'View has no team configured' },
+        { error: 'View has no project or team configured' },
         { status: 400 }
       );
     }
@@ -228,14 +310,46 @@ export async function POST(
       { userId: viewData.user_id, admin: supabaseAdmin },
     );
 
-    // Fetch team metadata directly from Linear API
-    const teamMetadata = await fetchTeamMetadata(decryptedToken, viewData.team_id);
+    const finalLabelIds = Array.from(
+      new Set([...(viewData.allowed_label_ids ?? []), ...issueData.labelIds]),
+    );
+
+    // Linear requires a teamId for issue creation. Project-backed views derive
+    // it from the project's teams instead of requiring a stored team_id.
+    const metadata = await fetchSourceMetadata(decryptedToken, {
+      teamId: viewTeamId,
+      projectId: viewProjectId,
+    });
+
+    if (metadata.errors) {
+      console.error('Linear API errors:', metadata.errors);
+      return NextResponse.json(
+        { error: 'Failed to fetch view metadata', details: metadata.errors },
+        { status: 400 }
+      );
+    }
+
+    const projectTeams = metadata.data?.project?.teams?.nodes ?? [];
+    const teamMetadata = viewTeamId
+      ? metadata.data?.team ?? undefined
+      : pickTeamForIssueCreation(projectTeams, finalLabelIds);
+
+    if (!teamMetadata?.id) {
+      if (!viewTeamId && projectTeams.length > 0 && finalLabelIds.length > 0) {
+        return NextResponse.json(
+          { error: 'One or more labels are not available for this view' },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: 'No Linear team is available for this view source' },
+        { status: 400 }
+      );
+    }
 
     const allowedLabelIds = new Set(
       teamMetadata?.labels?.nodes.map((label) => label.id) ?? [],
-    );
-    const finalLabelIds = Array.from(
-      new Set([...(viewData.allowed_label_ids ?? []), ...issueData.labelIds]),
     );
     const invalidLabelIds = finalLabelIds.filter((labelId) => !allowedLabelIds.has(labelId));
     if (invalidLabelIds.length > 0) {
@@ -272,8 +386,8 @@ export async function POST(
       description: issueData.description,
       stateId: finalStateId, // Enforced triage/unstarted state
       priority: 0, // Default to no priority for public views
-      projectId: viewData.project_id,
-      teamId: viewData.team_id,
+      projectId: viewProjectId,
+      teamId: teamMetadata.id,
       labelIds: finalLabelIds,
     });
 
