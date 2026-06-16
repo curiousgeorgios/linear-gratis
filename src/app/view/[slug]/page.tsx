@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
-import { KanbanBoard } from '@/components/kanban-board'
-import { FilterDropdown, FilterState, generateFilterOptions, FilterOptions } from '@/components/filter-dropdown'
+import { IssuesView } from '@/components/issues-view'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
 import { IssueDetailModal } from '@/components/issue-detail-modal'
 import { ProjectUpdatesModal } from '@/components/project-updates-modal'
@@ -18,18 +17,6 @@ interface PublicViewPageProps {
   }>
 }
 
-function getVisibleFilterOptions(issues: LinearIssue[], view: PublicView): FilterOptions {
-  const options = generateFilterOptions(issues)
-
-  return {
-    ...options,
-    assignees: view.show_assignees !== false ? options.assignees : [],
-    priorities: view.show_priorities !== false ? options.priorities : [],
-    labels: view.show_labels !== false ? options.labels : [],
-    creators: view.show_assignees !== false ? options.creators : [],
-  }
-}
-
 export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [view, setView] = useState<PublicView | null>(null)
   const [issues, setIssues] = useState<LinearIssue[]>([])
@@ -41,28 +28,11 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [password, setPassword] = useState('')
   const [authenticating, setAuthenticating] = useState(false)
   const [slug, setSlug] = useState<string>('')
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    statuses: [],
-    assignees: [],
-    priorities: [],
-    labels: [],
-    creators: [],
-  })
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    statuses: [],
-    assignees: [],
-    priorities: [],
-    labels: [],
-    creators: [],
-  })
   const [showIssueModal, setShowIssueModal] = useState(false)
   const [showIssueDetail, setShowIssueDetail] = useState(false)
   const [showProjectUpdates, setShowProjectUpdates] = useState(false)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [defaultStateName, setDefaultStateName] = useState<string | undefined>(undefined)
-  const filterButtonRef = useRef<HTMLButtonElement>(null)
 
   // Load branding settings for this view's owner
   const { branding } = useBrandingSettings(
@@ -112,7 +82,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       setView(viewData)
       const issuesData = data.issues as LinearIssue[] || []
       setIssues(issuesData)
-      setFilterOptions(getVisibleFilterOptions(issuesData, viewData))
       setLastUpdated(new Date())
       setRequiresPassword(false)
 
@@ -144,9 +113,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       if (response.ok) {
         const issuesData = data.issues || []
         setIssues(issuesData)
-        if (view) {
-          setFilterOptions(getVisibleFilterOptions(issuesData, view))
-        }
         setLastUpdated(new Date())
       }
     } catch (err) {
@@ -234,15 +200,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       applyBrandingToPage(branding, view?.view_title)
     }
   }, [branding, view?.view_title])
-
-  const hasActiveFilters = () => {
-    return filters.search ||
-      filters.statuses.length > 0 ||
-      filters.assignees.length > 0 ||
-      filters.priorities.length > 0 ||
-      filters.labels.length > 0 ||
-      filters.creators.length > 0
-  }
 
   if (loading) {
     return (
@@ -405,91 +362,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           </div>
         </div>
 
-        {/* Filters bar - Linear style */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-t border-border/30">
-          <div className="flex items-center gap-2 sm:gap-4 relative">
-            <button
-              ref={filterButtonRef}
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm rounded-md transition-colors ${
-                showFilterDropdown || hasActiveFilters()
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-            >
-              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                <path fillRule="evenodd" clipRule="evenodd" d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"/>
-              </svg>
-              <span className="hidden sm:inline">Filter</span>
-              {hasActiveFilters() && (
-                <span className="w-2 h-2 bg-primary rounded-full"></span>
-              )}
-            </button>
-
-            <FilterDropdown
-              isOpen={showFilterDropdown}
-              onClose={() => setShowFilterDropdown(false)}
-              filters={filters}
-              onFiltersChange={setFilters}
-              filterOptions={filterOptions}
-              triggerRef={filterButtonRef}
-            />
-
-            {/* Active filter indicators */}
-            {hasActiveFilters() && (
-              <div className="flex items-center gap-2 text-xs">
-                {filters.search && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    Search: &quot;{filters.search}&quot;
-                  </span>
-                )}
-                {filters.statuses.length > 0 && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.statuses.length} status{filters.statuses.length !== 1 ? 'es' : ''}
-                  </span>
-                )}
-                {filters.assignees.length > 0 && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.assignees.length} assignee{filters.assignees.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-                {filters.priorities.length > 0 && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.priorities.length} priorit{filters.priorities.length !== 1 ? 'ies' : 'y'}
-                  </span>
-                )}
-                {filters.labels.length > 0 && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.labels.length} label{filters.labels.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                <path fillRule="evenodd" clipRule="evenodd" d="M7 2.5C8.11933 2.5 9.06613 3.23584 9.38477 4.25H14.75C15.1642 4.25 15.5 4.58579 15.5 5C15.5 5.41421 15.1642 5.75 14.75 5.75H9.38477C9.06613 6.76416 8.11933 7.5 7 7.5C5.88067 7.5 4.93387 6.76416 4.61523 5.75H2.25C1.83579 5.75 1.5 5.41421 1.5 5C1.5 4.58579 1.83579 4.25 2.25 4.25H4.61523C4.93387 3.23584 5.88067 2.5 7 2.5ZM7 4C6.44772 4 6 4.44772 6 5C6 5.55228 6.44772 6 7 6C7.55228 6 8 5.55228 8 5C8 4.44772 7.55228 4 7 4Z"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M10 13.5C8.88067 13.5 7.93387 12.7642 7.61523 11.75H2.25C1.83579 11.75 1.5 11.4142 1.5 11C1.5 10.5858 1.83579 10.25 2.25 10.25H7.61523C7.93387 9.23584 8.88067 8.5 10 8.5C11.1193 8.5 12.0661 9.23584 12.3848 10.25H14.75C15.1642 10.25 15.5 10.5858 15.5 11C15.5 11.4142 15.1642 11.75 14.75 11.75H12.3848C12.0661 12.7642 11.1193 13.5 10 13.5ZM10 12C10.5523 12 11 11.5523 11 11C11 10.4477 10.5523 10 10 10C9.44772 10 9 10.4477 9 11C9 11.5523 9.44772 12 10 12Z"/>
-              </svg>
-              <span className="hidden sm:inline">Display</span>
-            </button>
-
-            {view.allow_issue_creation && (
-              <button
-                onClick={() => handleCreateIssue()}
-                className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                aria-label="Create issue"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8.75 4C8.75 3.58579 8.41421 3.25 8 3.25C7.58579 3.25 7.25 3.58579 7.25 4V7.25H4C3.58579 7.25 3.25 7.58579 3.25 8C3.25 8.41421 3.58579 8.75 4 8.75H7.25V12C7.25 12.4142 7.58579 12.75 8 12.75C8.41421 12.75 8.75 12.4142 8.75 12V8.75H12C12.4142 8.75 12.75 8.41421 12.75 8C12.75 7.58579 12.4142 7.25 12 7.25H8.75V4Z" />
-                </svg>
-                <span className="hidden sm:inline">New issue</span>
-              </button>
-            )}
-          </div>
-        </div>
       </header>
 
       {/* Content - flex-1 pushes footer to bottom */}
@@ -508,16 +380,11 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           </div>
         ) : (
           <div className="linear-fade-in">
-            {/* Linear-style Kanban Board */}
-            <KanbanBoard
+            <IssuesView
               issues={issues}
-              showAssignees={view.show_assignees}
-              showLabels={view.show_labels}
-              showPriorities={view.show_priorities}
-              showDescriptions={view.show_descriptions}
-              className="w-full"
-              filters={filters}
+              view={view}
               onIssueClick={handleIssueClick}
+              onCreateIssue={handleCreateIssue}
             />
           </div>
         )}
