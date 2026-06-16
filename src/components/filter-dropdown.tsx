@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { LinearIssue } from '@/app/api/linear/issues/route'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PriorityIcon } from '@/components/priority-icon'
+import { StateIcon } from '@/components/state-icon'
 
 export type FilterState = {
   search: string
@@ -30,35 +31,6 @@ interface FilterDropdownProps {
   onFiltersChange: (filters: FilterState) => void
   filterOptions: FilterOptions
   triggerRef: React.RefObject<HTMLButtonElement | null>
-}
-
-const getStateIcon = (stateType: string, color: string) => {
-  const strokeColor = color || '#9ca3af'
-
-  if (stateType === 'completed') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill={strokeColor} stroke={strokeColor} strokeWidth="1.5"></circle>
-        <path d="M4.5 7l2 2 3-3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-      </svg>
-    )
-  }
-
-  if (stateType === 'started') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-        <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="6.094689747964199" transform="rotate(-90 7 7)"></circle>
-      </svg>
-    )
-  }
-
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-      <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="12.189379495928398" transform="rotate(-90 7 7)"></circle>
-    </svg>
-  )
 }
 
 export function FilterDropdown({
@@ -431,7 +403,7 @@ export function FilterDropdown({
                     {/* Content container */}
                     <div className="flex items-center justify-between flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        {getStateIcon(status.type, status.color)}
+                        <StateIcon type={status.type} color={status.color} />
                         <span className="text-sm font-medium text-foreground truncate">{status.name}</span>
                       </div>
 
@@ -591,12 +563,14 @@ export function generateFilterOptions(issues: LinearIssue[]): FilterOptions {
     ).values()
   )
 
+  // Linear's real priority schema: 0 None, 1 Urgent, 2 High, 3 Medium, 4 Low.
+  // (Matches priority-icon.tsx; ordered Urgent → No priority.)
   const priorities = [
+    { value: 1, label: 'Urgent' },
+    { value: 2, label: 'High' },
+    { value: 3, label: 'Medium' },
+    { value: 4, label: 'Low' },
     { value: 0, label: 'No priority' },
-    { value: 1, label: 'Low' },
-    { value: 2, label: 'Medium' },
-    { value: 3, label: 'High' },
-    { value: 4, label: 'Urgent' },
   ].filter(priority =>
     issues.some(issue => issue.priority === priority.value)
   )

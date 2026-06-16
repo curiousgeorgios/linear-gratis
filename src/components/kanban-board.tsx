@@ -4,6 +4,8 @@ import { LinearIssue } from '@/app/api/linear/issues/route'
 import { FilterState } from '@/components/filter-dropdown'
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
 import { UserAvatar } from '@/components/user-avatar'
+import { StateIcon } from '@/components/state-icon'
+import { applyFilters, STATE_TYPE_ORDER } from '@/lib/issue-filters'
 
 // Shared Tailwind classes for the small metadata badges on a kanban card
 // (priority, estimate, label). Using theme tokens so the badges adapt to
@@ -22,35 +24,6 @@ interface KanbanBoardProps {
   onIssueClick?: (issueId: string) => void
 }
 
-const getStateIcon = (stateType: string, color: string) => {
-  const strokeColor = color || '#9ca3af'
-
-  if (stateType === 'completed') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill={strokeColor} stroke={strokeColor} strokeWidth="1.5"></circle>
-        <path d="M4.5 7l2 2 3-3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-      </svg>
-    )
-  }
-
-  if (stateType === 'started') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-        <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="6.094689747964199" transform="rotate(-90 7 7)"></circle>
-      </svg>
-    )
-  }
-
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-      <circle className="progress" cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="12.189379495928398" transform="rotate(-90 7 7)"></circle>
-    </svg>
-  )
-}
-
 export function KanbanBoard({
   issues,
   showAssignees = true,
@@ -61,51 +34,15 @@ export function KanbanBoard({
   filters,
   onIssueClick
 }: KanbanBoardProps) {
-  // Filter issues based on provided filters
-  const filteredIssues = filters ? issues.filter(issue => {
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      if (!issue.title.toLowerCase().includes(searchLower) &&
-          !issue.identifier.toLowerCase().includes(searchLower) &&
-          !(showDescriptions && issue.description?.toLowerCase().includes(searchLower))) {
-        return false
-      }
-    }
-
-    // Status filter
-    if (filters.statuses.length > 0 && !filters.statuses.includes(issue.state.name)) {
-      return false
-    }
-
-    // Assignee filter
-    if (showAssignees && filters.assignees.length > 0) {
-      if (!issue.assignee || !filters.assignees.includes(issue.assignee.id)) {
-        return false
-      }
-    }
-
-    // Priority filter
-    if (showPriorities && filters.priorities.length > 0 && !filters.priorities.includes(issue.priority)) {
-      return false
-    }
-
-    // Labels filter
-    if (showLabels && filters.labels.length > 0) {
-      const hasMatchingLabel = issue.labels.some(label => filters.labels.includes(label.id))
-      if (!hasMatchingLabel) {
-        return false
-      }
-    }
-
-    // Creator filter (placeholder - would need additional API data)
-    if (filters.creators.length > 0) {
-      // For now, we'll skip this filter since we don't have creator data
-      // In a real implementation, you'd filter by issue.creator.id
-    }
-
-    return true
-  }) : issues
+  // Filter issues based on provided filters (shared with the list view).
+  const filteredIssues = filters
+    ? applyFilters(issues, filters, {
+        showAssignees,
+        showPriorities,
+        showLabels,
+        showDescriptions,
+      })
+    : issues
 
   // Group filtered issues by their state
   const groupedIssues = filteredIssues.reduce((acc, issue) => {
@@ -122,19 +59,11 @@ export function KanbanBoard({
   }, {} as Record<string, { issues: LinearIssue[], color: string, type: string }>)
 
   // Sort columns by workflow order: backlog -> to do -> in progress -> done
-  const stateTypeOrder: Record<string, number> = {
-    'backlog': 0,
-    'unstarted': 1,
-    'started': 2,
-    'completed': 3,
-    'canceled': 4
-  }
-
   const columns = Object.keys(groupedIssues).sort((a, b) => {
     const typeA = groupedIssues[a].type
     const typeB = groupedIssues[b].type
-    const orderA = stateTypeOrder[typeA] ?? 999
-    const orderB = stateTypeOrder[typeB] ?? 999
+    const orderA = STATE_TYPE_ORDER[typeA] ?? 999
+    const orderB = STATE_TYPE_ORDER[typeB] ?? 999
     return orderA - orderB
   })
 
@@ -175,7 +104,7 @@ export function KanbanBoard({
                 <div className="w-full" style={{ width: '348px' }}>
                   <div className="flex items-center justify-between p-3 mb-2">
                     <div className="flex items-center gap-2">
-                      {getStateIcon(column.type, columnColor)}
+                      <StateIcon type={column.type} color={columnColor} />
                       <span className="text-sm font-medium text-foreground tracking-tight">
                         {columnName}
                       </span>
@@ -208,7 +137,7 @@ export function KanbanBoard({
                                     {issue.identifier}
                                   </span>
                                   <div className="flex items-center gap-1">
-                                    {getStateIcon(issue.state.type, issue.state.color)}
+                                    <StateIcon type={issue.state.type} color={issue.state.color} />
                                   </div>
                                 </div>
 
