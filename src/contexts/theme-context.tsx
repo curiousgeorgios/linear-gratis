@@ -22,6 +22,10 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+function isTheme(value: string | null): value is Theme {
+  return value === 'dark' || value === 'light' || value === 'system'
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
@@ -35,8 +39,14 @@ export function ThemeProvider({
   useEffect(() => {
     setMounted(true)
     if (typeof window !== 'undefined') {
+      const requestedTheme = new URLSearchParams(window.location.search).get('theme')
+      if (requestedTheme === 'dark' || requestedTheme === 'light') {
+        setTheme(requestedTheme)
+        return
+      }
+
       const storedTheme = localStorage.getItem(storageKey) as Theme
-      if (storedTheme) {
+      if (isTheme(storedTheme)) {
         setTheme(storedTheme)
       }
     }

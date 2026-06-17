@@ -90,7 +90,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (localStorage.getItem('linear-integration-theme') === 'dark' || (!('linear-integration-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                const requestedTheme = new URLSearchParams(window.location.search).get('theme');
+                const theme = requestedTheme === 'dark' || requestedTheme === 'light'
+                  ? requestedTheme
+                  : localStorage.getItem('linear-integration-theme');
+
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark')
                 } else {
                   document.documentElement.classList.remove('dark')
