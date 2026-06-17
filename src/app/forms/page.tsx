@@ -25,7 +25,7 @@ import { supabase, CustomerRequestForm } from "@/lib/supabase";
 import { getActiveOrganisationId } from "@/lib/organisations";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Eye, Copy, Link2 } from "lucide-react";
+import { Trash2, Eye, Copy, Link2, Pencil, Save, X } from "lucide-react";
 
 type Project = {
   id: string;
@@ -33,12 +33,37 @@ type Project = {
   description?: string;
 };
 
+type LinearIssueTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  team: {
+    id: string;
+    name: string;
+    key?: string | null;
+  } | null;
+};
+
+const NO_TEMPLATE_VALUE = "__no_template__";
+
+type FormDraft = {
+  name: string;
+  slug: string;
+  selectedProject: string;
+  selectedTemplate: string;
+  allowTemplateSelection: boolean;
+  title: string;
+  description: string;
+};
+
 export default function FormsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [forms, setForms] = useState<CustomerRequestForm[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [templates, setTemplates] = useState<LinearIssueTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [hasLinearToken, setHasLinearToken] = useState(false);
@@ -55,8 +80,56 @@ export default function FormsPage() {
   const [formName, setFormName] = useState("");
   const [formSlug, setFormSlug] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [allowTemplateSelection, setAllowTemplateSelection] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [editingFormId, setEditingFormId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<FormDraft | null>(null);
+  const [editTemplates, setEditTemplates] = useState<LinearIssueTemplate[]>([]);
+  const [loadingEditTemplates, setLoadingEditTemplates] = useState(false);
+  const [savingFormId, setSavingFormId] = useState<string | null>(null);
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const response = await fetch("/api/linear/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as { projects?: Project[] };
+        setProjects(data.projects || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+    }
+  }, []);
+
+  const fetchTemplateOptions = useCallback(async (projectId: string) => {
+    if (!projectId) return [];
+
+    try {
+      const response = await fetch("/api/linear/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          success?: boolean;
+          templates?: LinearIssueTemplate[];
+        };
+        return data.templates || [];
+      }
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+    }
+
+    return [];
+  }, []);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -99,7 +172,7 @@ export default function FormsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [fetchProjects, user]);
 
   useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading
@@ -111,22 +184,31 @@ export default function FormsPage() {
     loadUserData();
   }, [user, authLoading, router, loadUserData]);
 
-  const fetchProjects = async () => {
-    try {
-      const response = await fetch("/api/linear/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as { projects?: Project[] };
-        setProjects(data.projects || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
+  const fetchTemplatesForProject = useCallback(async (projectId: string) => {
+    if (!projectId) {
+      setTemplates([]);
+      return;
     }
-  };
+
+    setLoadingTemplates(true);
+    try {
+      setTemplates(await fetchTemplateOptions(projectId));
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, [fetchTemplateOptions]);
+
+  useEffect(() => {
+    setSelectedTemplate("");
+    setAllowTemplateSelection(false);
+
+    if (!selectedProject || !hasLinearToken) {
+      setTemplates([]);
+      return;
+    }
+
+    fetchTemplatesForProject(selectedProject);
+  }, [fetchTemplatesForProject, hasLinearToken, selectedProject]);
 
   const generateSlug = (name: string) => {
     return name
@@ -144,6 +226,145 @@ export default function FormsPage() {
     }
   };
 
+  const updateEditDraft = (patch: Partial<FormDraft>) => {
+    setEditDraft((current) => (current ? { ...current, ...patch } : current));
+  };
+
+  const startEditingForm = async (form: CustomerRequestForm) => {
+    const projectId = form.linear_project_id || form.project_id || "";
+
+    setShowCreateForm(false);
+    setShowPrefillOptions(null);
+    setEditingFormId(form.id);
+    setEditDraft({
+      name: form.name,
+      slug: form.slug,
+      selectedProject: projectId,
+      selectedTemplate: form.linear_template_id || "",
+      allowTemplateSelection: Boolean(
+        form.linear_template_id && form.allow_template_selection,
+      ),
+      title: form.form_title,
+      description: form.description || "",
+    });
+
+    setEditTemplates([]);
+    if (!hasLinearToken || !projectId) return;
+
+    setLoadingEditTemplates(true);
+    try {
+      setEditTemplates(await fetchTemplateOptions(projectId));
+    } finally {
+      setLoadingEditTemplates(false);
+    }
+  };
+
+  const cancelEditingForm = () => {
+    setEditingFormId(null);
+    setEditDraft(null);
+    setEditTemplates([]);
+    setLoadingEditTemplates(false);
+  };
+
+  const handleEditProjectChange = async (projectId: string) => {
+    updateEditDraft({
+      selectedProject: projectId,
+      selectedTemplate: "",
+      allowTemplateSelection: false,
+    });
+    setEditTemplates([]);
+
+    if (!hasLinearToken || !projectId) return;
+
+    setLoadingEditTemplates(true);
+    try {
+      setEditTemplates(await fetchTemplateOptions(projectId));
+    } finally {
+      setLoadingEditTemplates(false);
+    }
+  };
+
+  const saveForm = async () => {
+    if (!user || !editingFormId || !editDraft) return;
+
+    const existingForm = forms.find((form) => form.id === editingFormId);
+    const selectedProjectData = projects.find(
+      (project) => project.id === editDraft.selectedProject,
+    );
+    const projectName =
+      selectedProjectData?.name ||
+      existingForm?.linear_project_name ||
+      existingForm?.project_name;
+    const selectedTemplateData = editTemplates.find(
+      (template) => template.id === editDraft.selectedTemplate,
+    );
+    const existingTemplateName =
+      existingForm?.linear_template_id === editDraft.selectedTemplate
+        ? existingForm.linear_template_name
+        : null;
+    const templateName = editDraft.selectedTemplate
+      ? selectedTemplateData?.name || existingTemplateName || null
+      : null;
+
+    if (!editDraft.selectedProject || !projectName) {
+      setMessage({ type: "error", text: "Please select a project" });
+      return;
+    }
+
+    setSavingFormId(editingFormId);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase
+        .from("customer_request_forms")
+        .update({
+          name: editDraft.name,
+          slug: editDraft.slug,
+          project_id: editDraft.selectedProject,
+          linear_project_id: editDraft.selectedProject,
+          project_name: projectName,
+          linear_project_name: projectName,
+          linear_template_id: editDraft.selectedTemplate || null,
+          linear_template_name: templateName,
+          allow_template_selection: Boolean(
+            editDraft.selectedTemplate && editDraft.allowTemplateSelection,
+          ),
+          form_title: editDraft.title,
+          description: editDraft.description || null,
+        })
+        .eq("id", editingFormId)
+        .eq("user_id", user.id);
+
+      if (error) {
+        if (error.code === "23505") {
+          setMessage({
+            type: "error",
+            text: "This URL slug is already taken. Please choose a different one.",
+          });
+        } else {
+          setMessage({
+            type: "error",
+            text: "Failed to update form. Please try again.",
+          });
+        }
+        console.error("Error updating form:", error);
+        return;
+      }
+
+      setMessage({ type: "success", text: "Form updated successfully!" });
+      cancelEditingForm();
+      await loadUserData();
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Failed to update form. Please try again.",
+      });
+      console.error("Error updating form:", error);
+    } finally {
+      setSavingFormId(null);
+    }
+  };
+
   const createForm = async () => {
     if (!user || !hasLinearToken) return;
 
@@ -153,6 +374,9 @@ export default function FormsPage() {
     try {
       const selectedProjectData = projects.find(
         (p) => p.id === selectedProject,
+      );
+      const selectedTemplateData = templates.find(
+        (template) => template.id === selectedTemplate,
       );
       if (!selectedProjectData) {
         setMessage({ type: "error", text: "Please select a project" });
@@ -187,6 +411,9 @@ export default function FormsPage() {
         linear_project_id: selectedProject,
         project_name: selectedProjectData.name,
         linear_project_name: selectedProjectData.name,
+        linear_template_id: selectedTemplate || null,
+        linear_template_name: selectedTemplateData?.name ?? null,
+        allow_template_selection: Boolean(selectedTemplate && allowTemplateSelection),
         form_title: formTitle,
         description: formDescription || null,
       });
@@ -302,6 +529,9 @@ export default function FormsPage() {
     setFormName("");
     setFormSlug("");
     setSelectedProject("");
+    setSelectedTemplate("");
+    setAllowTemplateSelection(false);
+    setTemplates([]);
     setFormTitle("");
     setFormDescription("");
     setShowCreateForm(false);
@@ -378,7 +608,10 @@ export default function FormsPage() {
           <div className="text-center">
             {hasLinearToken ? (
               <Button
-                onClick={() => setShowCreateForm(true)}
+                onClick={() => {
+                  cancelEditingForm();
+                  setShowCreateForm(true);
+                }}
                 disabled={!activeOrgId || projects.length === 0}
                 size="lg"
                 className="h-12 px-8 font-semibold"
@@ -502,6 +735,62 @@ export default function FormsPage() {
                     selected project
                   </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="template">Default issue template</Label>
+                  <Select
+                    value={selectedTemplate || NO_TEMPLATE_VALUE}
+                    onValueChange={(value) => {
+                      const nextTemplate = value === NO_TEMPLATE_VALUE ? "" : value;
+                      setSelectedTemplate(nextTemplate);
+                      if (!nextTemplate) setAllowTemplateSelection(false);
+                    }}
+                    disabled={!selectedProject || loadingTemplates || templates.length === 0}
+                  >
+                    <SelectTrigger id="template" className="w-full">
+                      <SelectValue
+                        placeholder={
+                          loadingTemplates
+                            ? "Loading templates..."
+                            : "Choose a default issue template"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_TEMPLATE_VALUE}>No template</SelectItem>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.team ? `${template.team.name} · ${template.name}` : template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedProject
+                      ? templates.length === 0 && !loadingTemplates
+                        ? "No issue templates are available for this project."
+                        : "The selected template will be applied when a submission creates a Linear issue."
+                      : "Select a project to load compatible issue templates."}
+                  </p>
+                </div>
+
+                <label className="flex items-start gap-3 rounded-md border border-border/60 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4"
+                    checked={allowTemplateSelection}
+                    disabled={!selectedTemplate}
+                    onChange={(event) => setAllowTemplateSelection(event.target.checked)}
+                  />
+                  <span>
+                    <span className="block font-medium">
+                      Let submitters change the template
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      When enabled, the public form will show compatible issue templates with your default preselected.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {/* Step 3: Customer Experience */}
@@ -588,7 +877,10 @@ export default function FormsPage() {
                   submissions.
                 </p>
                 <Button
-                  onClick={() => setShowCreateForm(true)}
+                  onClick={() => {
+                    cancelEditingForm();
+                    setShowCreateForm(true);
+                  }}
                   disabled={!activeOrgId || projects.length === 0}
                 >
                   Create your first form
@@ -606,193 +898,447 @@ export default function FormsPage() {
             </div>
 
             <div className="grid gap-4">
-              {forms.map((form) => (
-                <Card
-                  key={form.id}
-                  className="border-border/50 bg-card/80 backdrop-blur-sm"
-                >
-                  <CardContent>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{form.name}</h3>
-                          <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                            {form.project_name}
-                          </span>
-                        </div>
-                        <p className="text-base text-foreground mb-2">
-                          {form.form_title}
-                        </p>
-                        {form.description && (
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {form.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>
-                            Created{" "}
-                            {new Date(form.created_at).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <code className="bg-muted px-1 py-0.5 rounded text-xs">
-                              /form/{form.slug}
+              {forms.map((form) => {
+                if (editingFormId === form.id && editDraft) {
+                  const draft = editDraft;
+                  const projectOptions = projects.some(
+                    (project) => project.id === draft.selectedProject,
+                  )
+                    ? projects
+                    : [
+                        {
+                          id: draft.selectedProject,
+                          name: form.linear_project_name || form.project_name,
+                        },
+                        ...projects,
+                      ].filter((project) => project.id);
+                  const templateOptions = editTemplates.some(
+                    (template) => template.id === draft.selectedTemplate,
+                  )
+                    ? editTemplates
+                    : [
+                        {
+                          id: draft.selectedTemplate,
+                          name: form.linear_template_name || "Current template",
+                          description: null,
+                          team: null,
+                        },
+                        ...editTemplates,
+                      ].filter((template) => template.id);
+
+                  return (
+                    <Card
+                      key={form.id}
+                      className="border-border/50 bg-card/80 backdrop-blur-sm"
+                    >
+                      <CardContent className="space-y-6">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold">Edit form</h3>
+                            <code className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
+                              /form/{draft.slug || form.slug}
                             </code>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`edit-form-name-${form.id}`}>
+                              Form name *
+                            </Label>
+                            <Input
+                              id={`edit-form-name-${form.id}`}
+                              value={draft.name}
+                              onChange={(event) =>
+                                updateEditDraft({ name: event.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`edit-form-slug-${form.id}`}>
+                              URL slug *
+                            </Label>
+                            <Input
+                              id={`edit-form-slug-${form.id}`}
+                              value={draft.slug}
+                              onChange={(event) =>
+                                updateEditDraft({ slug: event.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`edit-project-${form.id}`}>
+                              Target Linear project *
+                            </Label>
+                            <Select
+                              value={draft.selectedProject}
+                              onValueChange={handleEditProjectChange}
+                            >
+                              <SelectTrigger
+                                id={`edit-project-${form.id}`}
+                                className="w-full"
+                              >
+                                <SelectValue placeholder="Choose a Linear project" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {projectOptions.map((project) => (
+                                  <SelectItem
+                                    key={project.id}
+                                    value={project.id}
+                                  >
+                                    {project.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`edit-template-${form.id}`}>
+                              Default issue template
+                            </Label>
+                            <Select
+                              value={draft.selectedTemplate || NO_TEMPLATE_VALUE}
+                              onValueChange={(value) => {
+                                const nextTemplate =
+                                  value === NO_TEMPLATE_VALUE ? "" : value;
+                                updateEditDraft({
+                                  selectedTemplate: nextTemplate,
+                                  allowTemplateSelection: nextTemplate
+                                    ? draft.allowTemplateSelection
+                                    : false,
+                                });
+                              }}
+                              disabled={
+                                !draft.selectedProject ||
+                                loadingEditTemplates ||
+                                templateOptions.length === 0
+                              }
+                            >
+                              <SelectTrigger
+                                id={`edit-template-${form.id}`}
+                                className="w-full"
+                              >
+                                <SelectValue
+                                  placeholder={
+                                    loadingEditTemplates
+                                      ? "Loading templates..."
+                                      : "Choose a default issue template"
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={NO_TEMPLATE_VALUE}>
+                                  No template
+                                </SelectItem>
+                                {templateOptions.map((template) => (
+                                  <SelectItem
+                                    key={template.id}
+                                    value={template.id}
+                                  >
+                                    {template.team
+                                      ? `${template.team.name} · ${template.name}`
+                                      : template.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <label className="flex items-start gap-3 rounded-md border border-border/60 p-3 text-sm">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4"
+                            checked={draft.allowTemplateSelection}
+                            disabled={!draft.selectedTemplate}
+                            onChange={(event) =>
+                              updateEditDraft({
+                                allowTemplateSelection: event.target.checked,
+                              })
+                            }
+                          />
+                          <span>
+                            <span className="block font-medium">
+                              Let submitters change the template
+                            </span>
+                            <span className="block text-xs text-muted-foreground">
+                              When enabled, the public form will show compatible issue templates with your default preselected.
+                            </span>
                           </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyFormLink(form.slug)}
-                          className="flex items-center gap-2"
-                        >
-                          <Copy className="h-4 w-4" />
-                          Copy link
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setShowPrefillOptions(
-                              showPrefillOptions === form.id ? null : form.id,
-                            )
-                          }
-                          className="flex items-center gap-2"
-                        >
-                          <Link2 className="h-4 w-4" />
-                          Prefill
-                        </Button>
-                        <Link href={`/form/${form.slug}`} target="_blank">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Preview
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteForm(form.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                  {showPrefillOptions === form.id && (
-                    <div className="border-t border-border/50 p-6 bg-muted/30">
-                      <h4 className="font-semibold mb-4">
-                        Create prefilled link
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Fill out any fields below to create a shareable link
-                        with prefilled data. Your customers will see these
-                        values when they open the form.
-                      </p>
-                      <form
-                        id={`prefill-form-${form.slug}`}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          generatePrefillLink(form.slug, e.currentTarget);
-                        }}
-                        className="space-y-4"
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </label>
+
+                        <div className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor={`name-${form.slug}`}>
-                              Customer name
+                            <Label htmlFor={`edit-form-title-${form.id}`}>
+                              Form title *
                             </Label>
                             <Input
-                              id={`name-${form.slug}`}
-                              name={`name-${form.slug}`}
-                              placeholder="John Doe"
+                              id={`edit-form-title-${form.id}`}
+                              value={draft.title}
+                              onChange={(event) =>
+                                updateEditDraft({ title: event.target.value })
+                              }
                             />
                           </div>
+
                           <div className="space-y-2">
-                            <Label htmlFor={`email-${form.slug}`}>
-                              Email address
+                            <Label htmlFor={`edit-form-description-${form.id}`}>
+                              Instructions (optional)
                             </Label>
-                            <Input
-                              id={`email-${form.slug}`}
-                              name={`email-${form.slug}`}
-                              type="email"
-                              placeholder="john@example.com"
+                            <Textarea
+                              id={`edit-form-description-${form.id}`}
+                              value={draft.description}
+                              onChange={(event) =>
+                                updateEditDraft({
+                                  description: event.target.value,
+                                })
+                              }
+                              rows={3}
                             />
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor={`ref-${form.slug}`}>
-                            Reference ID
-                          </Label>
-                          <Input
-                            id={`ref-${form.slug}`}
-                            name={`ref-${form.slug}`}
-                            placeholder="TICKET-123"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor={`title-${form.slug}`}>
-                            Issue title
-                          </Label>
-                          <Input
-                            id={`title-${form.slug}`}
-                            name={`title-${form.slug}`}
-                            placeholder="Brief description of the issue"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor={`body-${form.slug}`}>
-                            Issue description
-                          </Label>
-                          <Textarea
-                            id={`body-${form.slug}`}
-                            name={`body-${form.slug}`}
-                            placeholder="Detailed description of the issue..."
-                            rows={3}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor={`attachment-${form.slug}`}>
-                            Attachment URL
-                          </Label>
-                          <Input
-                            id={`attachment-${form.slug}`}
-                            name={`attachment-${form.slug}`}
-                            type="url"
-                            placeholder="https://example.com/screenshot.png"
-                          />
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
+                        <div className="flex flex-wrap gap-3 border-t pt-4">
                           <Button
-                            type="submit"
+                            onClick={saveForm}
+                            disabled={
+                              savingFormId === form.id ||
+                              !draft.name ||
+                              !draft.slug ||
+                              !draft.selectedProject ||
+                              !draft.title
+                            }
                             className="flex items-center gap-2"
                           >
-                            <Copy className="h-4 w-4" />
-                            Copy prefilled link
+                            <Save className="h-4 w-4" />
+                            {savingFormId === form.id
+                              ? "Saving..."
+                              : "Save changes"}
                           </Button>
                           <Button
-                            type="button"
                             variant="outline"
-                            onClick={() => setShowPrefillOptions(null)}
+                            onClick={cancelEditingForm}
+                            className="flex items-center gap-2"
                           >
+                            <X className="h-4 w-4" />
                             Cancel
                           </Button>
                         </div>
-                      </form>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                return (
+                  <Card
+                    key={form.id}
+                    className="border-border/50 bg-card/80 backdrop-blur-sm"
+                  >
+                    <CardContent>
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-3">
+                            <h3 className="text-lg font-semibold">{form.name}</h3>
+                            <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
+                              {form.linear_project_name || form.project_name}
+                            </span>
+                            {form.linear_template_name && (
+                              <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+                                {form.allow_template_selection
+                                  ? `${form.linear_template_name} · changeable`
+                                  : form.linear_template_name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mb-2 text-base text-foreground">
+                            {form.form_title}
+                          </p>
+                          {form.description && (
+                            <p className="mb-3 text-sm text-muted-foreground">
+                              {form.description}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                            <span>
+                              Created{" "}
+                              {new Date(form.created_at).toLocaleDateString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                                /form/{form.slug}
+                              </code>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEditingForm(form)}
+                            className="flex items-center gap-2"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyFormLink(form.slug)}
+                            className="flex items-center gap-2"
+                          >
+                            <Copy className="h-4 w-4" />
+                            Copy link
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setShowPrefillOptions(
+                                showPrefillOptions === form.id ? null : form.id,
+                              )
+                            }
+                            className="flex items-center gap-2"
+                          >
+                            <Link2 className="h-4 w-4" />
+                            Prefill
+                          </Button>
+                          <Link href={`/form/${form.slug}`} target="_blank">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Preview
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteForm(form.id)}
+                            className="text-destructive hover:text-destructive"
+                            aria-label={`Delete ${form.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                    {showPrefillOptions === form.id && (
+                      <div className="border-t border-border/50 bg-muted/30 p-6">
+                        <h4 className="mb-4 font-semibold">
+                          Create prefilled link
+                        </h4>
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          Fill out any fields below to create a shareable link
+                          with prefilled data. Your customers will see these
+                          values when they open the form.
+                        </p>
+                        <form
+                          id={`prefill-form-${form.slug}`}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            generatePrefillLink(form.slug, e.currentTarget);
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor={`name-${form.slug}`}>
+                                Customer name
+                              </Label>
+                              <Input
+                                id={`name-${form.slug}`}
+                                name={`name-${form.slug}`}
+                                placeholder="John Doe"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`email-${form.slug}`}>
+                                Email address
+                              </Label>
+                              <Input
+                                id={`email-${form.slug}`}
+                                name={`email-${form.slug}`}
+                                type="email"
+                                placeholder="john@example.com"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`ref-${form.slug}`}>
+                              Reference ID
+                            </Label>
+                            <Input
+                              id={`ref-${form.slug}`}
+                              name={`ref-${form.slug}`}
+                              placeholder="TICKET-123"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`title-${form.slug}`}>
+                              Issue title
+                            </Label>
+                            <Input
+                              id={`title-${form.slug}`}
+                              name={`title-${form.slug}`}
+                              placeholder="Brief description of the issue"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`body-${form.slug}`}>
+                              Issue description
+                            </Label>
+                            <Textarea
+                              id={`body-${form.slug}`}
+                              name={`body-${form.slug}`}
+                              placeholder="Detailed description of the issue..."
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`attachment-${form.slug}`}>
+                              Attachment URL
+                            </Label>
+                            <Input
+                              id={`attachment-${form.slug}`}
+                              name={`attachment-${form.slug}`}
+                              type="url"
+                              placeholder="https://example.com/screenshot.png"
+                            />
+                          </div>
+
+                          <div className="flex gap-3 pt-4">
+                            <Button
+                              type="submit"
+                              className="flex items-center gap-2"
+                            >
+                              <Copy className="h-4 w-4" />
+                              Copy prefilled link
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowPrefillOptions(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
