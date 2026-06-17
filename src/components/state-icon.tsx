@@ -42,6 +42,16 @@ export function StateIcon({ type, color, size = 14 }: StateIconProps) {
     )
   }
 
+  // Cancelled: filled circle with a white cross, matching Linear.
+  if (type === 'canceled' || type === 'cancelled') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" fill={strokeColor} stroke={strokeColor} strokeWidth="1.5" />
+        <path d="M5.3 5.3l3.4 3.4M8.7 5.3l-3.4 3.4" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
       <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7" />
