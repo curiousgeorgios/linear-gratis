@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Paperclip, X } from 'lucide-react'
+import { Toaster, toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -34,6 +35,9 @@ const formSchema = z.object({
   attachmentUrl: z.string().url().optional().or(z.literal('')),
   templateId: z.string().optional(),
 })
+
+const PUBLIC_FORM_TOASTER_ID = 'public-form-submit'
+const PUBLIC_FORM_SUBMIT_TOAST_ID = 'public-form-submit-status'
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -117,6 +121,9 @@ export default function PublicFormPage() {
   const searchParams = useSearchParams()
   const slug = params.slug as string
   const isEmbedded = searchParams?.get('embed') === '1'
+  const requestedTheme = searchParams?.get('theme')
+  const toastTheme =
+    requestedTheme === 'dark' || requestedTheme === 'light' ? requestedTheme : 'system'
 
   const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -125,15 +132,6 @@ export default function PublicFormPage() {
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const [attachmentInputKey, setAttachmentInputKey] = useState(0)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
-  const [result, setResult] = useState<{
-    success: boolean
-    message: string
-    data?: {
-      customer?: { id: string }
-      request?: { id: string }
-      issue?: { id: string; identifier: string }
-    }
-  } | null>(null)
 
   // Load branding settings for this form's owner
   const { branding } = useBrandingSettings(
@@ -292,7 +290,6 @@ export default function PublicFormPage() {
   const onFormSubmit = async (values: FormValues) => {
     if (!formConfig) return
 
-    setResult(null)
     if (attachmentFile) {
       const validation = validateFormAttachmentFile(attachmentFile)
       if (!validation.ok) {
@@ -335,11 +332,15 @@ export default function PublicFormPage() {
       if (response.ok && data.success) {
         const defaultTemplateId = formConfig.linear_template_id || ''
         const defaultIssueBody = getTemplateDescription(defaultTemplateId)
+        const issueIdentifier = data.data?.issue?.identifier
 
-        setResult({
-          success: true,
-          message: 'Your request has been submitted successfully! We\'ll get back to you soon.',
-          data: data.data,
+        toast.success('Request submitted', {
+          id: PUBLIC_FORM_SUBMIT_TOAST_ID,
+          toasterId: PUBLIC_FORM_TOASTER_ID,
+          description: issueIdentifier
+            ? `Created ${issueIdentifier}. We'll get back to you soon.`
+            : 'We\'ll get back to you soon.',
+          duration: 6000,
         })
         form.reset({
           customerName: '',
@@ -353,16 +354,20 @@ export default function PublicFormPage() {
         setSelectedTemplateId(defaultTemplateId)
         clearAttachmentFile()
       } else {
-        setResult({
-          success: false,
-          message: data.error || 'Failed to submit request. Please try again.',
+        toast.error('Could not submit request', {
+          id: PUBLIC_FORM_SUBMIT_TOAST_ID,
+          toasterId: PUBLIC_FORM_TOASTER_ID,
+          description: data.error || 'Failed to submit request. Please try again.',
+          duration: 8000,
         })
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      setResult({
-        success: false,
-        message: 'Network error. Please try again.',
+      toast.error('Could not submit request', {
+        id: PUBLIC_FORM_SUBMIT_TOAST_ID,
+        toasterId: PUBLIC_FORM_TOASTER_ID,
+        description: 'Network error. Please try again.',
+        duration: 8000,
       })
     } finally {
       setSubmitting(false)
@@ -413,6 +418,23 @@ export default function PublicFormPage() {
       )}
       style={isEmbedded ? undefined : getBrandingStyles(branding)}
     >
+      <Toaster
+        id={PUBLIC_FORM_TOASTER_ID}
+        richColors
+        closeButton={!isEmbedded}
+        visibleToasts={1}
+        theme={toastTheme}
+        position={isEmbedded ? 'top-center' : 'bottom-right'}
+        offset={isEmbedded ? 12 : 24}
+        mobileOffset={isEmbedded ? 10 : 16}
+        toastOptions={{
+          classNames: {
+            toast: 'max-w-[calc(100vw-20px)] shadow-lg',
+            title: 'text-sm font-medium',
+            description: 'text-sm leading-5',
+          },
+        }}
+      />
       <div className={cn('max-w-2xl mx-auto', isEmbedded ? 'p-3 sm:p-4' : 'p-6')}>
         {/* Custom header with logo if branding is set */}
         {!isEmbedded && branding && (branding.logo_url || branding.brand_name) && (
@@ -643,29 +665,6 @@ export default function PublicFormPage() {
                 </Button>
               </form>
             </Form>
-
-            {result && (
-              <div className={`mt-6 p-4 rounded-lg ${
-                result.success
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
-              }`}>
-                <p className="font-medium">
-                  {result.success ? 'Success!' : 'Error'}
-                </p>
-                <p className="text-sm mt-1">{result.message}</p>
-                {result.success && result.data && (
-                  <div className="mt-3 text-xs">
-                    {result.data.issue && (
-                      <p><strong>Issue:</strong> {result.data.issue.identifier}</p>
-                    )}
-                    {result.data.request && (
-                      <p><strong>Request ID:</strong> {result.data.request.id}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
 
