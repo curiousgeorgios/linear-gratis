@@ -31,6 +31,17 @@ export function StateIcon({ type, color, size = 14 }: StateIconProps) {
     )
   }
 
+  // Backlog uses a dashed ring (matching Linear exactly), distinct from the
+  // solid ring of the unstarted/"Todo" state handled by the default below.
+  if (type === 'backlog') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="1.4 1.74" strokeDashoffset="0.65" />
+        <circle cx="7" cy="7" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="12.189379495928398" transform="rotate(-90 7 7)" />
+      </svg>
+    )
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
       <circle cx="7" cy="7" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7" />
