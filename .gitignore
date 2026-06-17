@@ -49,3 +49,6 @@ next-env.d.ts
 
 # opennext build output
 .open-next
+
+# supabase cli cache
+supabase/.temp/
