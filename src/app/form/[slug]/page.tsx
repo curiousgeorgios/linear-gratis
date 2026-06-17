@@ -10,8 +10,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '@/components/ui/select'
+import { LinearMarkdownEditor } from '@/components/linear-markdown-editor'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
+import { cn } from '@/lib/utils'
 import {
   ALLOWED_FORM_ATTACHMENT_TYPES,
   formatFileSize,
@@ -25,9 +32,22 @@ const formSchema = z.object({
   issueTitle: z.string().min(1, 'Issue title is required'),
   issueBody: z.string().min(1, 'Issue description is required'),
   attachmentUrl: z.string().url().optional().or(z.literal('')),
+  templateId: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
+
+type LinearIssueTemplate = {
+  id: string
+  name: string
+  description: string | null
+  description_content?: LinearEditorContent | null
+  team: {
+    id: string
+    name: string
+    key?: string | null
+  } | null
+}
 
 type PublicFormConfig = {
   id: string
@@ -38,12 +58,65 @@ type PublicFormConfig = {
   form_title: string
   description?: string
   is_active: boolean
+  linear_template_id?: string | null
+  linear_template_name?: string | null
+  linear_template_description?: string | null
+  linear_template_description_content?: LinearEditorContent | null
+  allow_template_selection: boolean
+  available_templates: LinearIssueTemplate[]
+}
+
+type LinearEditorContent = {
+  type: string
+  text?: string
+  attrs?: Record<string, unknown>
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>
+  content?: LinearEditorContent[]
+}
+
+function getTemplateDescriptionFromConfig(
+  formConfig: PublicFormConfig | null,
+  templateId?: string | null,
+) {
+  if (!formConfig || !templateId) return ''
+
+  if (
+    templateId === formConfig.linear_template_id &&
+    formConfig.linear_template_description
+  ) {
+    return formConfig.linear_template_description
+  }
+
+  return (
+    formConfig.available_templates.find((template) => template.id === templateId)
+      ?.description || ''
+  )
+}
+
+function getTemplateDescriptionContentFromConfig(
+  formConfig: PublicFormConfig | null,
+  templateId?: string | null,
+) {
+  if (!formConfig || !templateId) return null
+
+  if (
+    templateId === formConfig.linear_template_id &&
+    formConfig.linear_template_description_content
+  ) {
+    return formConfig.linear_template_description_content
+  }
+
+  return (
+    formConfig.available_templates.find((template) => template.id === templateId)
+      ?.description_content || null
+  )
 }
 
 export default function PublicFormPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const slug = params.slug as string
+  const isEmbedded = searchParams?.get('embed') === '1'
 
   const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,19 +124,21 @@ export default function PublicFormPage() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const [attachmentInputKey, setAttachmentInputKey] = useState(0)
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [result, setResult] = useState<{
     success: boolean
     message: string
     data?: {
       customer?: { id: string }
       request?: { id: string }
+      issue?: { id: string; identifier: string }
     }
   } | null>(null)
 
   // Load branding settings for this form's owner
   const { branding } = useBrandingSettings(
-    formConfig?.user_id || null,
-    formConfig ? { type: 'form', slug: formConfig.slug } : null,
+    !isEmbedded ? formConfig?.user_id || null : null,
+    !isEmbedded && formConfig ? { type: 'form', slug: formConfig.slug } : null,
   )
 
   // Parse URL parameters for prefilling
@@ -81,6 +156,7 @@ export default function PublicFormPage() {
   }, [searchParams])
 
   const prefillData = getUrlPrefillData()
+  const issueBodyPrefill = prefillData.issueBody || ''
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -91,8 +167,45 @@ export default function PublicFormPage() {
       issueTitle: prefillData.issueTitle || '',
       issueBody: prefillData.issueBody || '',
       attachmentUrl: prefillData.attachmentUrl || '',
+      templateId: '',
     },
   })
+
+  const getTemplateDescription = useCallback((templateId?: string | null) => {
+    return getTemplateDescriptionFromConfig(formConfig, templateId)
+  }, [formConfig])
+
+  const applyTemplateDescription = useCallback((
+    templateId?: string | null,
+    options: { markDirty?: boolean } = {},
+  ) => {
+    const templateDescription = getTemplateDescription(templateId)
+    if (!templateDescription) return
+
+    const markDirty = options.markDirty ?? true
+    form.setValue('issueBody', templateDescription, {
+      shouldDirty: markDirty,
+      shouldTouch: markDirty,
+      shouldValidate: true,
+    })
+  }, [form, getTemplateDescription])
+
+  const effectiveSelectedTemplateId =
+    selectedTemplateId || formConfig?.linear_template_id || ''
+  const selectedTemplate = formConfig?.available_templates.find(
+    (template) => template.id === effectiveSelectedTemplateId,
+  )
+  const selectedTemplateLabel = selectedTemplate
+    ? selectedTemplate.team
+      ? `${selectedTemplate.team.name} · ${selectedTemplate.name}`
+      : selectedTemplate.name
+    : formConfig?.linear_template_id === effectiveSelectedTemplateId
+      ? formConfig.linear_template_name || ''
+      : ''
+  const selectedTemplateDescriptionContent = getTemplateDescriptionContentFromConfig(
+    formConfig,
+    effectiveSelectedTemplateId,
+  )
 
   const loadFormConfig = useCallback(async () => {
     try {
@@ -106,25 +219,49 @@ export default function PublicFormPage() {
       if (!response.ok || !data.success || !data.form) {
         console.error('Error loading form config:', data.error || response.statusText)
       } else {
-        setFormConfig(data.form)
+        const loadedForm = data.form
+        const templateId = loadedForm.linear_template_id || ''
+        const templateDescription = getTemplateDescriptionFromConfig(loadedForm, templateId)
+
+        if (!issueBodyPrefill.trim() && !form.getValues('issueBody').trim() && templateDescription) {
+          form.reset({
+            ...form.getValues(),
+            issueBody: templateDescription,
+            templateId,
+          })
+          setSelectedTemplateId(templateId)
+        }
+
+        setFormConfig(loadedForm)
       }
     } catch (error) {
       console.error('Error loading form config:', error)
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [form, issueBodyPrefill, slug])
 
   useEffect(() => {
     loadFormConfig()
   }, [loadFormConfig])
 
+  useEffect(() => {
+    if (!formConfig) return
+    const templateId = formConfig.linear_template_id || ''
+    setSelectedTemplateId(templateId)
+    form.setValue('templateId', templateId)
+
+    if (!issueBodyPrefill.trim() && !form.getValues('issueBody').trim()) {
+      applyTemplateDescription(templateId)
+    }
+  }, [applyTemplateDescription, form, formConfig, issueBodyPrefill])
+
   // Apply branding when it loads
   useEffect(() => {
-    if (branding) {
+    if (!isEmbedded && branding) {
       applyBrandingToPage(branding, formConfig?.form_title)
     }
-  }, [branding, formConfig?.form_title])
+  }, [branding, formConfig?.form_title, isEmbedded])
 
   const clearAttachmentFile = () => {
     setAttachmentFile(null)
@@ -174,6 +311,10 @@ export default function PublicFormPage() {
       payload.set('issueTitle', values.issueTitle)
       payload.set('issueBody', values.issueBody)
       payload.set('attachmentUrl', values.attachmentUrl || '')
+      payload.set(
+        'templateId',
+        selectedTemplateId || values.templateId || formConfig.linear_template_id || '',
+      )
       if (attachmentFile) payload.set('attachmentFile', attachmentFile)
 
       const response = await fetch(`/api/form/${encodeURIComponent(slug)}/submit`, {
@@ -187,16 +328,29 @@ export default function PublicFormPage() {
         data?: {
           customer?: { id: string }
           request?: { id: string }
+          issue?: { id: string; identifier: string }
         }
       }
 
       if (response.ok && data.success) {
+        const defaultTemplateId = formConfig.linear_template_id || ''
+        const defaultIssueBody = getTemplateDescription(defaultTemplateId)
+
         setResult({
           success: true,
           message: 'Your request has been submitted successfully! We\'ll get back to you soon.',
           data: data.data,
         })
-        form.reset()
+        form.reset({
+          customerName: '',
+          customerEmail: '',
+          externalId: '',
+          issueTitle: '',
+          issueBody: defaultIssueBody,
+          attachmentUrl: '',
+          templateId: defaultTemplateId,
+        })
+        setSelectedTemplateId(defaultTemplateId)
         clearAttachmentFile()
       } else {
         setResult({
@@ -218,7 +372,12 @@ export default function PublicFormPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className={cn(
+          'flex items-center justify-center',
+          isEmbedded ? 'min-h-[420px] bg-background' : 'min-h-screen',
+        )}
+      >
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Loading...</h2>
           <p className="text-gray-600">Please wait while we load the form.</p>
@@ -229,7 +388,12 @@ export default function PublicFormPage() {
 
   if (!formConfig) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className={cn(
+          'flex items-center justify-center',
+          isEmbedded ? 'min-h-[420px] bg-background px-4' : 'min-h-screen',
+        )}
+      >
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Form not found</CardTitle>
@@ -243,10 +407,15 @@ export default function PublicFormPage() {
   }
 
   return (
-    <div className="min-h-screen linear-gradient-bg py-8" style={getBrandingStyles(branding)}>
-      <div className="max-w-2xl mx-auto p-6">
+    <div
+      className={cn(
+        isEmbedded ? 'min-h-full bg-background' : 'min-h-screen linear-gradient-bg py-8',
+      )}
+      style={isEmbedded ? undefined : getBrandingStyles(branding)}
+    >
+      <div className={cn('max-w-2xl mx-auto', isEmbedded ? 'p-3 sm:p-4' : 'p-6')}>
         {/* Custom header with logo if branding is set */}
-        {branding && (branding.logo_url || branding.brand_name) && (
+        {!isEmbedded && branding && (branding.logo_url || branding.brand_name) && (
           <div className="mb-6 text-center">
             {branding.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time
@@ -270,21 +439,67 @@ export default function PublicFormPage() {
           </div>
         )}
 
-        <Card>
-          <CardHeader>
+        <Card className={cn(isEmbedded && 'gap-4 rounded-none border-0 bg-background py-0 shadow-none')}>
+          <CardHeader className={cn(isEmbedded && 'px-0')}>
             <CardTitle>{formConfig.form_title}</CardTitle>
             {formConfig.description && (
               <CardDescription>{formConfig.description}</CardDescription>
             )}
-            {!branding?.brand_name && (
+            {!isEmbedded && !branding?.brand_name && (
               <div className="text-sm text-gray-600">
                 Project: {formConfig.project_name}
               </div>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className={cn(isEmbedded && 'px-0')}>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onFormSubmit)}
+                className={cn('space-y-6', isEmbedded && 'space-y-4')}
+              >
+                {formConfig.allow_template_selection && formConfig.available_templates.length > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="templateId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Request type</FormLabel>
+                        <Select
+                          value={effectiveSelectedTemplateId || undefined}
+                          onValueChange={(templateId) => {
+                            setSelectedTemplateId(templateId)
+                            field.onChange(templateId)
+                            applyTemplateDescription(templateId)
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <span
+                                className={cn(
+                                  'block truncate',
+                                  !selectedTemplateLabel && 'text-muted-foreground',
+                                )}
+                              >
+                                {selectedTemplateLabel || 'Choose a request type'}
+                              </span>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {formConfig.available_templates.map((template) => (
+                              <SelectItem key={template.id} value={template.id}>
+                                {template.team
+                                  ? `${template.team.name} · ${template.name}`
+                                  : template.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -354,10 +569,14 @@ export default function PublicFormPage() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea
+                        <LinearMarkdownEditor
+                          value={field.value}
+                          content={selectedTemplateDescriptionContent}
+                          contentKey={effectiveSelectedTemplateId}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
                           placeholder="Please provide a detailed description of your issue or request..."
-                          className="min-h-[120px]"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -437,7 +656,12 @@ export default function PublicFormPage() {
                 <p className="text-sm mt-1">{result.message}</p>
                 {result.success && result.data && (
                   <div className="mt-3 text-xs">
-                    <p><strong>Request ID:</strong> {result.data.request?.id}</p>
+                    {result.data.issue && (
+                      <p><strong>Issue:</strong> {result.data.issue.identifier}</p>
+                    )}
+                    {result.data.request && (
+                      <p><strong>Request ID:</strong> {result.data.request.id}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -446,7 +670,7 @@ export default function PublicFormPage() {
         </Card>
 
         {/* Custom footer — skip rendering when there's nothing to show. */}
-        {(() => {
+        {!isEmbedded && (() => {
           const showPoweredBy = branding?.show_powered_by !== false
           if (!branding?.footer_text && !showPoweredBy) return null
           return (

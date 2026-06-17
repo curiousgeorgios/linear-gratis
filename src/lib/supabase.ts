@@ -78,6 +78,9 @@ export type CustomerRequestForm = {
   // Deprecated: prefer linear_project_name.
   project_name: string
   linear_project_name: string
+  linear_template_id?: string | null
+  linear_template_name?: string | null
+  allow_template_selection?: boolean
   form_title: string
   description?: string
   is_active: boolean

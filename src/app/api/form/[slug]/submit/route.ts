@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security'
-import { getActiveConnectionIdForOrg, getTokenForConnection } from '@/lib/linear-connection'
 import { uploadFileToLinear } from '@/lib/linear-file-upload'
 import {
   MAX_FORM_SUBMIT_BODY_BYTES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
+import { resolveLinearTokenForForm } from '@/lib/public-form'
+import { fetchAvailableIssueTemplates } from '@/lib/linear-templates'
+import {
+  createIssueForLinearSource,
+  type LinearCreatedIssue,
+} from '@/lib/public-view-issue-creation'
 import * as z from 'zod'
 
 const submitSchema = z.object({
@@ -17,6 +21,7 @@ const submitSchema = z.object({
   issueTitle: z.string().min(1).max(300),
   issueBody: z.string().min(1).max(10000),
   attachmentUrl: z.string().url().optional().or(z.literal('')),
+  templateId: z.string().max(100).optional().or(z.literal('')),
 })
 
 type SubmitValues = z.infer<typeof submitSchema>
@@ -33,6 +38,8 @@ type FormLookup = {
   linear_connection_id?: string | null
   project_id?: string | null
   linear_project_id?: string | null
+  linear_template_id?: string | null
+  allow_template_selection?: boolean
 }
 
 function getFormString(formData: FormData, key: string): string {
@@ -59,6 +66,7 @@ async function parseSubmitPayload(request: NextRequest): Promise<ParsedSubmitPay
         issueTitle: getFormString(formData, 'issueTitle'),
         issueBody: getFormString(formData, 'issueBody'),
         attachmentUrl: getFormString(formData, 'attachmentUrl'),
+        templateId: getFormString(formData, 'templateId'),
       },
       ...(isUploadedFile(attachmentValue) ? { attachmentFile: attachmentValue } : {}),
     }
@@ -70,7 +78,16 @@ async function parseSubmitPayload(request: NextRequest): Promise<ParsedSubmitPay
 async function loadActiveForm(slug: string): Promise<FormLookup | null> {
   const expanded = await supabaseAdmin
     .from('customer_request_forms')
-    .select('id, user_id, organisation_id, linear_connection_id, project_id, linear_project_id')
+    .select(`
+      id,
+      user_id,
+      organisation_id,
+      linear_connection_id,
+      project_id,
+      linear_project_id,
+      linear_template_id,
+      allow_template_selection
+    `)
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -82,7 +99,9 @@ async function loadActiveForm(slug: string): Promise<FormLookup | null> {
   if (
     expanded.error?.code === '42703' ||
     expanded.error?.message?.includes('linear_connection_id') ||
-    expanded.error?.message?.includes('linear_project_id')
+    expanded.error?.message?.includes('linear_project_id') ||
+    expanded.error?.message?.includes('linear_template_id') ||
+    expanded.error?.message?.includes('allow_template_selection')
   ) {
     const legacy = await supabaseAdmin
       .from('customer_request_forms')
@@ -97,53 +116,13 @@ async function loadActiveForm(slug: string): Promise<FormLookup | null> {
   return null
 }
 
-async function resolveLinearTokenForForm(form: FormLookup): Promise<string | null> {
-  if (form.linear_connection_id) {
-    return getTokenForConnection(form.linear_connection_id)
-  }
-
-  const connectionId = form.organisation_id
-    ? await getActiveConnectionIdForOrg(supabaseAdmin, form.organisation_id)
-    : null
-  if (connectionId) {
-    await supabaseAdmin
-      .from('customer_request_forms')
-      .update({ linear_connection_id: connectionId })
-      .eq('id', form.id)
-      .is('linear_connection_id', null)
-
-    return getTokenForConnection(connectionId)
-  }
-
-  if (!form.user_id) return null
-
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('linear_api_token')
-    .eq('id', form.user_id)
-    .single()
-
-  if (!profile?.linear_api_token) return null
-
-  try {
-    return await decryptAndRotateTokenIfNeeded(profile.linear_api_token, {
-      userId: form.user_id,
-      admin: supabaseAdmin,
-    })
-  } catch {
-    return null
-  }
-}
-
 /**
- * Creates a Linear customer need via a direct GraphQL call.
- *
- * Mirrors the logic in /api/linear but is called in-process so the Linear
- * API token never leaves the server. Returning a minimal `{ id }` for
- * customer and request prevents leaking extra Linear metadata to the
- * public form caller.
+ * Creates a Linear customer need linked to the issue created from the form.
+ * The form submission succeeds once the issue exists; this preserves the
+ * previous customer context when Linear accepts it without causing duplicate
+ * issue submissions if the secondary link fails.
  */
-async function createLinearCustomerRequest(
+async function createLinearCustomerNeedForIssue(
   apiToken: string,
   customerData: {
     name: string
@@ -155,14 +134,14 @@ async function createLinearCustomerRequest(
     body: string
     attachmentUrl?: string
   },
-  projectId: string
+  issueId: string
 ): Promise<
   | { success: true; customer?: { id: string }; request?: { id: string } }
   | { success: false; error: string }
 > {
   const customerNeedInput: Record<string, unknown> = {
     customerExternalId: customerData.externalId || customerData.email,
-    projectId,
+    issueId,
     body: `${requestData.title}\n\n${requestData.body}`,
     ...(requestData.attachmentUrl ? { attachmentUrl: requestData.attachmentUrl } : {}),
   }
@@ -245,6 +224,77 @@ async function createLinearCustomerRequest(
   }
 }
 
+function escapeMarkdownLinkText(value: string): string {
+  return value.replace(/[[\]\\]/g, '\\$&')
+}
+
+function appendAttachmentLinks(
+  description: string,
+  attachments: Array<{ fileName: string; assetUrl: string }>,
+): string {
+  if (attachments.length === 0) return description
+
+  const links = attachments
+    .map(({ fileName, assetUrl }) => `- [${escapeMarkdownLinkText(fileName)}](${assetUrl})`)
+    .join('\n')
+
+  return `${description.trim()}\n\nAttachments:\n${links}`
+}
+
+function buildIssueDescription(
+  values: SubmitValues,
+  attachments: Array<{ fileName: string; assetUrl: string }>,
+): string {
+  const submitterDetails = [
+    `Submitted by: ${values.customerName} <${values.customerEmail}>`,
+    values.externalId ? `Reference: ${values.externalId}` : null,
+  ].filter(Boolean)
+
+  const description = [
+    values.issueBody.trim(),
+    submitterDetails.length > 0 ? `---\n${submitterDetails.join('\n')}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  return appendAttachmentLinks(description, attachments)
+}
+
+async function resolveTemplateIdForSubmission(args: {
+  apiToken: string
+  form: FormLookup
+  projectId: string
+  requestedTemplateId?: string
+}): Promise<{ ok: true; templateId?: string } | { ok: false; status: number; error: string }> {
+  const configuredTemplateId = args.form.linear_template_id || undefined
+  const requestedTemplateId = args.requestedTemplateId || undefined
+  const templateId = args.form.allow_template_selection
+    ? requestedTemplateId || configuredTemplateId
+    : configuredTemplateId
+
+  if (!templateId) return { ok: true }
+
+  const templatesResult = await fetchAvailableIssueTemplates(args.apiToken, {
+    projectId: args.projectId,
+  })
+  if (!templatesResult.success) {
+    return { ok: false, status: 502, error: 'Failed to validate Linear templates' }
+  }
+
+  const availableTemplateIds = new Set(templatesResult.templates.map((template) => template.id))
+  if (!availableTemplateIds.has(templateId)) {
+    return {
+      ok: false,
+      status: requestedTemplateId ? 400 : 500,
+      error: requestedTemplateId
+        ? 'Selected template is not available for this form.'
+        : 'Form template configuration error. Please contact the form owner.',
+    }
+  }
+
+  return { ok: true, templateId }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -312,6 +362,7 @@ export async function POST(
     }
 
     let attachmentUrl = values.attachmentUrl || undefined
+    const issueAttachments: Array<{ fileName: string; assetUrl: string }> = []
     if (attachmentFile) {
       const uploadResult = await uploadFileToLinear(linearToken, attachmentFile)
       if (!uploadResult.success) {
@@ -321,6 +372,39 @@ export async function POST(
         )
       }
       attachmentUrl = uploadResult.assetUrl
+      issueAttachments.push({ fileName: attachmentFile.name, assetUrl: uploadResult.assetUrl })
+    } else if (attachmentUrl) {
+      issueAttachments.push({ fileName: 'Attachment', assetUrl: attachmentUrl })
+    }
+
+    const templateResult = await resolveTemplateIdForSubmission({
+      apiToken: linearToken,
+      form,
+      projectId,
+      requestedTemplateId: values.templateId || undefined,
+    })
+    if (!templateResult.ok) {
+      return NextResponse.json(
+        { success: false, error: templateResult.error },
+        { status: templateResult.status }
+      )
+    }
+
+    const issueResult = await createIssueForLinearSource(
+      linearToken,
+      { projectId },
+      {
+        title: values.issueTitle,
+        description: buildIssueDescription(values, issueAttachments),
+        ...(templateResult.templateId ? { templateId: templateResult.templateId } : {}),
+      },
+    )
+
+    if (!issueResult.ok) {
+      return NextResponse.json(
+        { success: false, error: issueResult.error, details: issueResult.details },
+        { status: issueResult.status }
+      )
     }
 
     const customerData = {
@@ -334,25 +418,30 @@ export async function POST(
       ...(attachmentUrl ? { attachmentUrl } : {}),
     }
 
-    const linearResult = await createLinearCustomerRequest(
+    const customerNeedResult = await createLinearCustomerNeedForIssue(
       linearToken,
       customerData,
       requestData,
-      projectId
+      issueResult.issue.id
     )
 
-    if (!linearResult.success) {
-      return NextResponse.json(
-        { success: false, error: linearResult.error || 'Failed to submit request' },
-        { status: 502 }
+    if (!customerNeedResult.success) {
+      console.warn(
+        'Issue created but failed to link Linear customer need:',
+        customerNeedResult.error,
       )
     }
 
+    const issue: LinearCreatedIssue = issueResult.issue
     return NextResponse.json({
       success: true,
       data: {
-        customer: linearResult.customer,
-        request: linearResult.request,
+        customer: customerNeedResult.success ? customerNeedResult.customer : undefined,
+        request: customerNeedResult.success ? customerNeedResult.request : undefined,
+        issue: {
+          id: issue.id,
+          identifier: issue.identifier,
+        },
       },
     })
   } catch (error) {
