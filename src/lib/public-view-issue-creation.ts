@@ -52,6 +52,19 @@ type LinearMetadataResponse = {
   };
 };
 
+type LinearProjectTeamSummary = Pick<LinearTeamMetadata, 'id' | 'name'>;
+
+type LinearProjectTeamsResponse = {
+  errors?: unknown[];
+  data?: {
+    project?: {
+      teams?: {
+        nodes: LinearProjectTeamSummary[];
+      };
+    } | null;
+  };
+};
+
 type LinearIssueInput = {
   title: string;
   description?: string;
@@ -167,12 +180,43 @@ export async function resolveLinearTokenForPublicView(
   }
 }
 
-async function fetchSourceMetadata(
+async function fetchLinearGraphQL<TData>(
   apiToken: string,
-  options: { teamId?: string | null; projectId?: string | null },
+  query: string,
+  variables: Record<string, unknown>,
+): Promise<{ errors?: unknown[]; data?: TData }> {
+  const response = await fetch(LINEAR_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': apiToken.trim(),
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  return response.json() as Promise<{ errors?: unknown[]; data?: TData }>;
+}
+
+async function fetchTeamMetadata(
+  apiToken: string,
+  teamId: string,
+  options: { includeLabels: boolean },
 ): Promise<LinearMetadataResponse> {
-  if (options.teamId) {
-    const query = `
+  const labelsSelection = options.includeLabels
+    ? `
+          labels(first: 100) {
+            nodes {
+              id
+              name
+              color
+            }
+          }
+    `
+    : '';
+
+  return fetchLinearGraphQL<NonNullable<LinearMetadataResponse['data']>>(
+    apiToken,
+    `
       query TeamMetadata($teamId: String!) {
         team(id: $teamId) {
           id
@@ -192,80 +236,109 @@ async function fetchSourceMetadata(
               color
             }
           }
-          labels(first: 100) {
-            nodes {
-              id
-              name
-              color
-            }
+          ${labelsSelection}
+        }
+      }
+    `,
+    { teamId },
+  );
+}
+
+async function fetchProjectTeams(
+  apiToken: string,
+  projectId: string,
+): Promise<LinearProjectTeamsResponse> {
+  return fetchLinearGraphQL<NonNullable<LinearProjectTeamsResponse['data']>>(
+    apiToken,
+    `
+    query ProjectTeams($projectId: String!) {
+      project(id: $projectId) {
+        id
+        teams(first: 50) {
+          nodes {
+            id
+            name
           }
         }
       }
-    `;
+    }
+    `,
+    { projectId },
+  );
+}
 
-    const response = await fetch(LINEAR_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': apiToken.trim(),
+function teamHasLabels(team: LinearTeamMetadata, requiredLabelIds: string[]): boolean {
+  if (requiredLabelIds.length === 0) return true;
+
+  const teamLabelIds = new Set(team.labels?.nodes.map((label) => label.id) ?? []);
+  return requiredLabelIds.every((labelId) => teamLabelIds.has(labelId));
+}
+
+function metadataForProjectTeam(team?: LinearTeamMetadata): LinearMetadataResponse {
+  return {
+    data: {
+      project: {
+        teams: {
+          nodes: team ? [team] : [],
+        },
       },
-      body: JSON.stringify({ query, variables: { teamId: options.teamId } }),
-    });
+    },
+  };
+}
 
-    return response.json() as Promise<LinearMetadataResponse>;
+async function fetchSourceMetadata(
+  apiToken: string,
+  options: { teamId?: string | null; projectId?: string | null; requiredLabelIds?: string[] },
+): Promise<LinearMetadataResponse> {
+  const requiredLabelIds = options.requiredLabelIds ?? [];
+
+  if (options.teamId) {
+    return fetchTeamMetadata(apiToken, options.teamId, {
+      includeLabels: requiredLabelIds.length > 0,
+    });
   }
 
   if (!options.projectId) {
     throw new Error('Either teamId or projectId is required');
   }
 
-  const query = `
-    query ProjectIssueCreationMetadata($projectId: String!) {
-      project(id: $projectId) {
-        id
-        name
-        teams(first: 50) {
-          nodes {
-            id
-            name
-            triageEnabled
-            triageIssueState {
-              id
-              name
-              type
-              color
-            }
-            states {
-              nodes {
-                id
-                name
-                type
-                color
-              }
-            }
-            labels(first: 100) {
-              nodes {
-                id
-                name
-                color
-              }
-            }
-          }
-        }
-      }
+  const projectTeams = await fetchProjectTeams(apiToken, options.projectId);
+  if (projectTeams.errors) return projectTeams as LinearMetadataResponse;
+
+  const teamSummaries = projectTeams.data?.project?.teams?.nodes ?? [];
+  if (teamSummaries.length === 0) return metadataForProjectTeam();
+
+  if (requiredLabelIds.length === 0) {
+    const firstTeam = teamSummaries.at(0);
+    if (!firstTeam) return metadataForProjectTeam();
+    const metadata = await fetchTeamMetadata(apiToken, firstTeam.id, { includeLabels: false });
+    if (metadata.errors) return metadata;
+    return metadataForProjectTeam(metadata.data?.team ?? undefined);
+  }
+
+  const checkedTeams: LinearTeamMetadata[] = [];
+  for (const teamSummary of teamSummaries) {
+    const metadata = await fetchTeamMetadata(apiToken, teamSummary.id, { includeLabels: true });
+    if (metadata.errors) return metadata;
+
+    const team = metadata.data?.team;
+    if (!team) continue;
+    checkedTeams.push(team);
+
+    if (teamHasLabels(team, requiredLabelIds)) {
+      return metadataForProjectTeam(team);
     }
-  `;
+  }
 
-  const response = await fetch(LINEAR_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': apiToken.trim(),
+  return {
+    data: {
+      project: {
+        teams: {
+          nodes: checkedTeams,
+        },
+      },
     },
-    body: JSON.stringify({ query, variables: { projectId: options.projectId } }),
-  });
-
-  return response.json() as Promise<LinearMetadataResponse>;
+  };
 }
 
 function pickTeamForIssueCreation(
@@ -276,8 +349,7 @@ function pickTeamForIssueCreation(
   if (requiredLabelIds.length === 0) return teams[0];
 
   return teams.find((team) => {
-    const teamLabelIds = new Set(team.labels?.nodes.map((label) => label.id) ?? []);
-    return requiredLabelIds.every((labelId) => teamLabelIds.has(labelId));
+    return teamHasLabels(team, requiredLabelIds);
   });
 }
 
@@ -375,6 +447,7 @@ export async function createIssueForLinearSource(
   const metadata = await fetchSourceMetadata(apiToken, {
     teamId: sourceTeamId,
     projectId: sourceProjectId,
+    requiredLabelIds: finalLabelIds,
   });
 
   if (metadata.errors) {
