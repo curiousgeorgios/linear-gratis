@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { IssuesView } from '@/components/issues-view'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
 import { IssueDetailModal } from '@/components/issue-detail-modal'
@@ -26,8 +26,35 @@ function getIssuePath(slug: string, issueId: string) {
   return `${getViewPath(slug)}/${encodeURIComponent(issueId)}`
 }
 
+function getIssueIdFromPathname(slug: string) {
+  if (typeof window === 'undefined') return null
+
+  const viewPath = getViewPath(slug)
+  const pathname = window.location.pathname
+  if (pathname === viewPath || pathname === `${viewPath}/`) return null
+  if (!pathname.startsWith(`${viewPath}/`)) return null
+
+  const issueId = pathname.slice(viewPath.length + 1).split('/')[0]
+  if (!issueId) return null
+
+  try {
+    return decodeURIComponent(issueId)
+  } catch {
+    return issueId
+  }
+}
+
+function updateBrowserPath(path: string, mode: 'push' | 'replace') {
+  if (typeof window === 'undefined') return
+
+  if (mode === 'push') {
+    window.history.pushState(null, '', path)
+  } else {
+    window.history.replaceState(null, '', path)
+  }
+}
+
 export default function PublicViewPage({ params }: PublicViewPageProps) {
-  const router = useRouter()
   const [view, setView] = useState<PublicView | null>(null)
   const [issues, setIssues] = useState<LinearIssue[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,6 +99,19 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     setSelectedIssueId(routeIssueId)
     setShowIssueDetail(Boolean(routeIssueId))
   }, [routeIssueId])
+
+  useEffect(() => {
+    if (!slug) return
+
+    const handlePopState = () => {
+      setRouteIssueId(getIssueIdFromPathname(slug))
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [slug])
 
   const loadView = async (providedPassword?: string) => {
     if (!slug) return
@@ -156,7 +196,8 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     setSelectedIssueId(issueId)
     setShowIssueDetail(true)
     if (slug && routeIssueId !== issueId) {
-      router.push(getIssuePath(slug, issueId))
+      setRouteIssueId(issueId)
+      updateBrowserPath(getIssuePath(slug, issueId), 'push')
     }
   }
 
@@ -164,7 +205,8 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
     setShowIssueDetail(false)
     setSelectedIssueId(null)
     if (slug) {
-      router.replace(getViewPath(slug))
+      setRouteIssueId(null)
+      updateBrowserPath(getViewPath(slug), 'replace')
     }
   }
 
