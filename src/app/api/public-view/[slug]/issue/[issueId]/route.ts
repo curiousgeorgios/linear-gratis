@@ -40,7 +40,7 @@ export type IssueHistory = {
   };
   fromPriority?: number;
   toPriority?: number;
-  user: {
+  user?: {
     name: string;
     avatarUrl?: string;
   };
@@ -484,7 +484,7 @@ export async function GET(
               actor: {
                 name: string;
                 avatarUrl?: string;
-              };
+              } | null;
             }>;
           };
         };
@@ -584,7 +584,9 @@ export async function GET(
         toAssignee: assigneesVisible ? h.toAssignee : undefined,
         fromPriority: prioritiesVisible ? h.fromPriority : undefined,
         toPriority: prioritiesVisible ? h.toPriority : undefined,
-        user: { name: h.actor.name, avatarUrl: h.actor.avatarUrl },
+        user: h.actor
+          ? { name: h.actor.name, avatarUrl: h.actor.avatarUrl }
+          : undefined,
       })),
       referencedIssues,
     };
