@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import { IssuesView } from '@/components/issues-view'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
 import { IssueDetailModal } from '@/components/issue-detail-modal'
@@ -14,10 +14,20 @@ import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/h
 interface PublicViewPageProps {
   params: Promise<{
     slug: string
+    issuePath?: string[]
   }>
 }
 
+function getViewPath(slug: string) {
+  return `/view/${encodeURIComponent(slug)}`
+}
+
+function getIssuePath(slug: string, issueId: string) {
+  return `${getViewPath(slug)}/${encodeURIComponent(issueId)}`
+}
+
 export default function PublicViewPage({ params }: PublicViewPageProps) {
+  const router = useRouter()
   const [view, setView] = useState<PublicView | null>(null)
   const [issues, setIssues] = useState<LinearIssue[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,6 +38,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [password, setPassword] = useState('')
   const [authenticating, setAuthenticating] = useState(false)
   const [slug, setSlug] = useState<string>('')
+  const [routeIssueId, setRouteIssueId] = useState<string | null>(null)
   const [showIssueModal, setShowIssueModal] = useState(false)
   const [showIssueDetail, setShowIssueDetail] = useState(false)
   const [showProjectUpdates, setShowProjectUpdates] = useState(false)
@@ -41,12 +52,26 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   )
 
   useEffect(() => {
+    let cancelled = false
+
     const initParams = async () => {
       const resolvedParams = await params
+      if (cancelled) return
+
       setSlug(resolvedParams.slug)
+      setRouteIssueId(resolvedParams.issuePath?.[0] ?? null)
     }
     initParams()
+
+    return () => {
+      cancelled = true
+    }
   }, [params])
+
+  useEffect(() => {
+    setSelectedIssueId(routeIssueId)
+    setShowIssueDetail(Boolean(routeIssueId))
+  }, [routeIssueId])
 
   const loadView = async (providedPassword?: string) => {
     if (!slug) return
@@ -130,11 +155,17 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const handleIssueClick = (issueId: string) => {
     setSelectedIssueId(issueId)
     setShowIssueDetail(true)
+    if (slug && routeIssueId !== issueId) {
+      router.push(getIssuePath(slug, issueId))
+    }
   }
 
   const handleCloseIssueDetail = () => {
     setShowIssueDetail(false)
     setSelectedIssueId(null)
+    if (slug) {
+      router.replace(getViewPath(slug))
+    }
   }
 
   const handleSubmitIssue = async (issueData: {

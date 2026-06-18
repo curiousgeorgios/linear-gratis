@@ -126,7 +126,7 @@ export function KanbanBoard({
                       <div key={issue.id} className="linear-hover-lift">
                           {/* Issue Card - matching Linear's exact structure */}
                           <button
-                            onClick={() => onIssueClick?.(issue.id)}
+                            onClick={() => onIssueClick?.(issue.identifier)}
                             className="w-full bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group cursor-pointer text-left"
                           >
                             <div className="relative p-3">
