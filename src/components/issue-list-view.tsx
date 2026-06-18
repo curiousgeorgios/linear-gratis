@@ -122,7 +122,7 @@ export function IssueListView({
               group.issues.map(issue => (
                 <button
                   key={issue.id}
-                  onClick={() => onIssueClick(issue.id)}
+                  onClick={() => onIssueClick(issue.identifier)}
                   className="flex items-center gap-2 w-full h-9 px-3 text-left border-b border-border/40 last:border-b-0 hover:bg-accent/50 transition-colors duration-150"
                 >
                   {display.properties.priority && flags.showPriorities && (
