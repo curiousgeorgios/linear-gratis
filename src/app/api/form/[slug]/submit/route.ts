@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security'
 import { uploadFileToLinear } from '@/lib/linear-file-upload'
 import {
+  MAX_FORM_ATTACHMENT_FILES,
   MAX_FORM_SUBMIT_BODY_BYTES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
@@ -28,7 +29,7 @@ type SubmitValues = z.infer<typeof submitSchema>
 
 type ParsedSubmitPayload = {
   values: SubmitValues
-  attachmentFile?: File
+  attachmentFiles: File[]
 }
 
 type FormLookup = {
@@ -56,7 +57,10 @@ async function parseSubmitPayload(request: NextRequest): Promise<ParsedSubmitPay
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await request.formData()
-    const attachmentValue = formData.get('attachmentFile')
+    const attachmentFiles = [
+      ...formData.getAll('attachmentFiles'),
+      ...formData.getAll('attachmentFile'),
+    ].filter(isUploadedFile)
 
     return {
       values: {
@@ -68,11 +72,11 @@ async function parseSubmitPayload(request: NextRequest): Promise<ParsedSubmitPay
         attachmentUrl: getFormString(formData, 'attachmentUrl'),
         templateId: getFormString(formData, 'templateId'),
       },
-      ...(isUploadedFile(attachmentValue) ? { attachmentFile: attachmentValue } : {}),
+      attachmentFiles,
     }
   }
 
-  return { values: (await request.json()) as SubmitValues }
+  return { values: (await request.json()) as SubmitValues, attachmentFiles: [] }
 }
 
 async function loadActiveForm(slug: string): Promise<FormLookup | null> {
@@ -329,8 +333,14 @@ export async function POST(
       )
     }
     const values = parsed.data
-    const attachmentFile = payload.attachmentFile
-    if (attachmentFile) {
+    if (payload.attachmentFiles.length > MAX_FORM_ATTACHMENT_FILES) {
+      return NextResponse.json(
+        { success: false, error: `You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files` },
+        { status: 400 }
+      )
+    }
+
+    for (const attachmentFile of payload.attachmentFiles) {
       const fileValidation = validateFormAttachmentFile(attachmentFile)
       if (!fileValidation.ok) {
         return NextResponse.json(
@@ -363,7 +373,11 @@ export async function POST(
 
     let attachmentUrl = values.attachmentUrl || undefined
     const issueAttachments: Array<{ fileName: string; assetUrl: string }> = []
-    if (attachmentFile) {
+    if (attachmentUrl) {
+      issueAttachments.push({ fileName: 'Attachment', assetUrl: attachmentUrl })
+    }
+
+    for (const attachmentFile of payload.attachmentFiles) {
       const uploadResult = await uploadFileToLinear(linearToken, attachmentFile)
       if (!uploadResult.success) {
         return NextResponse.json(
@@ -371,10 +385,8 @@ export async function POST(
           { status: 502 }
         )
       }
-      attachmentUrl = uploadResult.assetUrl
+      attachmentUrl ??= uploadResult.assetUrl
       issueAttachments.push({ fileName: attachmentFile.name, assetUrl: uploadResult.assetUrl })
-    } else if (attachmentUrl) {
-      issueAttachments.push({ fileName: 'Attachment', assetUrl: attachmentUrl })
     }
 
     const templateResult = await resolveTemplateIdForSubmission({

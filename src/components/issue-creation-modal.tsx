@@ -3,14 +3,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { X, Maximize2, ChevronDown, Paperclip } from 'lucide-react'
+import { X, Maximize2, ChevronDown } from 'lucide-react'
+import { AttachmentUploadDropzone } from '@/components/attachment-upload-dropzone'
 import {
-  ALLOWED_FORM_ATTACHMENT_TYPES,
-  formatFileSize,
+  MAX_FORM_ATTACHMENT_FILES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
-
-const MAX_ISSUE_ATTACHMENT_FILES = 3
 
 interface IssueCreationModalProps {
   isOpen: boolean
@@ -169,7 +167,6 @@ export function IssueCreationModal({
   const [error, setError] = useState<string | null>(null)
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([])
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
-  const [attachmentInputKey, setAttachmentInputKey] = useState(0)
 
   const titleRef = useRef<HTMLDivElement>(null)
   const descriptionRef = useRef<HTMLDivElement>(null)
@@ -273,7 +270,6 @@ export function IssueCreationModal({
     setSelectedLabels([])
     setAttachmentFiles([])
     setAttachmentError(null)
-    setAttachmentInputKey(key => key + 1)
 
     if (titleRef.current) titleRef.current.textContent = ''
     if (descriptionRef.current) descriptionRef.current.textContent = ''
@@ -342,8 +338,8 @@ export function IssueCreationModal({
 
     const acceptedFiles: File[] = []
     for (const file of files) {
-      if (attachmentFiles.length + acceptedFiles.length >= MAX_ISSUE_ATTACHMENT_FILES) {
-        setAttachmentError(`You can attach up to ${MAX_ISSUE_ATTACHMENT_FILES} files`)
+      if (attachmentFiles.length + acceptedFiles.length >= MAX_FORM_ATTACHMENT_FILES) {
+        setAttachmentError(`You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files`)
         break
       }
 
@@ -359,15 +355,10 @@ export function IssueCreationModal({
 
     if (acceptedFiles.length > 0) {
       setAttachmentFiles(prev => [...prev, ...acceptedFiles])
-      setAttachmentInputKey(key => key + 1)
       return true
     }
 
     return false
-  }
-
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    addAttachmentFiles(Array.from(e.target.files ?? []))
   }
 
   const handleDescriptionPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -389,7 +380,6 @@ export function IssueCreationModal({
   const removeAttachmentFile = (index: number) => {
     setAttachmentFiles(prev => prev.filter((_, fileIndex) => fileIndex !== index))
     setAttachmentError(null)
-    setAttachmentInputKey(key => key + 1)
   }
 
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -509,39 +499,17 @@ export function IssueCreationModal({
                     data-placeholder="Add description…"
                     onFocus={() => setError(null)}
                   />
-                  {(attachmentFiles.length > 0 || attachmentError) && (
-                    <div className="mt-3 space-y-2">
-                      {attachmentFiles.map((file, index) => (
-                        <div
-                          key={`${file.name}-${file.lastModified}-${index}`}
-                          className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
-                          style={{
-                            border: '0.5px solid lch(24.833 4.707 272)',
-                            backgroundColor: 'lch(8.3 1.867 272)',
-                          }}
-                        >
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Paperclip className="h-4 w-4 shrink-0" style={{ color: 'lch(64.892% 1.933 272 / 1)' }} />
-                            <span className="truncate">{file.name}</span>
-                            <span className="shrink-0" style={{ color: 'lch(64.892% 1.933 272 / 1)' }}>
-                              {formatFileSize(file.size)}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeAttachmentFile(index)}
-                            className="rounded p-1 hover:bg-accent transition-colors"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                      {attachmentError && (
-                        <p className="text-sm text-red-500">{attachmentError}</p>
-                      )}
-                    </div>
-                  )}
+                  <div className="mt-4">
+                    <AttachmentUploadDropzone
+                      files={attachmentFiles}
+                      error={attachmentError}
+                      busy={isSubmitting}
+                      disabled={isSubmitting}
+                      maxFiles={MAX_FORM_ATTACHMENT_FILES}
+                      onFilesAdded={addAttachmentFiles}
+                      onRemoveFile={removeAttachmentFile}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -834,28 +802,7 @@ export function IssueCreationModal({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
-              <label
-                className={`inline-flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors hover:bg-accent ${
-                  isSubmitting ? 'pointer-events-none opacity-50' : ''
-                }`}
-                style={{
-                  border: '0.5px solid lch(24.833 4.707 272)',
-                  backgroundColor: 'lch(8.3 1.867 272)',
-                }}
-              >
-                <Paperclip className="h-4 w-4" />
-                <span>Attach</span>
-                <input
-                  key={attachmentInputKey}
-                  type="file"
-                  multiple
-                  accept={Object.keys(ALLOWED_FORM_ATTACHMENT_TYPES).join(',')}
-                  className="sr-only"
-                  onChange={handleAttachmentChange}
-                  disabled={isSubmitting}
-                />
-              </label>
+            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t" style={{ borderColor: 'lch(24.833 4.707 272)' }}>
               <Button
                 type="submit"
                 disabled={!formData.title.trim() || isSubmitting}

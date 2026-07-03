@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, type ChangeEvent } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Paperclip, X } from 'lucide-react'
+import { Paperclip } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,12 +17,12 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import { AttachmentUploadDropzone } from '@/components/attachment-upload-dropzone'
 import { LinearMarkdownEditor } from '@/components/linear-markdown-editor'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 import { cn } from '@/lib/utils'
 import {
-  ALLOWED_FORM_ATTACHMENT_TYPES,
-  formatFileSize,
+  MAX_FORM_ATTACHMENT_FILES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
 
@@ -40,6 +40,8 @@ const PUBLIC_FORM_TOASTER_ID = 'public-form-submit'
 const PUBLIC_FORM_SUBMIT_TOAST_ID = 'public-form-submit-status'
 
 type FormValues = z.infer<typeof formSchema>
+
+const fileKey = (file: File) => `${file.name}-${file.lastModified}-${file.size}`
 
 type LinearIssueTemplate = {
   id: string
@@ -128,9 +130,8 @@ export default function PublicFormPage() {
   const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([])
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
-  const [attachmentInputKey, setAttachmentInputKey] = useState(0)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
   // Load branding settings for this form's owner
@@ -261,39 +262,54 @@ export default function PublicFormPage() {
     }
   }, [branding, formConfig?.form_title, isEmbedded])
 
-  const clearAttachmentFile = () => {
-    setAttachmentFile(null)
+  const clearAttachmentFiles = () => {
+    setAttachmentFiles([])
     setAttachmentError(null)
-    setAttachmentInputKey((key) => key + 1)
   }
 
-  const onAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null
+  const addAttachmentFiles = (files: File[]) => {
     setAttachmentError(null)
+    if (files.length === 0) return
 
-    if (!file) {
-      setAttachmentFile(null)
-      return
+    const acceptedFiles: File[] = []
+    const seen = new Set(attachmentFiles.map(fileKey))
+
+    for (const file of files) {
+      if (attachmentFiles.length + acceptedFiles.length >= MAX_FORM_ATTACHMENT_FILES) {
+        setAttachmentError(`You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files`)
+        break
+      }
+
+      const validation = validateFormAttachmentFile(file)
+      if (!validation.ok) {
+        setAttachmentError(`${file.name}: ${validation.error}`)
+        continue
+      }
+
+      const key = fileKey(file)
+      if (seen.has(key)) continue
+
+      seen.add(key)
+      acceptedFiles.push(file)
     }
 
-    const validation = validateFormAttachmentFile(file)
-    if (!validation.ok) {
-      setAttachmentFile(null)
-      setAttachmentError(validation.error)
-      setAttachmentInputKey((key) => key + 1)
-      return
+    if (acceptedFiles.length > 0) {
+      setAttachmentFiles((current) => [...current, ...acceptedFiles])
     }
+  }
 
-    setAttachmentFile(file)
+  const removeAttachmentFile = (index: number) => {
+    setAttachmentFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+    setAttachmentError(null)
   }
 
   const onFormSubmit = async (values: FormValues) => {
     if (!formConfig) return
 
-    if (attachmentFile) {
+    for (const attachmentFile of attachmentFiles) {
       const validation = validateFormAttachmentFile(attachmentFile)
       if (!validation.ok) {
-        setAttachmentError(validation.error)
+        setAttachmentError(`${attachmentFile.name}: ${validation.error}`)
         return
       }
     }
@@ -312,7 +328,7 @@ export default function PublicFormPage() {
         'templateId',
         selectedTemplateId || values.templateId || formConfig.linear_template_id || '',
       )
-      if (attachmentFile) payload.set('attachmentFile', attachmentFile)
+      attachmentFiles.forEach((file) => payload.append('attachmentFiles', file))
 
       const response = await fetch(`/api/form/${encodeURIComponent(slug)}/submit`, {
         method: 'POST',
@@ -352,7 +368,7 @@ export default function PublicFormPage() {
           templateId: defaultTemplateId,
         })
         setSelectedTemplateId(defaultTemplateId)
-        clearAttachmentFile()
+        clearAttachmentFiles()
       } else {
         toast.error('Could not submit request', {
           id: PUBLIC_FORM_SUBMIT_TOAST_ID,
@@ -611,47 +627,24 @@ export default function PublicFormPage() {
                   name="attachmentUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Attachment (optional)</FormLabel>
+                      <FormLabel>Attachments (optional)</FormLabel>
                       <FormControl>
                         <div className="space-y-3">
                           <Input type="hidden" {...field} />
-                          <Input
-                            key={attachmentInputKey}
-                            type="file"
-                            accept={Object.keys(ALLOWED_FORM_ATTACHMENT_TYPES).join(',')}
-                            onChange={onAttachmentChange}
+                          <AttachmentUploadDropzone
+                            files={attachmentFiles}
+                            error={attachmentError}
+                            busy={submitting}
+                            disabled={submitting}
+                            maxFiles={MAX_FORM_ATTACHMENT_FILES}
+                            onFilesAdded={addAttachmentFiles}
+                            onRemoveFile={removeAttachmentFile}
                           />
-                          {attachmentFile && (
-                            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <Paperclip className="size-4 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{attachmentFile.name}</span>
-                                <span className="shrink-0 text-muted-foreground">
-                                  {formatFileSize(attachmentFile.size)}
-                                </span>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                onClick={clearAttachmentFile}
-                                aria-label="Remove attachment"
-                              >
-                                <X className="size-4" />
-                              </Button>
-                            </div>
-                          )}
-                          {field.value && !attachmentFile && (
+                          {field.value && (
                             <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                               <Paperclip className="size-4 shrink-0" />
                               <span className="truncate">Linked attachment included</span>
                             </div>
-                          )}
-                          {attachmentError && (
-                            <p className="text-sm font-medium text-destructive">
-                              {attachmentError}
-                            </p>
                           )}
                         </div>
                       </FormControl>
