@@ -3,6 +3,7 @@ import { authorisePublicView } from '@/lib/public-view-auth';
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/request-security';
 import { uploadFileToLinear } from '@/lib/linear-file-upload';
 import {
+  MAX_FORM_ATTACHMENT_FILES,
   MAX_FORM_ATTACHMENT_SIZE_BYTES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment';
@@ -13,9 +14,8 @@ import {
 } from '@/lib/public-view-issue-creation';
 import * as z from 'zod';
 
-const MAX_ISSUE_ATTACHMENT_FILES = 3;
 const MAX_ISSUE_CREATE_BODY_BYTES =
-  MAX_ISSUE_ATTACHMENT_FILES * MAX_FORM_ATTACHMENT_SIZE_BYTES + 512 * 1024;
+  MAX_FORM_ATTACHMENT_FILES * MAX_FORM_ATTACHMENT_SIZE_BYTES + 512 * 1024;
 
 const issueCreateSchema = z.object({
   title: z.string().trim().min(1).max(300),
@@ -104,9 +104,9 @@ export async function POST(
     if (!rateLimit.ok) return rateLimitResponse(rateLimit.retryAfterSeconds);
 
     const payload = await parseIssueCreatePayload(request);
-    if (payload.attachmentFiles.length > MAX_ISSUE_ATTACHMENT_FILES) {
+    if (payload.attachmentFiles.length > MAX_FORM_ATTACHMENT_FILES) {
       return NextResponse.json(
-        { error: `You can attach up to ${MAX_ISSUE_ATTACHMENT_FILES} files` },
+        { error: `You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files` },
         { status: 400 }
       );
     }
