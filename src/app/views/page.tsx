@@ -21,12 +21,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Navigation } from "@/components/navigation";
 import { supabase, PublicView } from "@/lib/supabase";
 import { getActiveOrganisationId } from "@/lib/organisations";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Eye, Copy, Globe, Lock, Edit3, X } from "lucide-react";
+import { Check, ChevronsUpDown, Trash2, Eye, Copy, Globe, Lock, Edit3, X } from "lucide-react";
 import bcrypt from "bcryptjs";
 
 type Project = {
@@ -47,6 +61,89 @@ type LinearLabel = {
   name: string;
   color: string;
 };
+
+type SourceComboboxOption = {
+  id: string;
+  label: string;
+  description?: string;
+  searchText?: string;
+};
+
+type SourceComboboxProps = {
+  id: string;
+  value: string;
+  options: SourceComboboxOption[];
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyMessage: string;
+  onValueChange: (value: string) => void;
+};
+
+function SourceCombobox({
+  id,
+  value,
+  options,
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
+  onValueChange,
+}: SourceComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find((option) => option.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <span className={cn("truncate", !selectedOption && "text-muted-foreground")}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronsUpDown data-icon="inline-end" className="opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.id}
+                  value={`${option.label} ${option.description ?? ""} ${option.searchText ?? ""} ${option.id}`}
+                  onSelect={() => {
+                    onValueChange(option.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    data-icon="inline-start"
+                    className={cn(
+                      "opacity-0",
+                      value === option.id && "opacity-100",
+                    )}
+                  />
+                  <span className="truncate">{option.label}</span>
+                  {option.description ? (
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                      {option.description}
+                    </span>
+                  ) : null}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function PublicViewsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -105,6 +202,25 @@ export default function PublicViewsPage() {
     [filteredPickerIssues],
   );
   const hiddenPickerCount = filteredPickerIssues.length - visiblePickerIssues.length;
+  const projectOptions = useMemo<SourceComboboxOption[]>(
+    () =>
+      projects.map((project) => ({
+        id: project.id,
+        label: project.name,
+        searchText: project.description,
+      })),
+    [projects],
+  );
+  const teamOptions = useMemo<SourceComboboxOption[]>(
+    () =>
+      teams.map((team) => ({
+        id: team.id,
+        label: team.name,
+        description: team.key,
+        searchText: team.description,
+      })),
+    [teams],
+  );
 
   const toggleExcludeIssue = useCallback((issueId: string) => {
     setExcludedIssueIds((prev) =>
@@ -941,40 +1057,28 @@ export default function PublicViewsPage() {
                   {sourceType === "project" ? (
                     <div className="space-y-2">
                       <Label htmlFor="project">Linear project *</Label>
-                      <Select
+                      <SourceCombobox
+                        id="project"
                         value={selectedProject}
+                        options={projectOptions}
+                        placeholder="Choose which project to share"
+                        searchPlaceholder="Search projects..."
+                        emptyMessage="No projects found."
                         onValueChange={handleProjectChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose which project to share" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projects.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Label htmlFor="team">Linear team *</Label>
-                      <Select
+                      <SourceCombobox
+                        id="team"
                         value={selectedTeam}
+                        options={teamOptions}
+                        placeholder="Choose which team to share"
+                        searchPlaceholder="Search teams..."
+                        emptyMessage="No teams found."
                         onValueChange={handleTeamChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose which team to share" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name} ({team.key})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   )}
                   {renderIncludedLabelsSection()}
@@ -1246,40 +1350,28 @@ export default function PublicViewsPage() {
                   {sourceType === "project" ? (
                     <div className="space-y-2">
                       <Label htmlFor="edit-project">Linear project *</Label>
-                      <Select
+                      <SourceCombobox
+                        id="edit-project"
                         value={selectedProject}
+                        options={projectOptions}
+                        placeholder="Choose which project to share"
+                        searchPlaceholder="Search projects..."
+                        emptyMessage="No projects found."
                         onValueChange={handleProjectChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose which project to share" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projects.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Label htmlFor="edit-team">Linear team *</Label>
-                      <Select
+                      <SourceCombobox
+                        id="edit-team"
                         value={selectedTeam}
+                        options={teamOptions}
+                        placeholder="Choose which team to share"
+                        searchPlaceholder="Search teams..."
+                        emptyMessage="No teams found."
                         onValueChange={handleTeamChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose which team to share" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   )}
                   {renderIncludedLabelsSection()}
