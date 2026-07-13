@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { notFound } from 'next/navigation'
 import { IssuesView } from '@/components/issues-view'
 import { IssueCreationModal } from '@/components/issue-creation-modal'
-import { IssueDetailModal } from '@/components/issue-detail-modal'
+import { IssueDetailView } from '@/components/issue-detail-view'
 import { ProjectUpdatesModal } from '@/components/project-updates-modal'
 import { PublicView } from '@/lib/supabase'
 import { LinearIssue } from '@/app/api/linear/issues/route'
@@ -67,10 +67,11 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   const [slug, setSlug] = useState<string>('')
   const [routeIssueId, setRouteIssueId] = useState<string | null>(null)
   const [showIssueModal, setShowIssueModal] = useState(false)
-  const [showIssueDetail, setShowIssueDetail] = useState(false)
   const [showProjectUpdates, setShowProjectUpdates] = useState(false)
-  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [defaultStateName, setDefaultStateName] = useState<string | undefined>(undefined)
+  // Remembers where the list was scrolled when an issue was opened, so we can
+  // restore it on return (the list unmounts while the issue view is shown).
+  const listScrollY = useRef(0)
 
   // Load branding settings for this view's owner
   const { branding } = useBrandingSettings(
@@ -96,11 +97,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   }, [params])
 
   useEffect(() => {
-    setSelectedIssueId(routeIssueId)
-    setShowIssueDetail(Boolean(routeIssueId))
-  }, [routeIssueId])
-
-  useEffect(() => {
     if (!slug) return
 
     const handlePopState = () => {
@@ -112,6 +108,15 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       window.removeEventListener('popstate', handlePopState)
     }
   }, [slug])
+
+  // When we return to the list (routeIssueId cleared) restore the scroll
+  // position captured when the issue was opened. The list unmounts while an
+  // issue is open, so without this it would remount at the top.
+  useEffect(() => {
+    if (!routeIssueId && listScrollY.current) {
+      window.scrollTo(0, listScrollY.current)
+    }
+  }, [routeIssueId])
 
   const loadView = async (providedPassword?: string) => {
     if (!slug) return
@@ -193,17 +198,14 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   }
 
   const handleIssueClick = (issueId: string) => {
-    setSelectedIssueId(issueId)
-    setShowIssueDetail(true)
     if (slug && routeIssueId !== issueId) {
+      listScrollY.current = window.scrollY
       setRouteIssueId(issueId)
       updateBrowserPath(getIssuePath(slug, issueId), 'push')
     }
   }
 
   const handleCloseIssueDetail = () => {
-    setShowIssueDetail(false)
-    setSelectedIssueId(null)
     if (slug) {
       setRouteIssueId(null)
       updateBrowserPath(getViewPath(slug), 'replace')
@@ -353,6 +355,31 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
   if (!view) {
     notFound()
     return null
+  }
+
+  // Full-page issue view: when the URL points at an issue, the list shell is not
+  // rendered at all. The issue view supplies its own min-h-screen background;
+  // this wrapper only carries the branding CSS-variable styles.
+  if (routeIssueId) {
+    return (
+      <div style={getBrandingStyles(branding)}>
+        <IssueDetailView
+          issueId={routeIssueId}
+          viewSlug={slug}
+          backHref={`/view/${encodeURIComponent(slug)}`}
+          backLabel={branding?.brand_name || view.view_title || view.project_name || view.team_name || 'Back'}
+          brandName={branding?.brand_name || undefined}
+          logoUrl={branding?.logo_url || undefined}
+          onBack={handleCloseIssueDetail}
+          showComments={view.show_comments}
+          showActivity={view.show_activity}
+          showDescriptions={view.show_descriptions}
+          showAssignees={view.show_assignees}
+          showLabels={view.show_labels}
+          showPriorities={view.show_priorities}
+        />
+      </div>
+    )
   }
 
   return (
@@ -515,22 +542,6 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
         viewSlug={slug}
         defaultStateName={defaultStateName}
       />
-
-      {/* Issue Detail Modal */}
-      {selectedIssueId && (
-        <IssueDetailModal
-          isOpen={showIssueDetail}
-          onClose={handleCloseIssueDetail}
-          issueId={selectedIssueId}
-          viewSlug={slug}
-          showComments={view?.show_comments}
-          showActivity={view?.show_activity}
-          showDescriptions={view?.show_descriptions}
-          showAssignees={view?.show_assignees}
-          showLabels={view?.show_labels}
-          showPriorities={view?.show_priorities}
-        />
-      )}
 
       {/* Project Updates Modal */}
       {view?.project_id && (
