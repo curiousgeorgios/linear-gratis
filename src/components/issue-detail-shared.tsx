@@ -4,6 +4,7 @@ import { isValidElement, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { IssueDetail, ReferencedIssue } from '@/app/api/public-view/[slug]/issue/[issueId]/route'
+import { EstimateIcon } from '@/components/priority-icon'
 
 export type { IssueDetail, ReferencedIssue }
 
@@ -130,7 +131,10 @@ function IssueReferenceLink({
 }) {
   const destination = issue?.url || (isGeneratedIssueReferenceHref(href) ? undefined : href)
   const className = 'not-prose inline-flex w-fit max-w-none items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-accent/60 px-1.5 py-0.5 align-middle text-sm font-medium leading-5 text-foreground no-underline shadow-xs transition-colors hover:bg-accent hover:no-underline'
-  const title = issue ? `${issue.identifier} ${issue.title}` : identifier
+  const estimateLabel = issue?.estimate != null && issue.estimate > 0
+    ? ` · ${issue.estimate} point${issue.estimate === 1 ? '' : 's'}`
+    : ''
+  const title = issue ? `${issue.identifier} ${issue.title}${estimateLabel}` : identifier
   const content = (
     <>
       <span className="shrink-0">
@@ -140,6 +144,15 @@ function IssueReferenceLink({
         <span className="font-mono text-muted-foreground">{issue?.identifier || identifier}</span>
         {issue?.title && <span className="font-normal text-foreground"> {issue.title}</span>}
       </span>
+      {issue?.estimate != null && issue.estimate > 0 && (
+        <span
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-normal tabular-nums text-muted-foreground"
+          aria-label={`Estimate: ${issue.estimate} point${issue.estimate === 1 ? '' : 's'}`}
+        >
+          <EstimateIcon className="size-3.5" />
+          <span aria-hidden="true">{issue.estimate}</span>
+        </span>
+      )}
     </>
   )
 
