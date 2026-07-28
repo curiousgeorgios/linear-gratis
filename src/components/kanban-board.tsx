@@ -104,7 +104,7 @@ export function KanbanBoard({
                 <div className="w-full" style={{ width: '348px' }}>
                   <div className="flex items-center justify-between p-3 mb-2">
                     <div className="flex items-center gap-2">
-                      <StateIcon type={column.type} color={columnColor} />
+                      <StateIcon type={column.type} color={columnColor} name={columnName} />
                       <span className="text-sm font-medium text-foreground tracking-tight">
                         {columnName}
                       </span>
@@ -137,7 +137,11 @@ export function KanbanBoard({
                                     {issue.identifier}
                                   </span>
                                   <div className="flex items-center gap-1">
-                                    <StateIcon type={issue.state.type} color={issue.state.color} />
+                                    <StateIcon
+                                      type={issue.state.type}
+                                      color={issue.state.color}
+                                      name={issue.state.name}
+                                    />
                                   </div>
                                 </div>
 

@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import type { IssueDetail } from '@/app/api/public-view/[slug]/issue/[issueId]/route'
 import {
-  getStateIcon,
   LinearMarkdown,
   formatDate,
   formatRelativeDate,
   formatAbsoluteDate,
 } from '@/components/issue-detail-shared'
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
+import { StateIcon } from '@/components/state-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
 interface IssueDetailViewProps {
@@ -147,7 +147,12 @@ export function IssueDetailView({
               <span className="text-sm font-mono text-muted-foreground shrink-0">/</span>
               <span className="text-sm font-mono text-muted-foreground font-semibold shrink-0">{issue.identifier}</span>
               <span className="flex items-center gap-1.5 shrink-0">
-                {getStateIcon(issue.state.type, issue.state.color)}
+                <StateIcon
+                  type={issue.state.type}
+                  color={issue.state.color}
+                  name={issue.state.name}
+                  size={16}
+                />
                 <span className="text-sm text-muted-foreground">{issue.state.name}</span>
               </span>
             </div>
@@ -393,7 +398,12 @@ function IssueProperties({
     <div className="space-y-3">
       <PropertyGroup title="Properties">
         <PropertyRow label="Status">
-          {getStateIcon(issue.state.type, issue.state.color)}
+          <StateIcon
+            type={issue.state.type}
+            color={issue.state.color}
+            name={issue.state.name}
+            size={16}
+          />
           <span className="truncate">{issue.state.name}</span>
         </PropertyRow>
         {showPriorities && (

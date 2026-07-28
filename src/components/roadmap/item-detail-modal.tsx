@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { X, MessageCircle, Calendar } from 'lucide-react'
 import { VoteButton } from './vote-button'
 import { CommentSection } from './comment-section'
+import { StateIcon } from '@/components/state-icon'
 import type { RoadmapIssue } from '@/lib/linear'
 
 interface ItemDetailModalProps {
@@ -75,23 +76,6 @@ export function ItemDetailModal({
     })
   }
 
-  // Get status colour based on state type
-  const getStatusColour = (stateType: string) => {
-    switch (stateType) {
-      case 'completed':
-        return 'bg-green-500'
-      case 'started':
-        return 'bg-yellow-500'
-      case 'backlog':
-      case 'unstarted':
-        return 'bg-blue-500'
-      case 'canceled':
-        return 'bg-gray-400'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 backdrop-blur-sm"
@@ -157,7 +141,11 @@ export function ItemDetailModal({
               <div className="flex items-center gap-3">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${getStatusColour(issue.state.type)}`} />
+                  <StateIcon
+                    type={issue.state.type}
+                    color={issue.state.color}
+                    name={issue.state.name}
+                  />
                   <span className="text-sm font-medium" style={{ color: issue.state.color }}>
                     {issue.state.name}
                   </span>

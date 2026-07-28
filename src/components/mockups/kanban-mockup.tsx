@@ -1,6 +1,7 @@
 'use client'
 
 import { Badge } from '@/components/ui/badge'
+import { StateIcon } from '@/components/state-icon'
 
 type Priority = 'high' | 'medium' | 'low'
 
@@ -13,6 +14,7 @@ interface Issue {
 
 interface Column {
   name: string
+  stateType: string
   color: string
   issues: Issue[]
 }
@@ -20,7 +22,8 @@ interface Column {
 const columns: Column[] = [
   {
     name: 'Backlog',
-    color: 'bg-gray-500',
+    stateType: 'backlog',
+    color: '#9ca3af',
     issues: [
       { id: 'LIN-42', title: 'Add dark mode support', priority: 'medium', labels: ['enhancement'] },
       { id: 'LIN-43', title: 'Improve mobile responsiveness', priority: 'low', labels: ['ui'] },
@@ -28,7 +31,8 @@ const columns: Column[] = [
   },
   {
     name: 'In progress',
-    color: 'bg-yellow-500',
+    stateType: 'started',
+    color: '#eab308',
     issues: [
       { id: 'LIN-38', title: 'API rate limiting', priority: 'high', labels: ['backend'] },
       { id: 'LIN-39', title: 'User onboarding flow', priority: 'medium', labels: ['ux'] },
@@ -36,14 +40,16 @@ const columns: Column[] = [
   },
   {
     name: 'In review',
-    color: 'bg-blue-500',
+    stateType: 'started',
+    color: '#3b82f6',
     issues: [
       { id: 'LIN-35', title: 'Dashboard analytics', priority: 'medium', labels: ['feature'] },
     ],
   },
   {
     name: 'Done',
-    color: 'bg-green-500',
+    stateType: 'completed',
+    color: '#22c55e',
     issues: [
       { id: 'LIN-31', title: 'SSO integration', priority: 'high', labels: ['auth'] },
       { id: 'LIN-32', title: 'Email notifications', priority: 'medium', labels: ['feature'] },
@@ -130,7 +136,11 @@ export function KanbanMockup() {
           <div key={column.name} className="space-y-2">
             {/* Column header */}
             <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-              <div className={`w-2 h-2 rounded-full ${column.color}`} />
+              <StateIcon
+                type={column.stateType}
+                color={column.color}
+                name={column.name}
+              />
               <span className="text-xs font-medium">{column.name}</span>
               <span className="text-xs text-muted-foreground ml-auto">
                 {column.issues.length}

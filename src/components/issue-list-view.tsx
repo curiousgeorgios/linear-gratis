@@ -93,7 +93,11 @@ export function IssueListView({
                   }`}
                 />
                 {display.grouping === 'status' && (
-                  <StateIcon type={group.stateType ?? ''} color={group.stateColor ?? ''} />
+                  <StateIcon
+                    type={group.stateType ?? ''}
+                    color={group.stateColor ?? ''}
+                    name={group.name}
+                  />
                 )}
                 {display.grouping === 'priority' && (
                   <PriorityIcon priority={group.priority ?? 0} priorityLabel={group.name} />
@@ -135,7 +139,11 @@ export function IssueListView({
                   </span>
                   {display.properties.status && (
                     <span className="flex-shrink-0">
-                      <StateIcon type={issue.state.type} color={issue.state.color} />
+                      <StateIcon
+                        type={issue.state.type}
+                        color={issue.state.color}
+                        name={issue.state.name}
+                      />
                     </span>
                   )}
                   <span className="flex-1 min-w-0 truncate text-sm text-foreground">{issue.title}</span>

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { IssueDetail, ReferencedIssue } from '@/app/api/public-view/[slug]/issue/[issueId]/route'
 import { EstimateIcon } from '@/components/priority-icon'
+import { StateIcon } from '@/components/state-icon'
 
 export type { IssueDetail, ReferencedIssue }
 
@@ -71,35 +72,6 @@ function remarkIssueReferences() {
   }
 }
 
-export const getStateIcon = (stateType: string, color: string) => {
-  const strokeColor = color || '#9ca3af'
-
-  if (stateType === 'completed') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="6" fill={strokeColor} stroke={strokeColor} strokeWidth="1.5"></circle>
-        <path d="M5 8l2 2 4-4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-      </svg>
-    )
-  }
-
-  if (stateType === 'started') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-        <circle className="progress" cx="8" cy="8" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="6.094689747964199" transform="rotate(-90 8 8)"></circle>
-      </svg>
-    )
-  }
-
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3.14 0" strokeDashoffset="-0.7"></circle>
-      <circle className="progress" cx="8" cy="8" r="2" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="12.189379495928398 24.378758991856795" strokeDashoffset="12.189379495928398" transform="rotate(-90 8 8)"></circle>
-    </svg>
-  )
-}
-
 function getNodeText(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
   if (Array.isArray(node)) return node.map(getNodeText).join('')
@@ -138,7 +110,12 @@ function IssueReferenceLink({
   const content = (
     <>
       <span className="shrink-0">
-        {issue ? getStateIcon(issue.state.type, issue.state.color) : getStateIcon('unstarted', '#8a8f98')}
+        <StateIcon
+          type={issue?.state.type || 'unstarted'}
+          color={issue?.state.color || '#8a8f98'}
+          name={issue?.state.name}
+          size={16}
+        />
       </span>
       <span>
         <span className="font-mono text-muted-foreground">{issue?.identifier || identifier}</span>
