@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { RoadmapCard } from './roadmap-card'
+import { StateIcon } from '@/components/state-icon'
 import type { RoadmapIssue } from '@/lib/linear'
 import type { KanbanColumn } from '@/lib/supabase'
 
@@ -22,35 +23,18 @@ interface KanbanViewProps {
   onVote?: (issueId: string, voted: boolean, newCount: number) => void
 }
 
-// Column header icons based on column key
+// Roadmap columns are presentation buckets rather than Linear states, so map
+// their keys to the closest Linear workflow category and reuse StateIcon.
 const ColumnIcon = ({ columnKey }: { columnKey: string }) => {
   switch (columnKey) {
     case 'planned':
-      return (
-        <svg className="h-4 w-4 text-blue-500" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      )
+      return <StateIcon type="unstarted" color="#3b82f6" name="Planned" size={16} />
     case 'in_progress':
-      return (
-        <svg className="h-4 w-4 text-yellow-500" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M8 8 L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
+      return <StateIcon type="started" color="#eab308" name="In progress" size={16} />
     case 'shipped':
-      return (
-        <svg className="h-4 w-4 text-green-500" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M5 8 L7 10 L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        </svg>
-      )
+      return <StateIcon type="completed" color="#22c55e" name="Shipped" size={16} />
     default:
-      return (
-        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      )
+      return <StateIcon type="unstarted" color="currentColor" size={16} />
   }
 }
 
