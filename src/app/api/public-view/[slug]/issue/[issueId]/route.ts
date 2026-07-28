@@ -82,6 +82,7 @@ export type ReferencedIssue = {
   id: string;
   identifier: string;
   title: string;
+  estimate?: number;
   url: string;
   state: {
     id: string;
@@ -172,6 +173,7 @@ async function fetchReferencedIssues(
           id
           identifier
           title
+          estimate
           url
           team {
             id
@@ -219,6 +221,7 @@ async function fetchReferencedIssues(
           id: string;
           identifier: string;
           title: string;
+          estimate?: number;
           url: string;
           team?: { id: string } | null;
           project?: { id: string } | null;
@@ -263,6 +266,7 @@ async function fetchReferencedIssues(
       id: referencedIssue.id,
       identifier: referencedIssue.identifier,
       title: referencedIssue.title,
+      estimate: view.show_priorities !== false ? referencedIssue.estimate : undefined,
       url: referencedIssue.url,
       state: referencedIssue.state,
     };
