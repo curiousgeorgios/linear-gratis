@@ -57,7 +57,8 @@ export async function POST(
     const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
     if (!issueAccess.ok) return issueAccess.response;
 
-    // Hash the client IP for additional verification
+    // IP hashes are optional abuse-analysis metadata. Fingerprint-based
+    // deduplication remains the authoritative voting control.
     const ipHash = hashIp(clientIp);
 
     // Try to insert the vote (will fail if duplicate due to UNIQUE constraint).
@@ -78,8 +79,9 @@ export async function POST(
     if (insertError) {
       // Check if it's a duplicate error (unique constraint violation)
       if (insertError.code === '23505') {
+        const voteCount = await getVoteCount(roadmap.id, issueAccess.issueId);
         return NextResponse.json(
-          { error: 'You have already voted for this item' },
+          { error: 'You have already voted for this item', voteCount },
           { status: 409 }
         );
       }
@@ -87,15 +89,11 @@ export async function POST(
     }
 
     // Get the updated vote count for this issue
-    const { count } = await supabaseAdmin
-      .from('roadmap_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('roadmap_id', roadmap.id)
-      .eq('issue_id', issueAccess.issueId);
+    const voteCount = await getVoteCount(roadmap.id, issueAccess.issueId);
 
     return NextResponse.json({
       success: true,
-      voteCount: count || 1,
+      voteCount,
     });
 
   } catch (error) {
@@ -161,15 +159,11 @@ export async function DELETE(
     }
 
     // Get the updated vote count for this issue
-    const { count } = await supabaseAdmin
-      .from('roadmap_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('roadmap_id', roadmap.id)
-      .eq('issue_id', issueAccess.issueId);
+    const voteCount = await getVoteCount(roadmap.id, issueAccess.issueId);
 
     return NextResponse.json({
       success: true,
-      voteCount: count || 0,
+      voteCount,
     });
 
   } catch (error) {
@@ -182,4 +176,22 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+async function getVoteCount(roadmapId: string, issueId: string): Promise<number | undefined> {
+  const { count, error } = await supabaseAdmin
+    .from('roadmap_votes')
+    .select('*', { count: 'exact', head: true })
+    .eq('roadmap_id', roadmapId)
+    .eq('issue_id', issueId);
+
+  // A successful mutation must not be reported as failed merely because its
+  // follow-up count read is temporarily unavailable. The client keeps its
+  // optimistic count and reconciles on the next refresh in that case.
+  if (error) {
+    console.error('Failed to read updated roadmap vote count:', error);
+    return undefined;
+  }
+
+  return count ?? 0;
 }

@@ -141,7 +141,8 @@ export async function POST(
     const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
     if (!issueAccess.ok) return issueAccess.response;
 
-    // Hash the client IP
+    // The hash is optional abuse-analysis metadata; do not make commenting
+    // unavailable when a deployment is missing the hash salt.
     const ipHash = hashIp(clientIp);
 
     // Determine if comment should be auto-approved

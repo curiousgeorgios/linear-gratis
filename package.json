@@ -7,9 +7,11 @@
 		"build": "next build",
 		"build:worker": "opennextjs-cloudflare build",
 		"start": "next start",
+		"test": "bun test",
+		"test:roadmap-votes": "bun test tests/roadmap-vote-lifecycle.test.ts",
 		"lint": "next lint",
 		"preview": "npm run build:worker && wrangler dev",
-		"deploy": "npm run build:worker && wrangler deploy",
+		"deploy": "infisical run --env=prod --command 'bun run build:worker && wrangler deploy'",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts",
 		"generate-og": "node scripts/generate-og.js"
 	},

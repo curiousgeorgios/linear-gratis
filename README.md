@@ -103,13 +103,18 @@ The local template lives in [.env.example](.env.example).
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key for client-side authenticated access. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only key for API routes and trusted migration-style operations. |
 | `ENCRYPTION_KEY` | Yes | Base64 32-byte key used to encrypt Linear API tokens. |
+| `IP_HASH_SALT` | Yes in production | Stable random salt for pseudonymous public-roadmap IP metadata. Voting and comments remain available if it is absent. |
 | `CLOUDFLARE_API_TOKEN` | For custom domains | Cloudflare API token for DNS and hostname verification checks. |
 | `CLOUDFLARE_ACCOUNT_ID` | For custom domains | Cloudflare account id used with the API token. |
+| `CLOUDFLARE_ZONE_ID` | For custom domains | Cloudflare zone ID used to manage custom hostnames. |
+| `FEEDBACK_WEBHOOK_SECRET` | For signed feedback | Shared HMAC secret for inbound public-view feedback webhooks. |
 | `NEXT_PUBLIC_APP_DOMAIN` | Recommended | Canonical app domain used for custom-domain CNAME instructions. |
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`, or Cloudflare tokens
-to the browser. Keep production values in Worker secrets or your deployment
-secret store.
+to the browser. Infisical `prod` is the source of truth for production secrets;
+the corresponding Worker secrets are deployment copies. Cloudflare cannot reveal
+an existing secret value, so migrate a Worker-only secret by recovering it from
+its original secure source or by coordinating a rotation with its consumers.
 
 ## Database Migrations
 
@@ -182,17 +187,17 @@ npm run build:worker
 npm run deploy
 ```
 
-Production secrets should be set through Wrangler, not committed:
+Manage or rotate the value in Infisical first, then mirror it to the Worker
+without committing it. The deploy script builds with Infisical `prod` injected.
 
 ```bash
-npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-npx wrangler secret put ENCRYPTION_KEY
-npx wrangler secret put CLOUDFLARE_API_TOKEN
-npx wrangler secret put CLOUDFLARE_ACCOUNT_ID
+infisical secrets set --env=prod SECRET_NAME=@/path/to/secure-value
+npx wrangler secret put SECRET_NAME
 ```
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public
-configuration values and may live in Wrangler vars.
+configuration values and may live in Wrangler vars; they are also available in
+the Infisical project so release builds have one consistent configuration source.
 
 ## Project Structure
 
