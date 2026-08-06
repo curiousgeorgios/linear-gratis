@@ -1,8 +1,7 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export { hashIp } from '@/lib/ip-hash'
+export { getClientIp, rateLimitResponse } from '@/lib/request-security-core'
 
 type RateLimitOptions = {
   limit: number
@@ -15,19 +14,6 @@ type RateLimitBucket = {
 }
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>()
-
-export function getClientIp(request: NextRequest): string {
-  const cfConnectingIp = request.headers.get('cf-connecting-ip')
-  if (cfConnectingIp) return cfConnectingIp.trim()
-
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0].trim()
-
-  const realIp = request.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-
-  return 'unknown'
-}
 
 function checkMemoryRateLimit(
   key: string,
@@ -78,16 +64,4 @@ export async function checkRateLimit(
   }
 
   return checkMemoryRateLimit(key, options)
-}
-
-export function rateLimitResponse(retryAfterSeconds: number): NextResponse {
-  return NextResponse.json(
-    { error: 'Too many requests. Please try again later.' },
-    {
-      status: 429,
-      headers: {
-        'Retry-After': String(retryAfterSeconds),
-      },
-    },
-  )
 }

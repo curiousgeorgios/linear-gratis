@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: IntegrationPageProps): Promis
     }
   }
 
-  const seoData = generateIntegrationMetadata(integration.name)
+  const seoData = generateIntegrationMetadata(integration.name, integration.slug)
   return createMetadata(seoData)
 }
 

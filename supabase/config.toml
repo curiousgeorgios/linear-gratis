@@ -1,0 +1,31 @@
+# Local-only database configuration for migration and rollback invariant tests.
+# Production and linked-project operations are intentionally not configured here.
+project_id = "integrations-worker-app"
+
+[api]
+enabled = false
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+sql_paths = []

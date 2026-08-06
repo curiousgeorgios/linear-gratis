@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
     }
   }
 
-  const seoData = generateComparisonMetadata(tool.name)
+  const seoData = generateComparisonMetadata(tool.name, tool.slug)
   return createMetadata(seoData)
 }
 

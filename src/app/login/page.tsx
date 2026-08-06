@@ -47,7 +47,7 @@ function LoginForm() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Check your email</CardTitle>
+            <CardTitle><h1>Check your email</h1></CardTitle>
             <CardDescription>
               We&apos;ve sent a magic link to {email}. Click the link in the email to sign in.
             </CardDescription>
@@ -70,7 +70,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to your account</CardTitle>
+          <CardTitle><h1>Sign in to your account</h1></CardTitle>
           <CardDescription>
             Choose your preferred sign-in method to access your Linear integration
           </CardDescription>

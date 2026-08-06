@@ -1,0 +1,77 @@
+name: Test suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Application and Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      ENCRYPTION_KEY: test-encryption-key-with-adequate-entropy
+      ACCESS_COOKIE_SECRET: test-access-cookie-secret-with-adequate-entropy
+      NEXT_PUBLIC_APP_DOMAIN: linear.gratis
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install headless Chrome
+        run: bunx puppeteer browsers install chrome
+
+      - name: Run full application gate
+        run: bun run test:all
+
+  database:
+    name: Supabase invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.101.0
+
+      - name: Build disposable local database
+        run: |
+          supabase db start
+          supabase db reset
+
+      - name: Run rollback-only schema tests
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: bun run test:db
+
+      - name: Stop disposable database
+        if: always()
+        run: supabase stop --project-id integrations-worker-app --no-backup

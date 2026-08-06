@@ -43,7 +43,7 @@ export function validateFormAttachmentFile(file: AttachmentLike): AttachmentVali
     return { ok: false, error: 'Attachment must have a file name.' }
   }
 
-  if (file.size <= 0) {
+  if (!Number.isFinite(file.size) || !Number.isInteger(file.size) || file.size <= 0) {
     return { ok: false, error: 'Attachment is empty.' }
   }
 
