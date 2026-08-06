@@ -1,7 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronUp } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  beginVote,
+  createVoteLifecycleState,
+  reconcileVoteCount,
+  settleVote,
+  type VoteLifecycleState,
+} from '@/lib/roadmap-vote-lifecycle'
 
 interface VoteButtonProps {
   issueId: string
@@ -13,6 +21,39 @@ interface VoteButtonProps {
   onVote?: (issueId: string, voted: boolean, newCount: number) => void
 }
 
+type VoteResponse = {
+  error?: unknown
+  voteCount?: unknown
+}
+
+const VOTE_TOAST_ID = 'roadmap-vote-status'
+
+function getStoredVoteIds(roadmapSlug: string): string[] {
+  try {
+    const value = localStorage.getItem(`roadmap_votes_${roadmapSlug}`)
+    if (!value) return []
+
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')
+      ? parsed
+      : []
+  } catch {
+    return []
+  }
+}
+
+function getVoteCount(response: VoteResponse): number | undefined {
+  return typeof response.voteCount === 'number' && Number.isFinite(response.voteCount)
+    ? response.voteCount
+    : undefined
+}
+
+function getErrorMessage(response: VoteResponse): string {
+  return typeof response.error === 'string' && response.error.trim()
+    ? response.error
+    : 'Please try again.'
+}
+
 export function VoteButton({
   issueId,
   roadmapSlug,
@@ -22,153 +63,154 @@ export function VoteButton({
   showCount,
   onVote,
 }: VoteButtonProps) {
-  const [count, setCount] = useState(initialCount)
-  const [hasVoted, setHasVoted] = useState(false)
+  const [voteState, setVoteState] = useState<VoteLifecycleState>(() =>
+    createVoteLifecycleState(initialCount),
+  )
   const [isAnimating, setIsAnimating] = useState(false)
-  const pendingRequest = useRef<AbortController | null>(null)
+  const voteStateRef = useRef(voteState)
+  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Check localStorage for existing vote
-  useEffect(() => {
-    const votedItems = localStorage.getItem(`roadmap_votes_${roadmapSlug}`)
-    if (votedItems) {
-      try {
-        const parsed = JSON.parse(votedItems) as string[]
-        setHasVoted(parsed.includes(issueId))
-      } catch {
-        // Invalid JSON, ignore
-      }
-    }
-  }, [issueId, roadmapSlug])
-
-  // Sync count when initialCount changes (from parent state)
-  useEffect(() => {
-    setCount(initialCount)
-  }, [initialCount])
+  const updateVoteState = (nextState: VoteLifecycleState) => {
+    voteStateRef.current = nextState
+    setVoteState(nextState)
+  }
 
   const updateLocalStorage = (voted: boolean) => {
-    const votedItems = localStorage.getItem(`roadmap_votes_${roadmapSlug}`)
-    let parsed: string[] = []
-    if (votedItems) {
-      try {
-        parsed = JSON.parse(votedItems) as string[]
-      } catch {
-        // Ignore
-      }
-    }
+    try {
+      const parsed = getStoredVoteIds(roadmapSlug)
+      const next = voted
+        ? (parsed.includes(issueId) ? parsed : [...parsed, issueId])
+        : parsed.filter((id) => id !== issueId)
 
-    if (voted) {
-      if (!parsed.includes(issueId)) {
-        parsed.push(issueId)
-      }
-    } else {
-      parsed = parsed.filter((id) => id !== issueId)
+      localStorage.setItem(`roadmap_votes_${roadmapSlug}`, JSON.stringify(next))
+    } catch {
+      // Private browsing and storage-quota failures must not block voting.
     }
-
-    localStorage.setItem(`roadmap_votes_${roadmapSlug}`, JSON.stringify(parsed))
   }
+
+  const publishVote = (state: VoteLifecycleState) => {
+    onVote?.(issueId, state.hasVoted, state.count)
+  }
+
+  // Restore a visitor's visual vote state when the card or roadmap changes.
+  useEffect(() => {
+    const current = voteStateRef.current
+    if (current.isPending) return
+
+    const nextState = {
+      ...current,
+      hasVoted: getStoredVoteIds(roadmapSlug).includes(issueId),
+    }
+    updateVoteState(nextState)
+  }, [issueId, roadmapSlug])
+
+  // A refresh may arrive while the vote request is in flight. Preserve the
+  // local transaction until it settles, then accept the server count.
+  useEffect(() => {
+    updateVoteState(reconcileVoteCount(voteStateRef.current, initialCount))
+  }, [initialCount])
+
+  useEffect(() => () => {
+    if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current)
+  }, [])
 
   const handleVote = async () => {
     if (!allowVoting || !fingerprint) return
 
-    // Cancel any pending request
-    if (pendingRequest.current) {
-      pendingRequest.current.abort()
-    }
+    const started = beginVote(voteStateRef.current)
+    if (!started) return
 
-    const willVote = !hasVoted
-    const previousCount = count
-    const previousVoted = hasVoted
-
-    // Optimistic update
-    const newCount = willVote ? count + 1 : count - 1
-    setCount(newCount)
-    setHasVoted(willVote)
-    updateLocalStorage(willVote)
+    updateVoteState(started.state)
+    updateLocalStorage(started.state.hasVoted)
+    publishVote(started.state)
     setIsAnimating(true)
 
-    // Notify parent immediately for optimistic UI
-    onVote?.(issueId, willVote, newCount)
-
-    // Clear animation after a short delay
-    setTimeout(() => setIsAnimating(false), 200)
-
-    // Create abort controller for this request
-    const controller = new AbortController()
-    pendingRequest.current = controller
+    if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current)
+    animationTimeoutRef.current = setTimeout(() => setIsAnimating(false), 200)
 
     try {
       const response = await fetch(`/api/roadmap/${roadmapSlug}/vote`, {
-        method: willVote ? 'POST' : 'DELETE',
+        method: started.transaction.intent === 'add' ? 'POST' : 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ issueId, fingerprint }),
-        signal: controller.signal,
       })
+      const payload = await response.json().catch(() => ({})) as VoteResponse
+
+      const settlement = response.ok
+        ? { type: 'confirmed' as const, voteCount: getVoteCount(payload) }
+        : response.status === 409
+          ? { type: 'already-voted' as const, voteCount: getVoteCount(payload) }
+          : { type: 'rejected' as const }
+      const settledState = settleVote(voteStateRef.current, started.transaction, settlement)
+
+      updateVoteState(settledState)
+      updateLocalStorage(settledState.hasVoted)
+      publishVote(settledState)
 
       if (!response.ok && response.status !== 409) {
-        // Revert on error (except 409 which means already voted)
-        setCount(previousCount)
-        setHasVoted(previousVoted)
-        updateLocalStorage(previousVoted)
-        onVote?.(issueId, previousVoted, previousCount)
-      } else if (response.ok) {
-        // Sync with server count if available
-        const data = await response.json() as { voteCount: number }
-        if (data.voteCount !== newCount) {
-          setCount(data.voteCount)
-          onVote?.(issueId, willVote, data.voteCount)
-        }
-      } else if (response.status === 409) {
-        // Already voted - ensure state is synced
-        if (!willVote) {
-          // Tried to vote but already voted, keep voted state
-          setHasVoted(true)
-          updateLocalStorage(true)
-        }
+        toast.error('Could not save your vote', {
+          id: VOTE_TOAST_ID,
+          description: getErrorMessage(payload),
+        })
       }
     } catch (error) {
-      // Ignore abort errors
-      if (error instanceof Error && error.name === 'AbortError') {
-        return
-      }
-      // Revert on network error
       console.error('Vote error:', error)
-      setCount(previousCount)
-      setHasVoted(previousVoted)
-      updateLocalStorage(previousVoted)
-      onVote?.(issueId, previousVoted, previousCount)
-    } finally {
-      pendingRequest.current = null
+      const settledState = settleVote(voteStateRef.current, started.transaction, { type: 'rejected' })
+
+      updateVoteState(settledState)
+      updateLocalStorage(settledState.hasVoted)
+      publishVote(settledState)
+      toast.error('Could not save your vote', {
+        id: VOTE_TOAST_ID,
+        description: 'Network error. Please try again.',
+      })
     }
   }
 
+  const isDisabled = !allowVoting || !fingerprint || voteState.isPending
+  const title = voteState.isPending
+    ? 'Saving vote…'
+    : voteState.hasVoted
+      ? 'Remove vote'
+      : 'Upvote this item'
+
   return (
     <button
-      onClick={(e) => {
-        e.stopPropagation()
-        handleVote()
+      onClick={(event) => {
+        event.stopPropagation()
+        void handleVote()
       }}
-      disabled={!allowVoting || !fingerprint}
+      disabled={isDisabled}
+      aria-busy={voteState.isPending}
+      aria-label={title}
       className={`
-        flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-md
+        flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md touch-manipulation
         text-xs font-medium transition-all duration-200 ease-out
-        ${hasVoted
+        ${voteState.hasVoted
           ? 'bg-primary/10 text-primary border border-primary/30'
           : 'bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:border-border'
         }
-        ${!allowVoting || !fingerprint ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}
+        ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}
       `}
-      title={hasVoted ? 'Remove vote' : 'Upvote this item'}
+      title={title}
     >
       <ChevronUp
         className={`h-3.5 w-3.5 transition-transform duration-200 ease-out ${
-          hasVoted ? 'text-primary' : ''
-        } ${isAnimating && hasVoted ? 'scale-125' : ''}`}
+          voteState.hasVoted ? 'text-primary' : ''
+        } ${isAnimating && voteState.hasVoted ? 'scale-125' : ''}`}
       />
       {showCount && (
-        <span className={`transition-transform duration-150 ${hasVoted ? 'text-primary' : ''} ${isAnimating ? 'scale-110' : ''}`}>
-          {count}
+        <span className={`transition-transform duration-150 ${voteState.hasVoted ? 'text-primary' : ''} ${isAnimating ? 'scale-110' : ''}`}>
+          {voteState.count}
         </span>
       )}
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {voteState.isPending
+          ? 'Saving vote'
+          : voteState.hasVoted
+            ? `Voted. ${voteState.count} votes.`
+            : `${voteState.count} votes.`}
+      </span>
     </button>
   )
 }

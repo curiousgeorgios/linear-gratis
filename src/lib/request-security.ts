@@ -1,7 +1,8 @@
-import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+
+export { hashIp } from '@/lib/ip-hash'
 
 type RateLimitOptions = {
   limit: number
@@ -89,13 +90,4 @@ export function rateLimitResponse(retryAfterSeconds: number): NextResponse {
       },
     },
   )
-}
-
-export function hashIp(ip: string): string {
-  const salt = process.env.IP_HASH_SALT
-  if (!salt) {
-    throw new Error('IP_HASH_SALT environment variable is required')
-  }
-
-  return createHash('sha256').update(`${ip}:${salt}`).digest('hex')
 }
