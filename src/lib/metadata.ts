@@ -17,6 +17,14 @@ export interface SeoData {
   }
 }
 
+function metadataSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function generateMetadata(seoData: SeoData): Metadata {
   const baseUrl = 'https://linear.gratis'
 
@@ -57,7 +65,7 @@ export function generateMetadata(seoData: SeoData): Metadata {
 }
 
 // Comparison page metadata
-export function generateComparisonMetadata(toolName: string): SeoData {
+export function generateComparisonMetadata(toolName: string, slug = metadataSlug(toolName)): SeoData {
   const title = `${toolName} vs Linear: Complete comparison 2025 | linear.gratis`
   const description = `Compare ${toolName} and Linear for issue tracking and customer feedback. Features, pricing, pros & cons. Free Linear alternative at linear.gratis.`
   const ogImageUrl = `/api/og?type=comparison&title=${encodeURIComponent(`${toolName} vs linear.gratis`)}&subtitle=${encodeURIComponent(`Compare features, pricing, and capabilities`)}&category=${encodeURIComponent('Tool Comparison')}`
@@ -74,7 +82,7 @@ export function generateComparisonMetadata(toolName: string): SeoData {
       'linear.gratis',
       'free Linear',
     ],
-    canonical: `/comparison/${toolName.toLowerCase()}`,
+    canonical: `/comparison/${slug}`,
     openGraph: {
       title,
       description,
@@ -85,7 +93,7 @@ export function generateComparisonMetadata(toolName: string): SeoData {
 }
 
 // Use case page metadata
-export function generateUseCaseMetadata(industry: string): SeoData {
+export function generateUseCaseMetadata(industry: string, slug = metadataSlug(industry)): SeoData {
   const title = `Linear for ${industry}: Complete setup guide 2025 | linear.gratis`
   const description = `How to use Linear for ${industry} teams. Templates, workflows, and best practices. Get started with free Linear forms at linear.gratis.`
   const ogImageUrl = `/api/og?type=use-case&title=${encodeURIComponent(`Linear for ${industry}`)}&subtitle=${encodeURIComponent(`Templates, workflows, and best practices`)}&category=${encodeURIComponent('Use Case Guide')}`
@@ -101,7 +109,7 @@ export function generateUseCaseMetadata(industry: string): SeoData {
       'linear.gratis',
       'Linear templates',
     ],
-    canonical: `/use-cases/${industry.toLowerCase()}`,
+    canonical: `/use-cases/${slug}`,
     openGraph: {
       title,
       description,
@@ -112,7 +120,7 @@ export function generateUseCaseMetadata(industry: string): SeoData {
 }
 
 // Integration guide metadata
-export function generateIntegrationMetadata(toolName: string): SeoData {
+export function generateIntegrationMetadata(toolName: string, slug = metadataSlug(toolName)): SeoData {
   const title = `Linear + ${toolName} integration: Complete guide 2025 | linear.gratis`
   const description = `Connect Linear with ${toolName}. Step-by-step integration guide, automation ideas, and best practices. Start with linear.gratis.`
   const ogImageUrl = `/api/og?type=integration&title=${encodeURIComponent(`Linear + ${toolName}`)}&subtitle=${encodeURIComponent(`Complete integration guide and setup`)}&category=${encodeURIComponent('Integration Guide')}`
@@ -128,7 +136,7 @@ export function generateIntegrationMetadata(toolName: string): SeoData {
       'linear.gratis',
       `connect Linear ${toolName}`,
     ],
-    canonical: `/integrations/${toolName.toLowerCase()}`,
+    canonical: `/integrations/${slug}`,
     openGraph: {
       title,
       description,
@@ -139,7 +147,7 @@ export function generateIntegrationMetadata(toolName: string): SeoData {
 }
 
 // Template page metadata
-export function generateTemplateMetadata(templateType: string): SeoData {
+export function generateTemplateMetadata(templateType: string, slug = metadataSlug(templateType)): SeoData {
   const title = `${templateType} template for Linear: Free forms | linear.gratis`
   const description = `Free ${templateType} template for Linear. Pre-built forms and workflows. Get started instantly with linear.gratis.`
   const ogImageUrl = `/api/og?type=template&title=${encodeURIComponent(`${templateType} Template`)}&subtitle=${encodeURIComponent(`Ready-to-use Linear form template`)}&category=${encodeURIComponent('Form Template')}`
@@ -155,7 +163,7 @@ export function generateTemplateMetadata(templateType: string): SeoData {
       'linear.gratis',
       'free Linear templates',
     ],
-    canonical: `/templates/${templateType.toLowerCase().replace(/\s+/g, '-')}`,
+    canonical: `/templates/${slug}`,
     openGraph: {
       title,
       description,

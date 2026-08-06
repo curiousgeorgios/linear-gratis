@@ -52,3 +52,4 @@ next-env.d.ts
 
 # supabase cli cache
 supabase/.temp/
+supabase/.branches/

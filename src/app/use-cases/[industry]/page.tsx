@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: UseCasePageProps): Promise<Me
     }
   }
 
-  const seoData = generateUseCaseMetadata(useCase.name)
+  const seoData = generateUseCaseMetadata(useCase.name, useCase.slug)
   return createMetadata(seoData)
 }
 

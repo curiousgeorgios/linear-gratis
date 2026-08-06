@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: TemplatePageProps): Promise<M
     }
   }
 
-  const seoData = generateTemplateMetadata(template.name)
+  const seoData = generateTemplateMetadata(template.name, template.slug)
   return createMetadata(seoData)
 }
 

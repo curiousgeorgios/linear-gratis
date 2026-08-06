@@ -204,7 +204,11 @@ export function generateBreadcrumbSchema(path: string): StructuredData {
   pathSegments.forEach((segment) => {
     currentPath += `/${segment}`
 
-    let name = segment.charAt(0).toUpperCase() + segment.slice(1)
+    let name = segment
+      .split('-')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
     if (segment === 'comparison') name = 'Comparisons'
     if (segment === 'use-cases') name = 'Use Cases'
     if (segment === 'templates') name = 'Templates'

@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation';
 import { getActiveConnectionIdForOrg, getTokenForConnection } from '@/lib/linear-connection';
 
+export { appendAttachmentMarkdown } from '@/lib/attachment-markdown';
+
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
 type PublicViewIssueCreationView = Pick<
@@ -124,23 +126,6 @@ export type LinearCreatedIssue = {
 export type PublicViewIssueCreateResult =
   | { ok: true; issue: LinearCreatedIssue }
   | { ok: false; status: number; error: string; details?: unknown };
-
-function escapeMarkdownAltText(value: string): string {
-  return value.replace(/[[\]\\]/g, '\\$&');
-}
-
-export function appendAttachmentMarkdown(
-  description: string | undefined,
-  attachments: Array<{ fileName: string; assetUrl: string }>,
-): string | undefined {
-  if (attachments.length === 0) return description;
-
-  const attachmentMarkdown = attachments
-    .map(({ fileName, assetUrl }) => `![${escapeMarkdownAltText(fileName)}](${assetUrl})`)
-    .join('\n\n');
-
-  return [description?.trim(), attachmentMarkdown].filter(Boolean).join('\n\n');
-}
 
 export async function resolveLinearTokenForPublicView(
   view: PublicViewIssueCreationView,

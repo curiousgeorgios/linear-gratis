@@ -146,29 +146,48 @@ Recent schema work is documented in:
 ### SQL Invariant Tests
 
 The SQL tests exercise the core migration invariants introduced by migrations
-019-023. Run them against a local Supabase database:
+019-023. The runner refuses non-local database hosts and every SQL file ends in
+`ROLLBACK`:
 
 ```bash
-for f in supabase/tests/*.sql; do
-  echo "=== $f ==="
-  docker exec -i supabase_db_integrations-worker-app \
-    psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$f"
-done
+TEST_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+  bun run test:db
 ```
 
-If you have `psql` installed locally, you can also use:
+## Testing
+
+The default suite is deterministic and offline. It covers business rules,
+cryptography, redaction, Linear pagination with mocked network responses, data
+and schema invariants, UI render contracts, and security controls across every
+API route. Fuzz and metamorphic cases use fixed seeds so failures reproduce.
 
 ```bash
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-for f in supabase/tests/*.sql; do
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
-done
+bun test
+bun run test:coverage
+bun run test:stress
+bun run test:smoke
+bun run test:all
 ```
+
+`test:coverage` enforces an explicit manifest of production modules at 80%
+minimum per-file line/function coverage and 95%/90% overall loaded-source
+line/function coverage. `test:all` adds type checking, lint, a production build,
+an OpenNext Cloudflare Worker bundle, and headless smoke checks of the generated
+marketing and authentication routes.
+Database tests remain separate because they require a disposable local Supabase
+instance. The GitHub Actions test workflow runs both layers for every pull
+request and every push to `main`.
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
+| `bun test` | Run deterministic unit, property, contract, and render tests. |
+| `bun run test:coverage` | Run tests and enforce production-module coverage thresholds. |
+| `bun run test:stress` | Repeat every test file 20 times to expose order or lifecycle flakiness. |
+| `bun run test:smoke` | Build and visit representative production pages in headless Chromium. |
+| `bun run test:db` | Run rollback-only SQL invariants against `TEST_DATABASE_URL` on localhost. |
+| `bun run test:all` | Run coverage, types, lint, build, and browser smoke gates. |
 | `npm run dev` | Start the Next.js development server. |
 | `npm run build` | Build the Next.js app. |
 | `npm run build:worker` | Build the Cloudflare Worker bundle through OpenNext. |
@@ -215,6 +234,7 @@ supabase/
   contracts/           Future contract-phase migration drafts
 docs/
   adr/                 Architecture decision records and runbooks
+tests/                 Unit, property, contract and render suites
 ```
 
 ## Security
