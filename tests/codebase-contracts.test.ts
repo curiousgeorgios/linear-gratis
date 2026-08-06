@@ -173,8 +173,11 @@ describe('secret-management contracts', () => {
       assert.match(command, /--env=prod/)
     }
     assert.match(packageJson.scripts?.['release:cloudflare:build'] ?? '',
-      /^bunx puppeteer browsers install chrome && /,
-      'the Cloudflare release gate must provision its headless browser explicitly')
+      /run-test-suite\.mjs --skip-browser-smoke$/,
+      'the Cloudflare image must delegate its unsupported browser smoke to GitHub')
+    assert.match(packageJson.scripts?.['release:cloudflare:deploy'] ?? '',
+      /wait-for-github-release-gate\.mjs && bun run release:deploy/,
+      'Cloudflare must wait for the browser and database GitHub checks before deploying')
 
     const gitignore = await readFile(path.join(REPO_ROOT, '.gitignore'), 'utf8')
     assert.match(gitignore, /^\.env\*$/m, 'environment files must remain ignored')
@@ -223,6 +226,17 @@ describe('database migration contracts', () => {
     assert.match(source, /verifying migration ledger is current/)
     assert.doesNotMatch(source, /--include-all/,
       'production must fail on out-of-order history rather than guessing a baseline')
+  })
+
+  test('Cloudflare deployment waits for both required GitHub checks', async () => {
+    const source = await readFile(path.join(REPO_ROOT, 'scripts/wait-for-github-release-gate.mjs'), 'utf8')
+
+    assert.match(source, /'Application and Worker'/)
+    assert.match(source, /'Supabase invariants'/)
+    assert.match(source, /WORKERS_CI_COMMIT_SHA/)
+    assert.match(source, /WORKERS_CI_BRANCH/)
+    assert.doesNotMatch(source, /GITHUB_TOKEN|Authorization/,
+      'the public-repository check must not require another deployment secret')
   })
 
   test('roadmap vote insert fields are backed by explicit schema migrations', async () => {
