@@ -121,6 +121,16 @@ describe('secret-management contracts', () => {
 })
 
 describe('database migration contracts', () => {
+  test('database runner maps its URL into explicit local libpq fields', async () => {
+    const source = await readFile(path.join(REPO_ROOT, 'scripts/run-supabase-tests.mjs'), 'utf8')
+
+    for (const field of ['PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD']) {
+      assert.ok(source.includes(`${field}:`), `database runner is missing ${field}`)
+    }
+    assert.doesNotMatch(source, /PGDATABASE:\s*connectionString/,
+      'a PostgreSQL URI cannot be passed through PGDATABASE portably')
+  })
+
   test('numbered migrations are unique, ordered, and contiguous', async () => {
     const directory = path.join(REPO_ROOT, 'supabase/migrations')
     const files = (await readdir(directory)).filter((file) => /^\d{3}_.+\.sql$/.test(file)).sort()
