@@ -157,6 +157,24 @@ describe('secret-management contracts', () => {
     assert.ok(deploy, 'package.json is missing the production deploy command')
     assert.match(deploy, /^infisical run --env=prod --command /,
       'production deploys must receive secrets from Infisical prod')
+    assert.match(deploy, /release:build && bun run release:deploy/,
+      'production deploys must pass the full gate before the release lifecycle')
+
+    assert.equal(packageJson.scripts?.['release:build'], 'bun run test:all')
+    assert.match(packageJson.scripts?.['release:deploy'] ?? '',
+      /^bun run db:migrate:production && wrangler deploy$/,
+      'pending migrations must complete before Worker deployment')
+
+    for (const script of ['release:cloudflare:build', 'release:cloudflare:deploy']) {
+      const command = packageJson.scripts?.[script] ?? ''
+      assert.match(command, /@infisical\/cli\/bin\/infisical run/)
+      assert.match(command, /--domain=https:\/\/infisical\.onestack\.cloud\/api/)
+      assert.match(command, /--token="\$INFISICAL_TOKEN"/)
+      assert.match(command, /--env=prod/)
+    }
+    assert.match(packageJson.scripts?.['release:cloudflare:build'] ?? '',
+      /^bunx puppeteer browsers install chrome && /,
+      'the Cloudflare release gate must provision its headless browser explicitly')
 
     const gitignore = await readFile(path.join(REPO_ROOT, '.gitignore'), 'utf8')
     assert.match(gitignore, /^\.env\*$/m, 'environment files must remain ignored')
@@ -194,6 +212,17 @@ describe('database migration contracts', () => {
     assert.ok(numbers.length >= 25)
     assert.equal(new Set(numbers).size, numbers.length)
     assert.deepEqual(numbers, Array.from({ length: numbers.at(-1) ?? 0 }, (_, index) => index + 1))
+  })
+
+  test('production migration runner uses the standard ledger and a deployment lock', async () => {
+    const source = await readFile(path.join(REPO_ROOT, 'scripts/migrate-production.mjs'), 'utf8')
+
+    assert.match(source, /supabase', 'db', 'push'/)
+    assert.match(source, /pg_try_advisory_lock/)
+    assert.match(source, /--dry-run/)
+    assert.match(source, /verifying migration ledger is current/)
+    assert.doesNotMatch(source, /--include-all/,
+      'production must fail on out-of-order history rather than guessing a baseline')
   })
 
   test('roadmap vote insert fields are backed by explicit schema migrations', async () => {

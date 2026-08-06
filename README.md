@@ -109,6 +109,11 @@ The local template lives in [.env.example](.env.example).
 | `CLOUDFLARE_ZONE_ID` | For custom domains | Cloudflare zone ID used to manage custom hostnames. |
 | `FEEDBACK_WEBHOOK_SECRET` | For signed feedback | Shared HMAC secret for inbound public-view feedback webhooks. |
 | `NEXT_PUBLIC_APP_DOMAIN` | Recommended | Canonical app domain used for custom-domain CNAME instructions. |
+| `SUPABASE_DB_HOST` | Deployments | Production database host used only by the migration gate. |
+| `SUPABASE_DB_PORT` | Deployments | Production database port, normally `5432`. |
+| `SUPABASE_DB_NAME` | Deployments | Production database name, normally `postgres`. |
+| `SUPABASE_DB_USER` | Deployments | Project-scoped production database user. |
+| `SUPABASE_DB_PASSWORD` | Deployments | Production database password. Never expose this to previews or the Worker runtime. |
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`, or Cloudflare tokens
 to the browser. Infisical `prod` is the source of truth for production secrets;
@@ -120,6 +125,13 @@ its original secure source or by coordinating a rotation with its consumers.
 
 Forward migrations live in [supabase/migrations](supabase/migrations). Manual
 rollbacks live in [supabase/rollbacks](supabase/rollbacks).
+
+Production releases use Supabase's standard
+`supabase_migrations.schema_migrations` ledger. The release runner takes a
+PostgreSQL advisory lock, performs a dry-run preflight, applies pending
+migrations, and verifies the ledger again before Wrangler can deploy the Worker.
+It intentionally does not use `--include-all`: missing or out-of-order history
+stops a release and requires an explicit audited repair.
 
 Important: do not move rollback SQL into `supabase/migrations`. Supabase applies
 every SQL file in that directory as a forward migration.
@@ -188,6 +200,9 @@ request and every push to `main`.
 | `bun run test:smoke` | Build and visit representative production pages in headless Chromium. |
 | `bun run test:db` | Run rollback-only SQL invariants against `TEST_DATABASE_URL` on localhost. |
 | `bun run test:all` | Run coverage, types, lint, build, and browser smoke gates. |
+| `bun run db:migrate:production` | Lock, preflight, apply, and verify production migrations using Infisical-injected database settings. |
+| `bun run release:build` | Run the complete production release gate. |
+| `bun run release:deploy` | Apply migrations and deploy the already-built Worker, in that order. |
 | `npm run dev` | Start the Next.js development server. |
 | `npm run build` | Build the Next.js app. |
 | `npm run build:worker` | Build the Cloudflare Worker bundle through OpenNext. |
@@ -202,12 +217,25 @@ This project deploys as a Cloudflare Worker via OpenNext. The Worker config is
 in [wrangler.jsonc](wrangler.jsonc).
 
 ```bash
-npm run build:worker
-npm run deploy
+bun run deploy
 ```
 
 Manage or rotate the value in Infisical first, then mirror it to the Worker
-without committing it. The deploy script builds with Infisical `prod` injected.
+without committing it. The deploy script builds, tests, migrates, and deploys
+with Infisical `prod` injected. If migration preflight or verification fails,
+Wrangler is never invoked.
+
+Cloudflare Workers Builds is connected to the GitHub `main` branch for automatic
+production releases. Its production build command is
+`bun run release:cloudflare:build` and its deploy command is
+`bun run release:cloudflare:deploy`; both fetch their environment from Infisical
+before invoking the underlying release stages. The build stage also provisions
+its pinned Puppeteer browser before running the headless smoke gate. The only Cloudflare build secret
+is a read-only, production-scoped `INFISICAL_TOKEN`; application and database
+secrets remain in Infisical. Preview builds are disabled so pull requests and
+forks cannot receive production credentials or run production migrations.
+The self-hosted Infisical API domain is public configuration and is pinned in
+`.infisical.json`; tokens and secret values are never stored there.
 
 ```bash
 infisical secrets set --env=prod SECRET_NAME=@/path/to/secure-value
