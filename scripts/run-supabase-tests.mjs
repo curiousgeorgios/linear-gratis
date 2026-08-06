@@ -24,6 +24,23 @@ if (!localHosts.has(databaseUrl.hostname)) {
   process.exit(1)
 }
 
+const databaseName = decodeURIComponent(databaseUrl.pathname.replace(/^\/+/, ''))
+if (!databaseName) {
+  console.error('TEST_DATABASE_URL must include a database name.')
+  process.exit(1)
+}
+
+const psqlEnvironment = {
+  ...process.env,
+  PGCONNECT_TIMEOUT: '5',
+  PGHOST: databaseUrl.hostname,
+  PGPORT: databaseUrl.port || '5432',
+  PGDATABASE: databaseName,
+  PGUSER: decodeURIComponent(databaseUrl.username || 'postgres'),
+  PGPASSWORD: decodeURIComponent(databaseUrl.password),
+  PGSSLMODE: 'disable',
+}
+
 const testsDirectory = path.join(process.cwd(), 'supabase/tests')
 const files = (await readdir(testsDirectory))
   .filter((file) => file.endsWith('.sql'))
@@ -48,11 +65,7 @@ for (const file of files) {
   const result = hasLocalPsql
     ? spawnSync('psql', ['-v', 'ON_ERROR_STOP=1', '-f', filePath], {
         cwd: process.cwd(),
-        env: {
-          ...process.env,
-          PGCONNECT_TIMEOUT: '5',
-          PGDATABASE: connectionString,
-        },
+        env: psqlEnvironment,
         stdio: 'inherit',
       })
     : spawnSync('docker', [
