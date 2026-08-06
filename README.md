@@ -229,12 +229,14 @@ Cloudflare Workers Builds is connected to the GitHub `main` branch for automatic
 production releases. Its production build command is
 `bun run release:cloudflare:build` and its deploy command is
 `bun run release:cloudflare:deploy`; both fetch their environment from Infisical
-before invoking the underlying release stages. The build stage also provisions
-its pinned Puppeteer browser before running the headless smoke gate. The only
-Cloudflare build secret is a read-only, production-scoped `INFISICAL_TOKEN`;
-application and database secrets remain in Infisical. Preview builds are
-disabled so pull requests and forks cannot receive production credentials or
-run production migrations.
+before invoking the underlying release stages. Cloudflare's build image runs
+coverage, types, lint, and the Worker build; its deploy stage then waits for the
+same commit's required GitHub application/browser and database checks. A failed,
+cancelled, missing, or timed-out GitHub check prevents migrations and deployment.
+The only Cloudflare build secret is a read-only, production-scoped
+`INFISICAL_TOKEN`; application and database secrets remain in Infisical. Preview
+builds are disabled so pull requests and forks cannot receive production
+credentials or run production migrations.
 The production trigger pins `BUN_VERSION=1.2.21` to match the repository and
 GitHub Actions coverage runtime.
 The self-hosted Infisical API domain is public configuration and is pinned in
