@@ -338,6 +338,18 @@
 }
 
 @layer components {
+  .linear-toast {
+    max-width: min(22rem, calc(100vw - 1.5rem));
+  }
+
+  .linear-toast-title {
+    font-size: 0.8125rem;
+  }
+
+  .linear-toast-description {
+    font-size: 0.75rem;
+  }
+
   .linear-rich-editor-content {
     min-height: 220px;
     padding: 0.75rem;

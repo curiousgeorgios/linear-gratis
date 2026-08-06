@@ -101,7 +101,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: 'Voting is temporarily unavailable. Please try again shortly.'
       },
       { status: 500 }
     );
@@ -171,7 +171,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: 'Voting is temporarily unavailable. Please try again shortly.'
       },
       { status: 500 }
     );

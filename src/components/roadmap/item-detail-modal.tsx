@@ -37,25 +37,57 @@ export function ItemDetailModal({
   onVote,
 }: ItemDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
 
-  // Handle escape key
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Keep keyboard focus inside the open panel, then restore it to the card
+  // which launched the dialog when the panel closes.
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
+        return
+      }
+
+      if (e.key !== 'Tab' || !modalRef.current) return
+
+      const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ))
+      const first = focusable[0]
+      const last = focusable.at(-1)
+      if (!first || !last) return
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'hidden'
-    }
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus())
 
     return () => {
-      document.removeEventListener('keydown', handleEscape)
+      cancelAnimationFrame(focusFrame)
+      document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
+      previouslyFocusedRef.current?.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   // Handle click outside
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -78,16 +110,16 @@ export function ItemDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 backdrop-blur-sm motion-reduce:backdrop-blur-none"
       onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="roadmap-item-title"
     >
       {/* Slide-in panel */}
       <div
         ref={modalRef}
-        className="h-full w-full max-w-xl bg-background border-l border-border shadow-xl overflow-hidden animate-in slide-in-from-right duration-300"
-        style={{
-          animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
+        className="h-[100dvh] w-full max-w-xl overflow-hidden border-l border-border bg-background shadow-xl animate-in slide-in-from-right duration-300 motion-reduce:animate-none"
       >
         {/* Header */}
         <div className="sticky top-0 bg-background border-b border-border px-4 py-3 z-10">
@@ -113,7 +145,7 @@ export function ItemDetailModal({
               )}
 
               {/* Title */}
-              <h2 className="text-lg font-semibold text-foreground pr-8">
+              <h2 id="roadmap-item-title" className="pr-8 text-lg font-semibold text-foreground">
                 {issue.title}
               </h2>
 
@@ -124,9 +156,11 @@ export function ItemDetailModal({
             </div>
 
             <button
+              ref={closeButtonRef}
+              type="button"
               onClick={onClose}
-              className="p-1.5 hover:bg-muted rounded-md transition-colors"
-              aria-label="Close"
+              className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
+              aria-label="Close item details"
             >
               <X className="h-5 w-5 text-muted-foreground" />
             </button>
@@ -134,11 +168,11 @@ export function ItemDetailModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto h-[calc(100vh-64px)]">
+        <div className="h-[calc(100dvh-69px)] overflow-y-auto overscroll-contain">
           <div className="p-4 space-y-6">
             {/* Status and vote section */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
                   <StateIcon
@@ -169,6 +203,7 @@ export function ItemDetailModal({
                   fingerprint={fingerprint}
                   allowVoting={allowVoting}
                   showCount={showVoteCounts}
+                  compact
                   onVote={onVote}
                 />
               )}
@@ -254,16 +289,6 @@ export function ItemDetailModal({
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }

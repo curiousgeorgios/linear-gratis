@@ -76,6 +76,19 @@ describe('API route contracts', () => {
     }
   })
 
+  test('roadmap vote failures remain useful without exposing database errors', async () => {
+    const source = await readFile(
+      path.join(REPO_ROOT, 'src/app/api/roadmap/[slug]/vote/route.ts'),
+      'utf8',
+    )
+    const publicMessage = 'Voting is temporarily unavailable. Please try again shortly.'
+
+    assert.equal(source.split(publicMessage).length - 1, 2)
+    assert.doesNotMatch(source, /error\s+instanceof\s+Error\s*\?\s*error\.message/)
+    assert.match(source, /console\.error\('Vote API error:'/)
+    assert.match(source, /console\.error\('Vote delete API error:'/)
+  })
+
   test('client modules cannot reference server secrets or service-role clients', async () => {
     const sourceFiles = (await walk(path.join(REPO_ROOT, 'src')))
       .filter((file) => /\.(?:ts|tsx)$/.test(file))
@@ -89,6 +102,48 @@ describe('API route contracts', () => {
       assert.doesNotMatch(source, /\bsupabaseAdmin\b/,
         `${relative(file)} imports the service-role client`)
     }
+  })
+})
+
+describe('public roadmap interface contracts', () => {
+  test('mobile board preserves card width, touch targets, and reduced-motion semantics', async () => {
+    const [card, voteButton, kanban, modal, page, layout] = await Promise.all([
+      'src/components/roadmap/roadmap-card.tsx',
+      'src/components/roadmap/vote-button.tsx',
+      'src/components/roadmap/kanban-view.tsx',
+      'src/components/roadmap/item-detail-modal.tsx',
+      'src/app/roadmap/[slug]/page.tsx',
+      'src/app/layout.tsx',
+    ].map((file) => readFile(path.join(REPO_ROOT, file), 'utf8')))
+
+    assert.match(card, /<article/)
+    assert.match(card, /aria-label={`Open \$\{issue\.identifier\}/)
+    assert.match(card, /<VoteButton[\s\S]*compact/)
+    assert.doesNotMatch(card, /transition-all/)
+
+    assert.match(voteButton, /aria-pressed={voteState\.hasVoted}/)
+    assert.match(voteButton, /min-h-11 min-w-11/)
+    assert.match(voteButton, /active:scale-\[0\.96\]/)
+    assert.match(voteButton, /motion-reduce:transform-none/)
+    assert.doesNotMatch(voteButton, /transition-all/)
+
+    assert.match(kanban, /snap-x snap-mandatory/)
+    assert.match(kanban, /touch-pan-x/)
+    assert.match(kanban, /w-\[calc\(100vw-1\.5rem\)\]/)
+    assert.doesNotMatch(kanban, /max-h-\[calc\(100vh-280px\)\]/)
+
+    assert.match(modal, /role="dialog"/)
+    assert.match(modal, /aria-modal="true"/)
+    assert.match(modal, /e\.key !== 'Tab'/)
+    assert.match(modal, /previouslyFocusedRef\.current\?\.focus\(\)/)
+    assert.match(modal, /100dvh/)
+    assert.match(modal, /motion-reduce:animate-none/)
+
+    assert.match(page, /aria-label="Roadmap layout"/)
+    assert.match(page, /aria-pressed={layoutType === 'kanban'}/)
+    assert.match(page, /min-h-11 min-w-11/)
+    assert.match(layout, /mobileOffset=/)
+    assert.match(layout, /env\(safe-area-inset-bottom\)/)
   })
 })
 
@@ -139,6 +194,26 @@ describe('database migration contracts', () => {
     assert.ok(numbers.length >= 25)
     assert.equal(new Set(numbers).size, numbers.length)
     assert.deepEqual(numbers, Array.from({ length: numbers.at(-1) ?? 0 }, (_, index) => index + 1))
+  })
+
+  test('roadmap vote insert fields are backed by explicit schema migrations', async () => {
+    const route = await readFile(
+      path.join(REPO_ROOT, 'src/app/api/roadmap/[slug]/vote/route.ts'),
+      'utf8',
+    )
+    const orgScopeMigration = await readFile(
+      path.join(REPO_ROOT, 'supabase/migrations/019_org_scope_roadmap_child_tables.sql'),
+      'utf8',
+    )
+    const externalIdMigration = await readFile(
+      path.join(REPO_ROOT, 'supabase/migrations/020_namespace_external_linear_ids.sql'),
+      'utf8',
+    )
+
+    assert.match(route, /organisation_id:\s*roadmap\.organisation_id/)
+    assert.match(route, /linear_issue_id:\s*issueAccess\.issueId/)
+    assert.match(orgScopeMigration, /ALTER TABLE roadmap_votes[\s\S]*ADD COLUMN organisation_id UUID/)
+    assert.match(externalIdMigration, /ALTER TABLE roadmap_votes[\s\S]*ADD COLUMN linear_issue_id TEXT/)
   })
 
   test('migration files exclude database-wide destructive operations', async () => {

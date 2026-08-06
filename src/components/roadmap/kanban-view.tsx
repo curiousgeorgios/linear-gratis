@@ -86,7 +86,8 @@ export function KanbanView({
 
   return (
     <div
-      className="w-full pb-4 flex gap-4 overflow-x-auto lg:grid lg:overflow-visible"
+      aria-label="Roadmap board"
+      className="-mx-2 flex w-[calc(100%+1rem)] snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-2 px-2 pb-4 touch-pan-x sm:mx-0 sm:w-full sm:gap-4 sm:px-0 lg:grid lg:overflow-visible"
       style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
     >
       {columns.map((column) => {
@@ -95,10 +96,10 @@ export function KanbanView({
         return (
           <div
             key={column.key}
-            className="flex-shrink-0 w-72 lg:w-auto lg:flex-shrink lg:min-w-0 bg-muted/30 rounded-lg"
+            className="w-[calc(100vw-1.5rem)] max-w-72 flex-shrink-0 snap-start rounded-lg bg-muted/30 lg:w-auto lg:max-w-none lg:flex-shrink lg:min-w-0"
           >
             {/* Column header */}
-            <div className="sticky top-0 bg-muted/50 backdrop-blur-sm rounded-t-lg border-b border-border/50 px-3 py-2.5 z-10">
+            <div className="sticky top-0 z-10 rounded-t-lg border-b border-border/50 bg-muted/90 px-3 py-2.5 backdrop-blur-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ColumnIcon columnKey={column.key} />
@@ -113,7 +114,7 @@ export function KanbanView({
             </div>
 
             {/* Column content */}
-            <div className="p-2 space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto">
+            <div className="space-y-2 p-2 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto">
               {columnIssues.length === 0 ? (
                 <div className="py-8 text-center text-xs text-muted-foreground">
                   No items

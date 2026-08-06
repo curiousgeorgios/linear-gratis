@@ -229,7 +229,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
 
   if (requiresPassword) {
     return (
-      <div className="min-h-screen bg-background linear-gradient-bg flex items-center justify-center">
+      <div className="min-h-screen bg-background linear-gradient-bg flex items-center justify-center p-4">
         <div className="w-full max-w-sm linear-scale-in">
           <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
             <div className="text-center mb-6">
@@ -251,7 +251,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={authenticating}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                  className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 sm:text-sm"
                 />
               </div>
 
@@ -264,7 +264,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
               <button
                 type="submit"
                 disabled={authenticating || !password.trim()}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="min-h-11 w-full touch-manipulation rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-[background-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
               >
                 {authenticating ? (
                   <div className="flex items-center justify-center gap-2">
@@ -295,10 +295,10 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
   return (
     <div className="min-h-screen bg-background linear-gradient-bg flex flex-col" style={getBrandingStyles(branding)}>
       {/* Header */}
-      <header className="border-b border-border bg-card/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-sm">
+        <div className="flex min-h-14 items-center justify-between gap-2 px-3 sm:px-6">
           {/* Left side - Brand logo or title */}
-          <div className="flex items-center gap-3 sm:gap-6 max-w-[50%] min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-2 min-w-0">
               {branding?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time
@@ -311,7 +311,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                     maxHeight: `${branding.logo_height || 40}px`,
                     objectFit: 'contain',
                   }}
-                  className="flex-shrink-0"
+                  className="max-w-[min(13rem,60vw)] flex-shrink-0"
                 />
               ) : (
                 <>
@@ -334,43 +334,17 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
           </div>
 
           {/* Right side - Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {lastUpdated && (
               <div className="hidden sm:block text-xs text-muted-foreground">
                 Updated {lastUpdated.toLocaleTimeString()}
               </div>
             )}
 
-            {/* Layout toggle */}
-            <div className="flex items-center bg-muted/50 rounded-md p-0.5">
-              <button
-                onClick={() => setLayoutType('kanban')}
-                className={`p-1.5 rounded transition-colors ${
-                  layoutType === 'kanban'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Kanban view"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setLayoutType('timeline')}
-                className={`p-1.5 rounded transition-colors ${
-                  layoutType === 'timeline'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Timeline view"
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-            </div>
-
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 hover:bg-accent rounded-md transition-colors"
+              className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
               aria-label="Refresh"
             >
               <RefreshCw className={`h-4 w-4 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`} />
@@ -378,41 +352,72 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
           </div>
         </div>
 
-        {/* Description bar */}
-        {roadmap.description && (
-          <div className="px-4 sm:px-6 py-2 border-t border-border/30">
-            <p className="text-sm text-muted-foreground">{roadmap.description}</p>
+        {/* Compact view and category toolbar */}
+        <div className="flex min-h-12 items-center gap-2 overflow-x-auto border-t border-border/40 px-3 sm:px-6">
+          <div className="flex shrink-0 items-center rounded-md bg-muted/60 p-0.5" aria-label="Roadmap layout">
+            <button
+              type="button"
+              onClick={() => setLayoutType('kanban')}
+              aria-pressed={layoutType === 'kanban'}
+              className={`inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none ${
+                layoutType === 'kanban'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground'
+              }`}
+              title="Kanban view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Board</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutType('timeline')}
+              aria-pressed={layoutType === 'timeline'}
+              className={`inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none ${
+                layoutType === 'timeline'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground'
+              }`}
+              title="Timeline view"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Timeline</span>
+            </button>
           </div>
-        )}
 
-        {/* Project filters */}
-        {projects.length > 1 && (
-          <div className="px-4 sm:px-6 py-2 border-t border-border/30">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground">Categories:</span>
-              {projects.map((project) => (
-                <span
-                  key={project.id}
-                  className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md"
-                  style={{
-                    backgroundColor: project.color ? `${project.color}15` : 'var(--muted)',
-                    color: project.color || 'var(--muted-foreground)',
-                  }}
-                >
+          {projects.length > 1 && (
+            <>
+              <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
+              <div className="flex shrink-0 items-center gap-1.5" aria-label="Roadmap categories">
+                {projects.map((project) => (
                   <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: project.color || 'var(--muted-foreground)' }}
-                  />
-                  {project.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+                    key={project.id}
+                    className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium"
+                    style={{
+                      backgroundColor: project.color ? `${project.color}15` : 'var(--muted)',
+                      color: project.color || 'var(--muted-foreground)',
+                    }}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: project.color || 'var(--muted-foreground)' }}
+                    />
+                    {project.name}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Content */}
-      <div className="flex-1 w-full p-4 sm:p-6">
+      <main className="w-full min-w-0 flex-1 px-2 py-3 sm:p-6">
+        {roadmap.description && !error && (
+          <p className="mb-3 line-clamp-2 px-1 text-sm text-muted-foreground sm:mb-4 sm:px-0">
+            {roadmap.description}
+          </p>
+        )}
         {error ? (
           <div className="max-w-md mx-auto mt-20 p-6 bg-destructive/5 border border-destructive/20 rounded-lg linear-scale-in">
             <h3 className="font-medium text-destructive mb-2">Error loading data</h3>
@@ -420,7 +425,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 transition-colors disabled:opacity-50"
+              className="min-h-11 touch-manipulation rounded-md bg-destructive px-3 py-1.5 text-sm text-destructive-foreground transition-[background-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-destructive/90 active:scale-[0.96] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
             >
               {refreshing ? 'Retrying...' : 'Try again'}
             </button>
@@ -463,12 +468,12 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
             )}
           </div>
         )}
-      </div>
+      </main>
 
       {/* Footer */}
       {!error && (
-        <footer className="px-4 sm:px-6 pb-6 mt-auto">
-          <div className="text-center py-8 border-t border-border/30">
+        <footer className="mt-auto px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6">
+          <div className="border-t border-border/30 py-4 text-center sm:py-8">
             {branding?.footer_text ? (
               <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
                 {branding.footer_text}
