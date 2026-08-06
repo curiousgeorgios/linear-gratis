@@ -18,6 +18,7 @@ interface VoteButtonProps {
   fingerprint: string | null
   allowVoting: boolean
   showCount: boolean
+  compact?: boolean
   onVote?: (issueId: string, voted: boolean, newCount: number) => void
 }
 
@@ -61,6 +62,7 @@ export function VoteButton({
   fingerprint,
   allowVoting,
   showCount,
+  compact = false,
   onVote,
 }: VoteButtonProps) {
   const [voteState, setVoteState] = useState<VoteLifecycleState>(() =>
@@ -182,25 +184,28 @@ export function VoteButton({
       }}
       disabled={isDisabled}
       aria-busy={voteState.isPending}
+      aria-pressed={voteState.hasVoted}
       aria-label={title}
       className={`
-        flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md touch-manipulation
-        text-xs font-medium transition-all duration-200 ease-out
+        inline-flex min-h-11 min-w-11 items-center justify-center rounded-md touch-manipulation
+        text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out
+        motion-reduce:transform-none motion-reduce:transition-none
+        ${compact ? 'flex-row gap-0.5 px-2' : 'flex-col gap-0.5'}
         ${voteState.hasVoted
           ? 'bg-primary/10 text-primary border border-primary/30'
-          : 'bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:border-border'
+          : 'bg-muted/50 text-muted-foreground border border-transparent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted [@media(hover:hover)_and_(pointer:fine)]:hover:border-border'
         }
-        ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}
+        ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.96]'}
       `}
       title={title}
     >
       <ChevronUp
-        className={`h-3.5 w-3.5 transition-transform duration-200 ease-out ${
+        className={`h-3.5 w-3.5 transition-transform duration-150 ease-out motion-reduce:transform-none motion-reduce:transition-none ${
           voteState.hasVoted ? 'text-primary' : ''
         } ${isAnimating && voteState.hasVoted ? 'scale-125' : ''}`}
       />
       {showCount && (
-        <span className={`transition-transform duration-150 ${voteState.hasVoted ? 'text-primary' : ''} ${isAnimating ? 'scale-110' : ''}`}>
+        <span className={`tabular-nums transition-transform duration-150 motion-reduce:transform-none motion-reduce:transition-none ${voteState.hasVoted ? 'text-primary' : ''} ${isAnimating ? 'scale-110' : ''}`}>
           {voteState.count}
         </span>
       )}

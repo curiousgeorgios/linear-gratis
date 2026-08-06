@@ -115,7 +115,23 @@ export default function RootLayout({
           <AuthProvider>
             {children}
           </AuthProvider>
-          <Toaster richColors position="bottom-right" />
+          <Toaster
+            richColors
+            position="bottom-center"
+            offset={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}
+            mobileOffset={{
+              left: 12,
+              right: 12,
+              bottom: 'calc(12px + env(safe-area-inset-bottom))',
+            }}
+            toastOptions={{
+              classNames: {
+                toast: 'linear-toast',
+                title: 'linear-toast-title',
+                description: 'linear-toast-description',
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>
