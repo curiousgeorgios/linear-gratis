@@ -230,10 +230,13 @@ production releases. Its production build command is
 `bun run release:cloudflare:build` and its deploy command is
 `bun run release:cloudflare:deploy`; both fetch their environment from Infisical
 before invoking the underlying release stages. The build stage also provisions
-its pinned Puppeteer browser before running the headless smoke gate. The only Cloudflare build secret
-is a read-only, production-scoped `INFISICAL_TOKEN`; application and database
-secrets remain in Infisical. Preview builds are disabled so pull requests and
-forks cannot receive production credentials or run production migrations.
+its pinned Puppeteer browser before running the headless smoke gate. The only
+Cloudflare build secret is a read-only, production-scoped `INFISICAL_TOKEN`;
+application and database secrets remain in Infisical. Preview builds are
+disabled so pull requests and forks cannot receive production credentials or
+run production migrations.
+The production trigger pins `BUN_VERSION=1.2.21` to match the repository and
+GitHub Actions coverage runtime.
 The self-hosted Infisical API domain is public configuration and is pinned in
 `.infisical.json`; tokens and secret values are never stored there.
 

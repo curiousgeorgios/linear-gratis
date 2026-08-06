@@ -25,8 +25,8 @@ function expectStateInvariant(state: VoteLifecycleState) {
 }
 
 describe('IP hash fallback', () => {
-  test('treats a missing or whitespace-only salt as optional metadata', () => {
-    assert.equal(hashIp('203.0.113.10', undefined), null)
+  test('treats an empty or whitespace-only salt as optional metadata', () => {
+    assert.equal(hashIp('203.0.113.10', ''), null)
     assert.equal(hashIp('203.0.113.10', '   '), null)
   })
 
