@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { authoriseRoadmap } from '@/lib/roadmap-auth';
 import { resolveRoadmapIssue } from '@/lib/roadmap-issue-access';
+import { isRoadmapStateOpenForVoting } from '@/lib/roadmap-issue-policy';
 import { checkRateLimit, getClientIp, hashIp, rateLimitResponse } from '@/lib/request-security';
 import * as z from 'zod';
 
@@ -56,6 +57,12 @@ export async function POST(
 
     const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
     if (!issueAccess.ok) return issueAccess.response;
+    if (!isRoadmapStateOpenForVoting(issueAccess.stateType)) {
+      return NextResponse.json(
+        { error: 'Voting is closed for this item' },
+        { status: 403 }
+      );
+    }
 
     // IP hashes are optional abuse-analysis metadata. Fingerprint-based
     // deduplication remains the authoritative voting control.
@@ -145,6 +152,12 @@ export async function DELETE(
 
     const issueAccess = await resolveRoadmapIssue(roadmap, issueId);
     if (!issueAccess.ok) return issueAccess.response;
+    if (!isRoadmapStateOpenForVoting(issueAccess.stateType)) {
+      return NextResponse.json(
+        { error: 'Voting is closed for this item' },
+        { status: 403 }
+      );
+    }
 
     // Delete the vote
     const { error: deleteError } = await supabaseAdmin

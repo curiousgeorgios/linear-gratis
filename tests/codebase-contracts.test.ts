@@ -63,6 +63,8 @@ describe('API route contracts', () => {
       'src/app/api/roadmap/[slug]/vote/route.ts': [
         'authoriseRoadmap',
         'resolveRoadmapIssue',
+        'isRoadmapStateOpenForVoting',
+        'Voting is closed for this item',
         'checkRateLimit',
         'getClientIp',
       ],
@@ -107,10 +109,11 @@ describe('API route contracts', () => {
 
 describe('public roadmap interface contracts', () => {
   test('mobile board preserves card width, touch targets, and reduced-motion semantics', async () => {
-    const [card, voteButton, kanban, modal, page, layout] = await Promise.all([
+    const [card, voteButton, kanban, timeline, modal, page, layout] = await Promise.all([
       'src/components/roadmap/roadmap-card.tsx',
       'src/components/roadmap/vote-button.tsx',
       'src/components/roadmap/kanban-view.tsx',
+      'src/components/roadmap/timeline-view.tsx',
       'src/components/roadmap/item-detail-modal.tsx',
       'src/app/roadmap/[slug]/page.tsx',
       'src/app/layout.tsx',
@@ -119,6 +122,8 @@ describe('public roadmap interface contracts', () => {
     assert.match(card, /<article/)
     assert.match(card, /aria-label={`Open \$\{issue\.identifier\}/)
     assert.match(card, /<VoteButton[\s\S]*compact/)
+    assert.match(card, /<StateIcon[\s\S]*issue\.state\.name/)
+    assert.match(card, /<VoteCount count={voteCount} votingClosed={votingClosed}/)
     assert.doesNotMatch(card, /transition-all/)
 
     assert.match(voteButton, /aria-pressed={voteState\.hasVoted}/)
@@ -132,12 +137,22 @@ describe('public roadmap interface contracts', () => {
     assert.match(kanban, /w-\[calc\(100vw-1\.5rem\)\]/)
     assert.doesNotMatch(kanban, /max-h-\[calc\(100vh-280px\)\]/)
 
+    assert.match(timeline, /useState\(false\)/)
+    assert.match(timeline, /filterTimelineIssues\(issues, showShipped\)/)
+    assert.match(timeline, /role="switch"/)
+    assert.match(timeline, /aria-checked={showShipped}/)
+    assert.match(timeline, /<span>Shipped<\/span>/)
+    assert.match(timeline, /showShipped \? 'Shown' : 'Hidden'/)
+    assert.match(timeline, /showShipped \? 'translate-x-4' : 'translate-x-0'/)
+    assert.doesNotMatch(timeline, /transition-all/)
+
     assert.match(modal, /role="dialog"/)
     assert.match(modal, /aria-modal="true"/)
     assert.match(modal, /e\.key !== 'Tab'/)
     assert.match(modal, /previouslyFocusedRef\.current\?\.focus\(\)/)
     assert.match(modal, /100dvh/)
     assert.match(modal, /motion-reduce:animate-none/)
+    assert.match(modal, /<VoteCount count={voteCount} votingClosed={votingClosed}/)
 
     assert.match(page, /aria-label="Roadmap layout"/)
     assert.match(page, /aria-pressed={layoutType === 'kanban'}/)

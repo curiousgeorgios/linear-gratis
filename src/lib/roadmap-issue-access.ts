@@ -4,7 +4,7 @@ import { decryptAndRotateTokenIfNeeded } from '@/lib/encryption-rotation'
 import { getTokenForConnection } from '@/lib/linear-connection'
 
 type ResolveRoadmapIssueResult =
-  | { ok: true; issueId: string }
+  | { ok: true; issueId: string; stateType: string }
   | { ok: false; response: NextResponse }
 
 /**
@@ -39,6 +39,9 @@ export async function resolveRoadmapIssue(
     query RoadmapIssueAccess($issueId: String!) {
       issue(id: $issueId) {
         id
+        state {
+          type
+        }
         project {
           id
         }
@@ -63,19 +66,30 @@ export async function resolveRoadmapIssue(
   }
 
   const result = (await response.json()) as {
-    data?: { issue?: { id: string; project?: { id: string } | null } | null }
+    data?: {
+      issue?: {
+        id: string
+        state?: { type: string } | null
+        project?: { id: string } | null
+      } | null
+    }
     errors?: Array<{ message: string }>
   }
 
   const issue = result.data?.issue
-  if (result.errors || !issue?.project?.id || !projectIds.includes(issue.project.id)) {
+  if (
+    result.errors
+    || !issue?.state?.type
+    || !issue.project?.id
+    || !projectIds.includes(issue.project.id)
+  ) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Roadmap item not found' }, { status: 404 }),
     }
   }
 
-  return { ok: true, issueId: issue.id }
+  return { ok: true, issueId: issue.id, stateType: issue.state.type }
 }
 
 async function resolveTokenForRoadmap(
