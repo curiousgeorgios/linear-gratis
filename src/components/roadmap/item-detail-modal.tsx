@@ -3,8 +3,10 @@
 import { useEffect, useRef } from 'react'
 import { X, MessageCircle, Calendar } from 'lucide-react'
 import { VoteButton } from './vote-button'
+import { VoteCount } from './vote-count'
 import { CommentSection } from './comment-section'
 import { StateIcon } from '@/components/state-icon'
+import { isRoadmapStateOpenForVoting } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
 
 interface ItemDetailModalProps {
@@ -97,6 +99,10 @@ export function ItemDetailModal({
   }
 
   if (!isOpen || !issue) return null
+
+  const stateOpenForVoting = isRoadmapStateOpenForVoting(issue.state.type)
+  const votingOpen = allowVoting && stateOpenForVoting
+  const votingClosed = !stateOpenForVoting
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null
@@ -195,18 +201,20 @@ export function ItemDetailModal({
               </div>
 
               {/* Vote button */}
-              {allowVoting && (
+              {votingOpen ? (
                 <VoteButton
                   issueId={issue.id}
                   roadmapSlug={roadmapSlug}
                   initialCount={voteCount}
                   fingerprint={fingerprint}
-                  allowVoting={allowVoting}
+                  allowVoting={votingOpen}
                   showCount={showVoteCounts}
                   compact
                   onVote={onVote}
                 />
-              )}
+              ) : showVoteCounts ? (
+                <VoteCount count={voteCount} votingClosed={votingClosed} />
+              ) : null}
             </div>
 
             {/* Labels */}

@@ -1,7 +1,12 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { RoadmapCard } from './roadmap-card'
+import { StateIcon } from '@/components/state-icon'
+import {
+  filterTimelineIssues,
+  isShippedRoadmapIssue,
+} from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
 
 interface TimelineViewProps {
@@ -122,8 +127,16 @@ export function TimelineView({
   onIssueClick,
   onVote,
 }: TimelineViewProps) {
+  const [showShipped, setShowShipped] = useState(false)
+
   // Generate timeline periods
   const periods = useMemo(() => generatePeriods(granularity, 12), [granularity])
+  const shippedIssues = useMemo(() => issues.filter(isShippedRoadmapIssue), [issues])
+  const visibleIssues = useMemo(
+    () => filterTimelineIssues(issues, showShipped),
+    [issues, showShipped],
+  )
+  const shippedState = shippedIssues[0]?.state
 
   // Group issues by period and separate unscheduled
   const { groupedIssues, unscheduledIssues } = useMemo(() => {
@@ -136,7 +149,7 @@ export function TimelineView({
     })
 
     // Sort issues into periods
-    issues.forEach((issue) => {
+    visibleIssues.forEach((issue) => {
       const periodKey = getIssuePeriodKey(issue, periods)
       if (periodKey && groups[periodKey]) {
         groups[periodKey].push(issue)
@@ -162,21 +175,65 @@ export function TimelineView({
     })
 
     return { groupedIssues: groups, unscheduledIssues: unscheduled }
-  }, [issues, periods, voteCounts])
+  }, [visibleIssues, periods, voteCounts])
 
   // Get unique projects for row grouping
   const projects = useMemo(() => {
     const projectMap = new Map<string, { id: string; name: string; color?: string }>()
-    issues.forEach((issue) => {
+    visibleIssues.forEach((issue) => {
       if (issue.project && !projectMap.has(issue.project.id)) {
         projectMap.set(issue.project.id, issue.project)
       }
     })
     return Array.from(projectMap.values())
-  }, [issues])
+  }, [visibleIssues])
 
   return (
     <div className="space-y-6">
+      <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
+        <p className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
+          {visibleIssues.length - (showShipped ? shippedIssues.length : 0)} active{' '}
+          {visibleIssues.length - (showShipped ? shippedIssues.length : 0) === 1 ? 'item' : 'items'}
+        </p>
+
+        {shippedIssues.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowShipped((current) => !current)}
+            role="switch"
+            aria-checked={showShipped}
+            aria-label={`Show ${shippedIssues.length} shipped ${shippedIssues.length === 1 ? 'item' : 'items'}`}
+            className="inline-flex min-h-11 touch-manipulation items-center gap-2 rounded-md border border-border/70 bg-card px-2.5 text-xs font-medium transition-[background-color,border-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:border-border [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
+          >
+            <StateIcon
+              type="completed"
+              color={shippedState?.color || 'var(--muted-foreground)'}
+              name={shippedState?.name || 'Shipped'}
+              size={13}
+            />
+            <span>Shipped</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 tabular-nums text-[10px] text-muted-foreground">
+              {shippedIssues.length}
+            </span>
+            <span className={`min-w-[3.25rem] text-right ${showShipped ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {showShipped ? 'Shown' : 'Hidden'}
+            </span>
+            <span
+              aria-hidden="true"
+              className={`relative h-5 w-9 shrink-0 rounded-full p-0.5 transition-[background-color] duration-150 motion-reduce:transition-none ${
+                showShipped ? 'bg-primary' : 'bg-muted-foreground/30'
+              }`}
+            >
+              <span
+                className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform duration-150 motion-reduce:transition-none ${
+                  showShipped ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </span>
+          </button>
+        )}
+      </div>
+
       {/* Timeline header */}
       <div className="overflow-x-auto pb-2">
         <div className="min-w-[800px]">
@@ -219,7 +276,7 @@ export function TimelineView({
             </div>
           ) : (
             projects.map((project) => {
-              const projectIssues = issues.filter((i) => i.project?.id === project.id)
+              const projectIssues = visibleIssues.filter((i) => i.project?.id === project.id)
               const projectUnscheduled = unscheduledIssues.filter((i) => i.project?.id === project.id)
 
               return (

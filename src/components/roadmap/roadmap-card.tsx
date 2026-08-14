@@ -2,6 +2,9 @@
 
 import { MessageCircle } from 'lucide-react'
 import { VoteButton } from './vote-button'
+import { VoteCount } from './vote-count'
+import { StateIcon } from '@/components/state-icon'
+import { isRoadmapStateOpenForVoting } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
 
 interface RoadmapCardProps {
@@ -35,6 +38,10 @@ export function RoadmapCard({
   onClick,
   onVote,
 }: RoadmapCardProps) {
+  const stateOpenForVoting = isRoadmapStateOpenForVoting(issue.state.type)
+  const votingOpen = allowVoting && stateOpenForVoting
+  const votingClosed = !stateOpenForVoting
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return null
     const date = new Date(dateString)
@@ -87,6 +94,17 @@ export function RoadmapCard({
             {issue.description.replace(/[#*_`]/g, '').slice(0, 150)}
           </p>
         )}
+
+        {/* Linear workflow status */}
+        <span className="mt-2 flex max-w-full items-center gap-1 text-xs text-muted-foreground">
+          <StateIcon
+            type={issue.state.type}
+            color={issue.state.color}
+            name={issue.state.name}
+            size={12}
+          />
+          <span className="truncate">{issue.state.name}</span>
+        </span>
       </button>
 
       {/* Footer */}
@@ -133,18 +151,20 @@ export function RoadmapCard({
             </div>
           )}
         </div>
-        {allowVoting && (
+        {votingOpen ? (
           <VoteButton
             issueId={issue.id}
             roadmapSlug={roadmapSlug}
             initialCount={voteCount}
             fingerprint={fingerprint}
-            allowVoting={allowVoting}
+            allowVoting={votingOpen}
             showCount={showVoteCounts}
             compact
             onVote={onVote}
           />
-        )}
+        ) : showVoteCounts ? (
+          <VoteCount count={voteCount} votingClosed={votingClosed} />
+        ) : null}
       </div>
     </article>
   )

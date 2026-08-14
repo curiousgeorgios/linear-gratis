@@ -6,6 +6,7 @@ import { EstimateIcon, PriorityIcon } from '../src/components/priority-icon'
 import { StateIcon, StatusCategoryIcon } from '../src/components/state-icon'
 import { Badge, badgeVariants } from '../src/components/ui/badge'
 import { Button, buttonVariants } from '../src/components/ui/button'
+import { VoteCount } from '../src/components/roadmap/vote-count'
 import { StructuredDataScript } from '../src/lib/structured-data'
 
 describe('Linear-style icon rendering', () => {
@@ -107,5 +108,18 @@ describe('shared UI primitives', () => {
     assert.match(markup, /type="application\/ld\+json"/)
     assert.match(markup, /"@type": "WebSite"/)
     assert.match(markup, /^<script/)
+  })
+})
+
+describe('public roadmap rendering', () => {
+  test('shipped vote counts render as read-only status rather than an action', () => {
+    const markup = renderToStaticMarkup(createElement(VoteCount, {
+      count: 7,
+      votingClosed: true,
+    }))
+
+    assert.match(markup, /aria-label="7 votes\. Voting is closed for this item\."/)
+    assert.match(markup, /title="Voting is closed for this item"/)
+    assert.doesNotMatch(markup, /<button/)
   })
 })
