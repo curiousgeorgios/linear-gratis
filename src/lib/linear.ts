@@ -113,6 +113,7 @@ export type LinearIssue = {
     name: string;
     avatarUrl?: string;
   };
+  cycle?: { id: string; number: number } | null;
   labels: Array<{
     id: string;
     name: string;
@@ -186,6 +187,10 @@ export async function fetchLinearIssues(
               name
               avatarUrl
             }
+            cycle {
+              id
+              number
+            }
             labels {
               nodes {
                 id
@@ -224,6 +229,7 @@ export async function fetchLinearIssues(
         name: string;
         avatarUrl?: string;
       };
+      cycle?: { id: string; number: number } | null;
       labels: {
         nodes: Array<{
           id: string;
@@ -258,6 +264,7 @@ export async function fetchLinearIssues(
       url: issue.url,
       state: issue.state,
       assignee: issue.assignee,
+      cycle: issue.cycle,
       labels: issue.labels.nodes,
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,
