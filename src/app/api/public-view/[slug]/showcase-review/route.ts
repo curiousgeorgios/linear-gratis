@@ -85,7 +85,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       accept: 'Accepted', changes: 'Changes requested', reject: 'Rejected',
       'no-longer-needed': 'No longer needed',
     }[parsed.data.action];
-    const body = `**Showcase review: ${verb}** by ${parsed.data.reviewer.name} (${parsed.data.reviewer.email}).${parsed.data.comment ? `\n\n${parsed.data.comment}` : ''}`;
+    const body = `**Showcase review: ${verb}** by ${parsed.data.reviewer.name}.${parsed.data.comment ? `\n\n${parsed.data.comment}` : ''}`;
     const commentResult = await linearRequest<{ commentCreate: { success: boolean } }>(token,
       `mutation ShowcaseReviewComment($input: CommentCreateInput!) { commentCreate(input: $input) { success } }`,
       { input: { issueId: issue.id, body } });
