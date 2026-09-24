@@ -49,7 +49,8 @@ describe('signed showcase review endpoint', () => {
       operations.push(body.query);
       if (body.query.includes('query ShowcaseReviewIssue')) return Response.json({ data: { issue: issue() } });
       if (body.query.includes('mutation ShowcaseReviewComment')) {
-        assert.match(JSON.stringify(body.variables), /Shane \(shane@example\.test\)/);
+        assert.match(JSON.stringify(body.variables), /Showcase review: Accepted.*by Shane\./);
+        assert.doesNotMatch(JSON.stringify(body.variables), /shane@example\.test/);
         return Response.json({ data: { commentCreate: { success: true } } });
       }
       assert.equal(body.variables.stateId, 'done-id');
