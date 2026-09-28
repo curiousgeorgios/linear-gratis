@@ -4,9 +4,11 @@ import { supabaseAdmin, type PublicView } from '@/lib/supabase';
 import { resolveLinearTokenForPublicView } from '@/lib/public-view-issue-creation';
 import { verifyWebhookSignature } from '@/lib/webhook-signature';
 import {
-  CYCLE_29_ID, GEORGE_LINEAR_USER_ID, USUAL_SUSPECTS_TEAM_ID,
+  USUAL_SUSPECTS_TEAM_ID, isEligibleCycle29Issue,
   isReviewableCycle29Issue, nextReviewState,
 } from '@/lib/showcase-review-policy';
+
+import { confirmedReviewIssue, hasCurrentConfirmedReview } from '@/lib/confirmed-showcase-review';
 
 const MAX_AGE_MS = 5 * 60 * 1000;
 
@@ -16,6 +18,7 @@ const reviewSchema = z.object({
   comment: z.string().trim().max(5000),
   reviewer: z.object({ name: z.string().trim().min(1).max(200), email: z.string().email() }),
   submittedAt: z.string().datetime(),
+  release: z.object({ version: z.string().max(100), commit: z.string().regex(/^[a-f0-9]{40}$/) }).optional(),
 }).refine((value) => value.action === 'accept' || value.comment.length > 0, {
   message: 'Explain the requested change or cancellation.',
   path: ['comment'],
@@ -62,21 +65,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   try {
     const issueResult = await linearRequest<{ issue: {
-      id: string; identifier: string;
+      id: string; identifier: string; description: string | null;
       team: { id: string; states: { nodes: Array<{ id: string; name: string }> } };
       cycle: { id: string } | null;
       assignee: { id: string } | null;
       state: { name: string };
     } | null }>(token, `query ShowcaseReviewIssue($id: String!) {
-      issue(id: $id) { id identifier team { id states { nodes { id name } } }
+      issue(id: $id) { id identifier description team { id states { nodes { id name } } }
         cycle { id } assignee { id } state { name } }
     }`, { id: parsed.data.issueId });
     const issue = issueResult.issue;
-    if (!issue || issue.team.id !== USUAL_SUSPECTS_TEAM_ID || issue.cycle?.id !== CYCLE_29_ID || issue.assignee?.id !== GEORGE_LINEAR_USER_ID) {
+    if (!issue || !isEligibleCycle29Issue(issue)) {
       return new NextResponse(null, { status: 404 });
     }
     if (!isReviewableCycle29Issue(issue)) {
       return NextResponse.json({ error: `This issue is ${issue.state.name}; only issues in review can receive a decision.`, state: issue.state.name }, { status: 409 });
+    }
+    if (!hasCurrentConfirmedReview(issue, parsed.data.release)) {
+      return NextResponse.json({ error: 'This review scope or release has changed. Refresh the showcase after the release is published.' }, { status: 409 });
     }
     const nextStateName = nextReviewState(parsed.data.action);
     const nextState = issue.team.states.nodes.find((state) => state.name === nextStateName);
@@ -85,7 +91,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       accept: 'Accepted', changes: 'Changes requested', reject: 'Rejected',
       'no-longer-needed': 'No longer needed',
     }[parsed.data.action];
-    const body = `**Showcase review: ${verb}** by ${parsed.data.reviewer.name}.${parsed.data.comment ? `\n\n${parsed.data.comment}` : ''}`;
+    const confirmed = confirmedReviewIssue(issue.identifier, issue.id);
+    const releaseNote = confirmed && parsed.data.release ? `\n\nReviewed scope: ${confirmed.scope}\n\nRelease: ${parsed.data.release.commit} (${parsed.data.release.version}); source items: ${confirmed.localIds.join(", ")}.` : "";
+    const body = `**Showcase review: ${verb}** by ${parsed.data.reviewer.name}.${parsed.data.comment ? `\n\n${parsed.data.comment}` : ''}${releaseNote}`;
     const commentResult = await linearRequest<{ commentCreate: { success: boolean } }>(token,
       `mutation ShowcaseReviewComment($input: CommentCreateInput!) { commentCreate(input: $input) { success } }`,
       { input: { issueId: issue.id, body } });

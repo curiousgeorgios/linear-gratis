@@ -1,3 +1,4 @@
+import { BEN_LINEAR_USER_ID, confirmedReviewIssue } from "./confirmed-showcase-review";
 export const CYCLE_29_ID = '7363570b-2655-409a-8c49-51ecf2c4f83e';
 export const GEORGE_LINEAR_USER_ID = 'c78169af-00e6-4bdf-aea9-20567ef13a9f';
 export const USUAL_SUSPECTS_TEAM_ID = '0f8afe8c-b8aa-4bf6-b165-d91c3ebd1c1d';
@@ -10,7 +11,9 @@ export function nextReviewState(action: ShowcaseReviewAction): 'Done' | 'In Prog
   return 'Canceled';
 }
 
-export function isReviewableCycle29Issue(issue: {
+export function isEligibleCycle29Issue(issue: {
+  identifier?: string;
+  id?: string;
   team: { id: string };
   cycle: { id: string } | null;
   assignee: { id: string } | null;
@@ -18,6 +21,10 @@ export function isReviewableCycle29Issue(issue: {
 }): boolean {
   return issue.team.id === USUAL_SUSPECTS_TEAM_ID &&
     issue.cycle?.id === CYCLE_29_ID &&
-    issue.assignee?.id === GEORGE_LINEAR_USER_ID &&
-    issue.state.name === 'In Review';
+    (issue.assignee?.id === GEORGE_LINEAR_USER_ID || (issue.assignee?.id === BEN_LINEAR_USER_ID &&
+      Boolean(confirmedReviewIssue(issue.identifier ?? '', issue.id ?? ''))));
+}
+
+export function isReviewableCycle29Issue(issue: Parameters<typeof isEligibleCycle29Issue>[0]): boolean {
+  return isEligibleCycle29Issue(issue) && issue.state.name === "In Review";
 }
