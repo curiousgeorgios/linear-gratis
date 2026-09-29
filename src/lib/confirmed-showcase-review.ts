@@ -97,7 +97,7 @@ export const confirmedReviewIssues = [
   {
     "identifier": "USU-115",
     "id": "816e0cc3-b436-491b-b444-c02066bc0388",
-    "scope": "SCOPE_PENDING_APPROVAL_USU-115",
+    "scope": "The Invoices list shows each invoice's project Job # as a linked, sortable column, and invoice search also matches Job #.",
     "localIds": [
       "OT-04"
     ]
@@ -105,7 +105,7 @@ export const confirmedReviewIssues = [
   {
     "identifier": "USU-98",
     "id": "23d43a7e-c014-4833-ab66-10e19bbb7bc8",
-    "scope": "SCOPE_PENDING_APPROVAL_USU-98",
+    "scope": "Lists keep their search, filters, sort and page in the page address, so browser Back or the in-app Back control returns you to the same list view; browser Forward still works, and a record opened from a direct link goes back to the default list.",
     "localIds": [
       "OT-12"
     ]
@@ -113,7 +113,7 @@ export const confirmedReviewIssues = [
   {
     "identifier": "USU-263",
     "id": "92d4d8e4-53d6-411d-aee7-5e2e970e05c7",
-    "scope": "SCOPE_PENDING_APPROVAL_USU-263",
+    "scope": "Only admins and accountants can view, upload or code private Overheads, which use a synced Xero expense or overheads account code instead of a direct-cost code, have no project or estimate allocation and stay out of project actuals and reconciliation.",
     "localIds": [
       "OT-05"
     ]
