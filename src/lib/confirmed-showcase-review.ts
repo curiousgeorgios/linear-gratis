@@ -1,5 +1,5 @@
-export const CONFIRMED_REVIEW_VERSION = 'sprint-1-confirmed-2026-09-28';
-export const CONFIRMED_REVIEW_COMMIT = '53b08d7ca2079788acf8547044b009162a95bff5';
+export const CONFIRMED_REVIEW_VERSION = 'sprint-1-confirmed-followup-2026-09-29';
+export const CONFIRMED_REVIEW_COMMIT = 'a1ef4957cdae96077ade0fa33cf368cb938927f4';
 export const BEN_LINEAR_USER_ID = '53f41544-41d0-49cb-a695-51a47f1be226';
 export const confirmedReviewIssues = [
   {
@@ -92,6 +92,30 @@ export const confirmedReviewIssues = [
     "scope": "Make applicable list headers sortable with ascending and descending states and keyboard-accessible controls. Keep invoice and estimate document lines in their meaningful document order.",
     "localIds": [
       "OT-03"
+    ]
+  },
+  {
+    "identifier": "USU-115",
+    "id": "816e0cc3-b436-491b-b444-c02066bc0388",
+    "scope": "SCOPE_PENDING_APPROVAL_USU-115",
+    "localIds": [
+      "OT-04"
+    ]
+  },
+  {
+    "identifier": "USU-98",
+    "id": "23d43a7e-c014-4833-ab66-10e19bbb7bc8",
+    "scope": "SCOPE_PENDING_APPROVAL_USU-98",
+    "localIds": [
+      "OT-12"
+    ]
+  },
+  {
+    "identifier": "USU-263",
+    "id": "92d4d8e4-53d6-411d-aee7-5e2e970e05c7",
+    "scope": "SCOPE_PENDING_APPROVAL_USU-263",
+    "localIds": [
+      "OT-05"
     ]
   }
 ] as const;
