@@ -8,7 +8,7 @@ const Dropdown = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative inline-block text-left",
+      "relative inline-block text-start",
       className
     )}
     {...props}
@@ -45,9 +45,9 @@ const DropdownContent = React.forwardRef<
     ref={ref}
     className={cn(
       "absolute z-50 min-w-[220px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-      align === "start" && "left-0",
+      align === "start" && "start-0",
       align === "center" && "left-1/2 -translate-x-1/2",
-      align === "end" && "right-0",
+      align === "end" && "end-0",
       className
     )}
     style={{ top: `calc(100% + ${sideOffset}px)` }}

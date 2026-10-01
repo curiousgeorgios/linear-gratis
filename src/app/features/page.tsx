@@ -14,6 +14,7 @@ import {
   Star
 } from "lucide-react"
 import Link from "next/link"
+import { useT } from '@/lib/i18n/client'
 
 const features = [
   {
@@ -431,6 +432,8 @@ const FeatureIcon = ({ status }: { status: string }) => {
 }
 
 export default function FeaturesPage() {
+  const t = useT()
+
   return (
     <div className="min-h-screen gradient-bg">
       <Navigation />
@@ -439,13 +442,13 @@ export default function FeaturesPage() {
       <section className="container mx-auto px-6 pt-24 pb-16">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent leading-tight">
-            Complete feature
+            {t("Complete feature")}
             <br />
-            <span className="text-primary">comparison</span>
+            <span className="text-primary">{t("comparison")}</span>
           </h1>
 
           <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-            Detailed feature-by-feature comparison of linear.gratis vs SteelSync vs Lindie for Linear feedback collection.
+            {t("Detailed feature-by-feature comparison of linear.gratis vs SteelSync vs Lindie for Linear feedback collection.")}
           </p>
         </div>
       </section>
@@ -458,31 +461,31 @@ export default function FeaturesPage() {
               {/* Sticky Header */}
               <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border border-border rounded-lg mb-8 shadow-lg">
                 <div className="grid grid-cols-4 gap-0">
-                  <div className="p-6 border-r border-border">
-                    <h3 className="text-xl font-bold text-foreground">Feature</h3>
+                  <div className="p-6 border-e border-border">
+                    <h3 className="text-xl font-bold text-foreground">{t("Feature")}</h3>
                   </div>
-                  <div className="p-6 text-center border-r border-border bg-gradient-to-br from-primary/5 to-primary/10">
+                  <div className="p-6 text-center border-e border-border bg-gradient-to-br from-primary/5 to-primary/10">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full font-bold text-sm">
                       <Star className="h-4 w-4" />
-                      linear.gratis
+                      {t("linear.gratis")}
                     </div>
                     <div className="mt-2">
                       <div className="text-2xl font-bold text-primary">$0</div>
-                      <p className="text-xs text-muted-foreground">forever</p>
+                      <p className="text-xs text-muted-foreground">{t("forever")}</p>
                     </div>
                   </div>
-                  <div className="p-6 text-center border-r border-border">
-                    <div className="font-bold text-lg">SteelSync</div>
+                  <div className="p-6 text-center border-e border-border">
+                    <div className="font-bold text-lg">{t("SteelSync")}</div>
                     <div className="mt-2">
                       <div className="text-2xl font-bold text-orange-600">$29</div>
-                      <p className="text-xs text-muted-foreground">per month</p>
+                      <p className="text-xs text-muted-foreground">{t("per month")}</p>
                     </div>
                   </div>
                   <div className="p-6 text-center">
-                    <div className="font-bold text-lg">Lindie</div>
+                    <div className="font-bold text-lg">{t("Lindie")}</div>
                     <div className="mt-2">
                       <div className="text-2xl font-bold text-purple-600">$0-99</div>
-                      <p className="text-xs text-muted-foreground">per month</p>
+                      <p className="text-xs text-muted-foreground">{t("per month")}</p>
                     </div>
                   </div>
                 </div>
@@ -492,7 +495,7 @@ export default function FeaturesPage() {
               {features.map((category, categoryIndex) => (
                 <div key={categoryIndex} className="mb-8">
                   {/* Category Header */}
-                  <div className="bg-gradient-to-r from-muted to-muted/50 rounded-lg p-4 mb-4 border-l-4 border-primary">
+                  <div className="bg-gradient-to-r from-muted to-muted/50 rounded-lg p-4 mb-4 border-s-4 border-primary">
                     <h4 className="text-lg font-bold capitalize text-foreground flex items-center gap-2">
                       <div className="w-2 h-2 bg-primary rounded-full"></div>
                       {category.category}
@@ -506,20 +509,20 @@ export default function FeaturesPage() {
                         key={itemIndex}
                         className={`grid grid-cols-4 gap-0 ${itemIndex !== category.items.length - 1 ? 'border-b border-border' : ''} hover:bg-muted/30 transition-colors`}
                       >
-                        <div className="p-4 border-r border-border bg-card/50">
+                        <div className="p-4 border-e border-border bg-card/50">
                           <span className="font-medium text-foreground">{item.feature}</span>
                         </div>
-                        <div className="p-4 text-center border-r border-border bg-gradient-to-br from-primary/5 to-primary/10">
+                        <div className="p-4 text-center border-e border-border bg-gradient-to-br from-primary/5 to-primary/10">
                           <div className="flex items-center justify-center gap-2">
                             <FeatureIcon status={item.linearGratis} />
                             {item.linearGratis === 'soon' && (
                               <Badge variant="blue" className="text-xs">
-                                Coming soon
+                                {t("Coming soon")}
                               </Badge>
                             )}
                           </div>
                         </div>
-                        <div className="p-4 text-center border-r border-border">
+                        <div className="p-4 text-center border-e border-border">
                           <div className="flex items-center justify-center">
                             <FeatureIcon status={item.steelSync} />
                           </div>
@@ -538,21 +541,21 @@ export default function FeaturesPage() {
               {/* Summary Row */}
               <div className="mt-12 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg border-2 border-primary/20 overflow-hidden">
                 <div className="grid grid-cols-4 gap-0">
-                  <div className="p-6 border-r border-primary/20">
-                    <div className="font-bold text-lg">Total monthly savings</div>
-                    <p className="text-sm text-muted-foreground">vs competitors</p>
+                  <div className="p-6 border-e border-primary/20">
+                    <div className="font-bold text-lg">{t("Total monthly savings")}</div>
+                    <p className="text-sm text-muted-foreground">{t("vs competitors")}</p>
                   </div>
-                  <div className="p-6 text-center border-r border-primary/20 bg-primary/20">
-                    <div className="text-3xl font-bold text-primary">Free</div>
-                    <p className="text-sm font-medium text-primary">Always</p>
+                  <div className="p-6 text-center border-e border-primary/20 bg-primary/20">
+                    <div className="text-3xl font-bold text-primary">{t("Free")}</div>
+                    <p className="text-sm font-medium text-primary">{t("Always")}</p>
                   </div>
-                  <div className="p-6 text-center border-r border-primary/20">
+                  <div className="p-6 text-center border-e border-primary/20">
                     <div className="text-2xl font-bold text-red-600">-$29</div>
-                    <p className="text-sm text-muted-foreground">monthly cost</p>
+                    <p className="text-sm text-muted-foreground">{t("monthly cost")}</p>
                   </div>
                   <div className="p-6 text-center">
                     <div className="text-2xl font-bold text-red-600">-$30-99</div>
-                    <p className="text-sm text-muted-foreground">monthly cost</p>
+                    <p className="text-sm text-muted-foreground">{t("monthly cost")}</p>
                   </div>
                 </div>
               </div>
@@ -564,15 +567,15 @@ export default function FeaturesPage() {
       {/* Summary Section */}
       <section className="container mx-auto px-6 py-16 bg-muted/20">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">The linear.gratis advantage</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{t("The linear.gratis advantage")}</h2>
 
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
               <CardHeader>
                 <Heart className="h-10 w-10 text-green-600 mb-4" />
-                <CardTitle>$0 today, $0 forever</CardTitle>
+                <CardTitle>{t("$0 today, $0 forever")}</CardTitle>
                 <CardDescription>
-                  Start immediately without payment setup. All core features free forever, with advanced features coming soon.
+                  {t("Start immediately without payment setup. All core features free forever, with advanced features coming soon.")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -580,9 +583,9 @@ export default function FeaturesPage() {
             <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
               <CardHeader>
                 <Github className="h-10 w-10 text-blue-600 mb-4" />
-                <CardTitle>Open source transparency</CardTitle>
+                <CardTitle>{t("Open source transparency")}</CardTitle>
                 <CardDescription>
-                  Community-driven roadmap. See exactly what&apos;s being built and when. Contribute features or self-host.
+                  {t("Community-driven roadmap. See exactly what's being built and when. Contribute features or self-host.")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -590,9 +593,9 @@ export default function FeaturesPage() {
             <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/20">
               <CardHeader>
                 <Clock className="h-10 w-10 text-purple-600 mb-4" />
-                <CardTitle>Rapidly evolving</CardTitle>
+                <CardTitle>{t("Rapidly evolving")}</CardTitle>
                 <CardDescription>
-                  Most &quot;coming soon&quot; features are actively in development. Join our community to prioritise what gets built first.
+                  {t("Most \"coming soon\" features are actively in development. Join our community to prioritise what gets built first.")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -603,22 +606,22 @@ export default function FeaturesPage() {
       {/* CTA Section */}
       <section className="container mx-auto px-6 py-16">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to start collecting feedback?</h2>
+          <h2 className="text-3xl font-bold mb-4">{t("Ready to start collecting feedback?")}</h2>
           <p className="text-muted-foreground mb-8">
-            Get all the essential features free today, with enterprise features coming soon.
+            {t("Get all the essential features free today, with enterprise features coming soon.")}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="h-12 px-8 font-semibold">
               <Link href="/login">
-                Get started free
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {t("Get started free")}
+                <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-12 px-8 font-semibold">
               <Link href="/comparison">
-                <Github className="mr-2 h-4 w-4" />
-                View quick comparison
+                <Github className="me-2 h-4 w-4" />
+                {t("View quick comparison")}
               </Link>
             </Button>
           </div>

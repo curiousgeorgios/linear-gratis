@@ -6,6 +6,7 @@ import { VoteCount } from './vote-count'
 import { StateIcon } from '@/components/state-icon'
 import { isRoadmapStateOpenForVoting } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
+import { useI18n } from '@/lib/i18n/client'
 
 interface RoadmapCardProps {
   issue: RoadmapIssue
@@ -38,6 +39,7 @@ export function RoadmapCard({
   onClick,
   onVote,
 }: RoadmapCardProps) {
+  const { t, intlLocale } = useI18n()
   const stateOpenForVoting = isRoadmapStateOpenForVoting(issue.state.type)
   const votingOpen = allowVoting && stateOpenForVoting
   const votingClosed = !stateOpenForVoting
@@ -45,7 +47,7 @@ export function RoadmapCard({
   const formatDate = (dateString?: string) => {
     if (!dateString) return null
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(intlLocale, {
       day: 'numeric',
       month: 'short',
     })
@@ -56,8 +58,8 @@ export function RoadmapCard({
       <button
         type="button"
         onClick={onClick}
-        aria-label={`Open ${issue.identifier}: ${issue.title}`}
-        className="block w-full touch-manipulation px-2.5 pt-2.5 text-left active:bg-muted/40"
+        aria-label={t('Open {identifier}: {title}', { identifier: issue.identifier, title: issue.title })}
+        className="block w-full touch-manipulation px-2.5 pt-2.5 text-start active:bg-muted/40"
       >
         <div className="flex min-w-0 items-center justify-between gap-2">
           {/* Project badge */}
@@ -103,7 +105,7 @@ export function RoadmapCard({
             name={issue.state.name}
             size={12}
           />
-          <span className="truncate">{issue.state.name}</span>
+          <span className="truncate">{t(issue.state.name)}</span>
         </span>
       </button>
 

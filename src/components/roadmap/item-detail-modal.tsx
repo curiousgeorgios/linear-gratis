@@ -8,6 +8,7 @@ import { CommentSection } from './comment-section'
 import { StateIcon } from '@/components/state-icon'
 import { isRoadmapStateOpenForVoting } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
+import { useI18n } from '@/lib/i18n/client'
 
 interface ItemDetailModalProps {
   isOpen: boolean
@@ -38,6 +39,8 @@ export function ItemDetailModal({
   showVoteCounts,
   onVote,
 }: ItemDetailModalProps) {
+  const { t, intlLocale } = useI18n()
+
   const modalRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
@@ -107,7 +110,7 @@ export function ItemDetailModal({
   const formatDate = (dateString?: string) => {
     if (!dateString) return null
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(intlLocale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -125,7 +128,7 @@ export function ItemDetailModal({
       {/* Slide-in panel */}
       <div
         ref={modalRef}
-        className="h-[100dvh] w-full max-w-xl overflow-hidden border-l border-border bg-background shadow-xl animate-in slide-in-from-right duration-300 motion-reduce:animate-none"
+        className="h-[100dvh] w-full max-w-xl overflow-hidden border-s border-border bg-background shadow-xl animate-in slide-in-from-right duration-300 motion-reduce:animate-none"
       >
         {/* Header */}
         <div className="sticky top-0 bg-background border-b border-border px-4 py-3 z-10">
@@ -151,7 +154,7 @@ export function ItemDetailModal({
               )}
 
               {/* Title */}
-              <h2 id="roadmap-item-title" className="pr-8 text-lg font-semibold text-foreground">
+              <h2 id="roadmap-item-title" className="pe-8 text-lg font-semibold text-foreground">
                 {issue.title}
               </h2>
 
@@ -166,7 +169,7 @@ export function ItemDetailModal({
               type="button"
               onClick={onClose}
               className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
-              aria-label="Close item details"
+              aria-label={t("Close item details")}
             >
               <X className="h-5 w-5 text-muted-foreground" />
             </button>
@@ -187,7 +190,7 @@ export function ItemDetailModal({
                     name={issue.state.name}
                   />
                   <span className="text-sm font-medium" style={{ color: issue.state.color }}>
-                    {issue.state.name}
+                    {t(issue.state.name)}
                   </span>
                 </div>
 
@@ -242,7 +245,7 @@ export function ItemDetailModal({
             {/* Description */}
             {issue.description && (
               <div className="prose prose-sm max-w-none">
-                <h3 className="text-sm font-medium text-foreground mb-2">Description</h3>
+                <h3 className="text-sm font-medium text-foreground mb-2">{t("Description")}</h3>
                 <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-4">
                   {/* Simple markdown-like rendering */}
                   {issue.description
@@ -260,7 +263,7 @@ export function ItemDetailModal({
                       }
                       // Handle bullet points
                       if (line.startsWith('- ') || line.startsWith('* ')) {
-                        return <li key={i} className="ml-4">{line.slice(2)}</li>
+                        return <li key={i} className="ms-4">{line.slice(2)}</li>
                       }
                       // Handle empty lines
                       if (!line.trim()) {
@@ -277,7 +280,7 @@ export function ItemDetailModal({
             <div className="pt-4 border-t border-border">
               <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" />
-                Comments
+                {t("Comments")}
                 {commentCount > 0 && (
                   <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     {commentCount}

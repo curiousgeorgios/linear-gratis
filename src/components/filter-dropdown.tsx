@@ -5,6 +5,7 @@ import { LinearIssue } from '@/app/api/linear/issues/route'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PriorityIcon } from '@/components/priority-icon'
 import { StateIcon, StatusCategoryIcon } from '@/components/state-icon'
+import { useT } from '@/lib/i18n/client'
 
 export type FilterState = {
   search: string
@@ -41,6 +42,8 @@ export function FilterDropdown({
   filterOptions,
   triggerRef,
 }: FilterDropdownProps) {
+  const t = useT()
+
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [search, setSearch] = useState(filters.search)
   const [hoverSections, setHoverSections] = useState<Set<string>>(new Set())
@@ -186,11 +189,11 @@ export function FilterDropdown({
             aria-atomic="true"
             className="sr-only"
           >
-            Showing all items
+            {t("Showing all items")}
           </span>
           <input
             type="text"
-            placeholder="Filter…"
+            placeholder={t("Filter…")}
             spellCheck="false"
             autoComplete="off"
             autoCorrect="off"
@@ -198,18 +201,18 @@ export function FilterDropdown({
             data-form-type="other"
             data-lpignore="true"
             name="action-menu-filter"
-            aria-label="Filter…"
+            aria-label={t("Filter…")}
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full px-3 py-2 text-sm border-0 bg-transparent focus:outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
             autoFocus
           />
-          <span className="absolute right-2 top-1.5">
+          <span className="absolute end-2 top-1.5">
             <span
-              aria-label="F"
+              aria-label={t("F")}
               className="inline-flex h-5 w-5 items-center justify-center rounded border border-border/50 bg-muted/30 text-xs font-medium text-muted-foreground"
             >
-              <kbd aria-hidden="true" className="font-mono">F</kbd>
+              <kbd aria-hidden="true" className="font-mono">{t("F")}</kbd>
             </span>
           </span>
         </form>
@@ -241,7 +244,7 @@ export function FilterDropdown({
                   <span className="text-muted-foreground">
                     <StatusCategoryIcon size={16} />
                   </span>
-                  <span className="text-sm font-medium text-foreground">Status</span>
+                  <span className="text-sm font-medium text-foreground">{t("Status")}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ▶
@@ -267,7 +270,7 @@ export function FilterDropdown({
                     <path d="M8 4a2 2 0 0 0-2 2v.5a2 2 0 0 0 4 0V6a2 2 0 0 0-2-2Z"></path>
                     <path fillRule="evenodd" clipRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm-2.879-4.121-1.01 1.01a5.5 5.5 0 1 1 7.778 0l-1.01-1.01A3 3 0 0 0 8.757 10H7.243a3 3 0 0 0-2.122.879Z"></path>
                   </svg>
-                  <span className="text-sm font-medium text-foreground">Assignee</span>
+                  <span className="text-sm font-medium text-foreground">{t("Assignee")}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ▶
@@ -294,7 +297,7 @@ export function FilterDropdown({
                     <rect x="6" y="5" width="3" height="9" rx="1"></rect>
                     <rect x="11" y="2" width="3" height="12" rx="1"></rect>
                   </svg>
-                  <span className="text-sm font-medium text-foreground">Priority</span>
+                  <span className="text-sm font-medium text-foreground">{t("Priority")}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ▶
@@ -320,7 +323,7 @@ export function FilterDropdown({
                     <path d="M12 11.5V13H5.132v-1.5H12Zm1.5-1.5V6a1.5 1.5 0 0 0-1.346-1.492L12 4.5H5.133a.5.5 0 0 0-.303.103l-.08.076-2.382 2.834a.5.5 0 0 0-.11.234l-.008.087v.331a.5.5 0 0 0 .118.321l2.382 2.835a.5.5 0 0 0 .383.179V13l-.22-.012a2 2 0 0 1-1.16-.54l-.15-.16L1.218 9.45a2 2 0 0 1-.46-1.11L.75 8.165v-.331a2 2 0 0 1 .363-1.147l.106-.14 2.383-2.834a2 2 0 0 1 1.312-.701L5.134 3H12a3 3 0 0 1 3 3v4a3 3 0 0 1-3.002 3v-1.5c.778 0 1.417-.59 1.494-1.347L13.5 10Z"></path>
                     <path d="M5.5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path>
                   </svg>
-                  <span className="text-sm font-medium text-foreground">Labels</span>
+                  <span className="text-sm font-medium text-foreground">{t("Labels")}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ▶
@@ -342,7 +345,7 @@ export function FilterDropdown({
                 onClick={clearAllFilters}
               >
                 <div className="flex w-full items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Clear all filters</span>
+                  <span className="text-sm text-muted-foreground">{t("Clear all filters")}</span>
                 </div>
               </li>
             </>
@@ -391,7 +394,7 @@ export function FilterDropdown({
                     }}
                   >
                     {/* Checkbox container */}
-                    <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 mr-2">
+                    <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 me-2">
                       <Checkbox
                         checked={filters.statuses.includes(status.name)}
                         onChange={() => toggleFilter('statuses', status.name)}
@@ -413,9 +416,9 @@ export function FilterDropdown({
 
                       {/* Issue count */}
                       {statusCount > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0 ms-2">
                           <span className="font-medium">
-                            {statusCount} {statusCount === 1 ? 'issue' : 'issues'}
+                            {statusCount} {statusCount === 1 ? t("issue") : t("issues")}
                           </span>
                         </div>
                       )}
@@ -441,7 +444,7 @@ export function FilterDropdown({
                   }}
                 >
                   {/* Checkbox container */}
-                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 mr-2">
+                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 me-2">
                     <Checkbox
                       checked={filters.assignees.includes(assignee.id)}
                       onChange={() => toggleFilter('assignees', assignee.id)}
@@ -474,7 +477,7 @@ export function FilterDropdown({
                   }}
                 >
                   {/* Checkbox container */}
-                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 mr-2">
+                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 me-2">
                     <Checkbox
                       checked={filters.priorities.includes(priority.value)}
                       onChange={() => toggleFilter('priorities', priority.value)}
@@ -487,7 +490,7 @@ export function FilterDropdown({
                   <div className="flex items-center justify-between flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <PriorityIcon priority={priority.value} priorityLabel={priority.label} />
-                      <span className="text-sm font-medium text-foreground truncate">{priority.label}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{t(priority.label)}</span>
                     </div>
                   </div>
                 </li>
@@ -510,7 +513,7 @@ export function FilterDropdown({
                   }}
                 >
                   {/* Checkbox container */}
-                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 mr-2">
+                  <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 me-2">
                     <Checkbox
                       checked={filters.labels.includes(label.id)}
                       onChange={() => toggleFilter('labels', label.id)}

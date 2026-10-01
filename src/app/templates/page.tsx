@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight, Settings, Zap, Users, Target, FileText } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Linear form templates: Bug reports, feedback & more | linear.gratis',
@@ -36,7 +37,9 @@ const categoryDescriptions: Record<string, string> = {
   Research: 'User research and insight gathering',
 }
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const tr = await getT()
+
   const categories = Array.from(new Set(Object.values(templates).map(t => t.category)))
 
   const getCategoryVariant = (category: string): "blue" | "green" | "purple" | "orange" | "gray" => {
@@ -56,20 +59,20 @@ export default function TemplatesPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-xl font-semibold">
-              linear.gratis
+              {tr("linear.gratis")}
             </Link>
             <div className="flex items-center gap-4">
               <Link href="/use-cases" className="text-sm text-muted-foreground hover:text-foreground">
-                Use cases
+                {tr("Use cases")}
               </Link>
               <Link href="/comparison" className="text-sm text-muted-foreground hover:text-foreground">
-                Comparisons
+                {tr("Comparisons")}
               </Link>
               <Link href="/features" className="text-sm text-muted-foreground hover:text-foreground">
-                Features
+                {tr("Features")}
               </Link>
               <Button asChild size="sm">
-                <Link href="/login">Get started free</Link>
+                <Link href="/login">{tr("Get started free")}</Link>
               </Button>
             </div>
           </div>
@@ -81,21 +84,20 @@ export default function TemplatesPage() {
         <div className="max-w-4xl mx-auto mb-12">
           <div className="text-center mb-8">
             <Badge variant="secondary" className="mb-4">
-              Form templates
+              {tr("Form templates")}
             </Badge>
             <h1 className="text-4xl font-bold mb-4">
-              Ready-to-use Linear form templates
+              {tr("Ready-to-use Linear form templates")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Professional form templates designed for Linear integration. Copy, customise, and start
-              collecting structured feedback in minutes. Completely free forever.
+              {tr("Professional form templates designed for Linear integration. Copy, customise, and start collecting structured feedback in minutes. Completely free forever.")}
             </p>
           </div>
         </div>
 
         {/* Template categories */}
         <div className="max-w-6xl mx-auto mb-12">
-          <h2 className="text-2xl font-bold mb-8 text-center">Browse by category</h2>
+          <h2 className="text-2xl font-bold mb-8 text-center">{tr("Browse by category")}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {categories.map((category) => {
               const IconComponent = categoryIcons[category] || FileText
@@ -114,7 +116,7 @@ export default function TemplatesPage() {
                   </CardHeader>
                   <CardContent className="text-center">
                     <Badge variant={getCategoryVariant(category)}>
-                      {templatesInCategory.length} template{templatesInCategory.length !== 1 ? 's' : ''}
+                      {templatesInCategory.length} {tr("template")}{templatesInCategory.length !== 1 ? 's' : ''}
                     </Badge>
                   </CardContent>
                 </Card>
@@ -125,7 +127,7 @@ export default function TemplatesPage() {
 
         {/* All templates */}
         <div className="max-w-6xl mx-auto mb-12">
-          <h2 className="text-2xl font-bold mb-8">All templates</h2>
+          <h2 className="text-2xl font-bold mb-8">{tr("All templates")}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.values(templates).map((template) => (
               <Link key={template.slug} href={`/templates/${template.slug}`}>
@@ -136,7 +138,7 @@ export default function TemplatesPage() {
                         {template.category}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        {template.fields.length} fields
+                        {template.fields.length} {tr("fields")}
                       </Badge>
                     </div>
                     <CardTitle className="text-lg">{template.name}</CardTitle>
@@ -147,7 +149,7 @@ export default function TemplatesPage() {
                   <CardContent>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-sm font-medium mb-2">Key features:</h4>
+                        <h4 className="text-sm font-medium mb-2">{tr("Key features:")}</h4>
                         <ul className="space-y-1">
                           {template.benefits.slice(0, 2).map((benefit, index) => (
                             <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -159,7 +161,7 @@ export default function TemplatesPage() {
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-medium mb-2">Best for:</h4>
+                        <h4 className="text-sm font-medium mb-2">{tr("Best for:")}</h4>
                         <div className="flex flex-wrap gap-1">
                           {template.bestFor.slice(0, 2).map((item, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -176,9 +178,9 @@ export default function TemplatesPage() {
 
                       <div className="pt-3 border-t border-border/30">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>📝 {template.fields.filter(f => f.type === 'textarea').length} text areas</span>
-                          <span>📋 {template.fields.filter(f => f.type === 'select').length} dropdowns</span>
-                          <span>✅ {template.fields.filter(f => f.required).length} required</span>
+                          <span>📝 {template.fields.filter(f => f.type === 'textarea').length} {tr("text areas")}</span>
+                          <span>📋 {template.fields.filter(f => f.type === 'select').length} {tr("dropdowns")}</span>
+                          <span>✅ {template.fields.filter(f => f.required).length} {tr("required")}</span>
                         </div>
                       </div>
                     </div>
@@ -193,9 +195,9 @@ export default function TemplatesPage() {
         <div className="max-w-4xl mx-auto mb-12">
           <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20">
             <CardHeader>
-              <CardTitle>What makes our templates special</CardTitle>
+              <CardTitle>{tr("What makes our templates special")}</CardTitle>
               <CardDescription>
-                Professional templates designed specifically for Linear integration
+                {tr("Professional templates designed specifically for Linear integration")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -206,9 +208,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Linear-optimised</h4>
+                      <h4 className="font-medium mb-1">{tr("Linear-optimised")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Designed for perfect Linear integration with priority mapping and labels
+                        {tr("Designed for perfect Linear integration with priority mapping and labels")}
                       </p>
                     </div>
                   </div>
@@ -218,9 +220,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Battle-tested</h4>
+                      <h4 className="font-medium mb-1">{tr("Battle-tested")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Templates used by real teams with proven results
+                        {tr("Templates used by real teams with proven results")}
                       </p>
                     </div>
                   </div>
@@ -230,9 +232,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Fully customisable</h4>
+                      <h4 className="font-medium mb-1">{tr("Fully customisable")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Add, remove, or modify fields to match your specific needs
+                        {tr("Add, remove, or modify fields to match your specific needs")}
                       </p>
                     </div>
                   </div>
@@ -244,9 +246,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Setup guidance</h4>
+                      <h4 className="font-medium mb-1">{tr("Setup guidance")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Complete setup instructions and Linear configuration tips
+                        {tr("Complete setup instructions and Linear configuration tips")}
                       </p>
                     </div>
                   </div>
@@ -256,9 +258,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Always free</h4>
+                      <h4 className="font-medium mb-1">{tr("Always free")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        No hidden costs, usage limits, or premium versions
+                        {tr("No hidden costs, usage limits, or premium versions")}
                       </p>
                     </div>
                   </div>
@@ -268,9 +270,9 @@ export default function TemplatesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Live preview</h4>
+                      <h4 className="font-medium mb-1">{tr("Live preview")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        See exactly how each template works before using it
+                        {tr("See exactly how each template works before using it")}
                       </p>
                     </div>
                   </div>
@@ -285,22 +287,21 @@ export default function TemplatesPage() {
           <Card className="border-border/50 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
             <CardContent className="p-8">
               <h2 className="text-2xl font-bold mb-4">
-                Ready to start collecting feedback?
+                {tr("Ready to start collecting feedback?")}
               </h2>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Choose a template that fits your needs, customise it for your team,
-                and start collecting structured feedback in Linear. Setup takes 2 minutes.
+                {tr("Choose a template that fits your needs, customise it for your team, and start collecting structured feedback in Linear. Setup takes 2 minutes.")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="h-12 px-8">
                   <Link href="/login">
-                    Start with a template
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {tr("Start with a template")}
+                    <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-12 px-8">
                   <Link href="/use-cases">
-                    See use cases
+                    {tr("See use cases")}
                   </Link>
                 </Button>
               </div>

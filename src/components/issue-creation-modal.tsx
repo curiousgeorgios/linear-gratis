@@ -10,6 +10,7 @@ import {
   MAX_FORM_ATTACHMENT_FILES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
+import { useT } from '@/lib/i18n/client'
 
 interface IssueCreationModalProps {
   isOpen: boolean
@@ -135,6 +136,8 @@ export function IssueCreationModal({
   viewSlug,
   defaultStateName
 }: IssueCreationModalProps) {
+  const t = useT()
+
   const [formData, setFormData] = useState<IssueFormData>({
     title: '',
     description: '',
@@ -270,12 +273,12 @@ export function IssueCreationModal({
 
     // Validation
     if (!formData.title.trim()) {
-      setError('Title is required')
+      setError(t("Title is required"))
       return
     }
 
     if (!viewSlug) {
-      setError('View slug is required')
+      setError(t("View slug is required"))
       return
     }
 
@@ -295,7 +298,7 @@ export function IssueCreationModal({
       onClose()
     } catch (error) {
       console.error('Failed to create issue:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create issue')
+      setError(error instanceof Error ? error.message : t("Failed to create issue"))
     } finally {
       setIsSubmitting(false)
     }
@@ -329,14 +332,14 @@ export function IssueCreationModal({
     const acceptedFiles: File[] = []
     for (const file of files) {
       if (attachmentFiles.length + acceptedFiles.length >= MAX_FORM_ATTACHMENT_FILES) {
-        setAttachmentError(`You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files`)
+        setAttachmentError(t('You can attach up to {max} files', { max: MAX_FORM_ATTACHMENT_FILES }))
         break
       }
 
       const normalisedFile = normaliseAttachmentFile(file)
       const validation = validateFormAttachmentFile(normalisedFile)
       if (!validation.ok) {
-        setAttachmentError(validation.error)
+        setAttachmentError(t(validation.error))
         continue
       }
 
@@ -411,7 +414,7 @@ export function IssueCreationModal({
                   type="button"
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="p-2 hover:bg-accent rounded transition-colors"
-                  aria-label="Expand"
+                  aria-label={t("Expand")}
                 >
                   <Maximize2 className="w-4 h-4" style={{ color: 'lch(64.892% 1.933 272 / 1)' }} />
                 </button>
@@ -421,7 +424,7 @@ export function IssueCreationModal({
                 type="button"
                 onClick={onClose}
                 className="p-2 hover:bg-accent rounded transition-colors"
-                aria-label="Close"
+                aria-label={t("Close")}
               >
                 <X className="w-4 h-4" style={{ color: 'lch(64.892% 1.933 272 / 1)' }} />
               </button>
@@ -433,7 +436,7 @@ export function IssueCreationModal({
                 <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
                   <span className="text-sm">💼</span>
                 </div>
-                <span className="font-medium text-sm">{teamName || projectName || 'Digital Nachos'}</span>
+                <span className="font-medium text-sm">{teamName || projectName || t("Digital Nachos")}</span>
               </div>
 
             </div>
@@ -529,15 +532,15 @@ export function IssueCreationModal({
                     ) : (
                       <>
                         <StateIcon type="unstarted" color="#e2e2e2" name="Todo" />
-                        <span>Status</span>
+                        <span>{t("Status")}</span>
                       </>
                     )}
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    <ChevronDown className="w-3 h-3 ms-1" />
                   </button>
 
                   {showStateDropdown && metadata?.states && (
                     <div
-                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px]"
+                      className="absolute top-full start-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px]"
                       style={{
                         backgroundColor: 'lch(10.633 1.867 272)',
                         border: '0.5px solid lch(24.833 4.707 272)',
@@ -552,14 +555,14 @@ export function IssueCreationModal({
                             setFormData(prev => ({ ...prev, stateId: state.id }))
                             setShowStateDropdown(false)
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start hover:bg-accent transition-colors"
                         >
                           <StateIcon
                             type={state.type}
                             color={state.color}
                             name={state.name}
                           />
-                          <span>{state.name}</span>
+                          <span>{t(state.name)}</span>
                         </button>
                       ))}
                     </div>
@@ -581,12 +584,12 @@ export function IssueCreationModal({
                   >
                     {React.createElement(priorities[formData.priority].icon)}
                     <span>{priorities[formData.priority].label}</span>
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    <ChevronDown className="w-3 h-3 ms-1" />
                   </button>
 
                   {showPriorityDropdown && (
                     <div
-                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[150px]"
+                      className="absolute top-full start-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[150px]"
                       style={{
                         backgroundColor: 'lch(10.633 1.867 272)',
                         border: '0.5px solid lch(24.833 4.707 272)',
@@ -600,10 +603,10 @@ export function IssueCreationModal({
                             setFormData(prev => ({ ...prev, priority: priority.value }))
                             setShowPriorityDropdown(false)
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start hover:bg-accent transition-colors"
                         >
                           {React.createElement(priority.icon)}
-                          <span>{priority.label}</span>
+                          <span>{t(priority.label)}</span>
                         </button>
                       ))}
                     </div>
@@ -645,15 +648,15 @@ export function IssueCreationModal({
                         <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
                           <span className="text-xs">?</span>
                         </div>
-                        <span>Assignee</span>
+                        <span>{t("Assignee")}</span>
                       </>
                     )}
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    <ChevronDown className="w-3 h-3 ms-1" />
                   </button>
 
                   {showAssigneeDropdown && metadata?.users && (
                     <div
-                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
+                      className="absolute top-full start-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
                       style={{
                         backgroundColor: 'lch(10.633 1.867 272)',
                         border: '0.5px solid lch(24.833 4.707 272)',
@@ -666,13 +669,13 @@ export function IssueCreationModal({
                           setFormData(prev => ({ ...prev, assigneeId: undefined }))
                           setShowAssigneeDropdown(false)
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors border-b"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start hover:bg-accent transition-colors border-b"
                         style={{ borderColor: 'lch(24.833 4.707 272)' }}
                       >
                         <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
                           <span className="text-xs">?</span>
                         </div>
-                        <span>Unassigned</span>
+                        <span>{t("Unassigned")}</span>
                       </button>
                       {metadata.users.map((user) => (
                         <button
@@ -683,7 +686,7 @@ export function IssueCreationModal({
                             setFormData(prev => ({ ...prev, assigneeId: user.id }))
                             setShowAssigneeDropdown(false)
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start hover:bg-accent transition-colors"
                         >
                           {user.avatarUrl ? (
                             <Image
@@ -733,7 +736,7 @@ export function IssueCreationModal({
                             <span className="text-xs">+{selectedLabels.length - 2}</span>
                           )}
                         </div>
-                        <span>Labels</span>
+                        <span>{t("Labels")}</span>
                       </>
                     ) : (
                       <>
@@ -741,15 +744,15 @@ export function IssueCreationModal({
                           <path d="M12 11.5V13H5.132v-1.5H12Zm1.5-1.5V6a1.5 1.5 0 0 0-1.346-1.492L12 4.5H5.133a.5.5 0 0 0-.303.103l-.08.076-2.382 2.834a.5.5 0 0 0-.11.234l-.008.087v.331a.5.5 0 0 0 .118.321l2.382 2.835a.5.5 0 0 0 .383.179V13l-.22-.012a2 2 0 0 1-1.16-.54l-.15-.16L1.218 9.45a2 2 0 0 1-.46-1.11L.75 8.165v-.331a2 2 0 0 1 .363-1.147l.106-.14 2.383-2.834a2 2 0 0 1 1.312-.701L5.134 3H12a3 3 0 0 1 3 3v4a3 3 0 0 1-3.002 3v-1.5c.778 0 1.417-.59 1.494-1.347L13.5 10Z"></path>
                           <path d="M5.5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path>
                         </svg>
-                        <span>Labels</span>
+                        <span>{t("Labels")}</span>
                       </>
                     )}
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    <ChevronDown className="w-3 h-3 ms-1" />
                   </button>
 
                   {showLabelsDropdown && metadata?.labels && (
                     <div
-                      className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
+                      className="absolute top-full start-0 mt-1 bg-background border rounded-md shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto"
                       style={{
                         backgroundColor: 'lch(10.633 1.867 272)',
                         border: '0.5px solid lch(24.833 4.707 272)',
@@ -772,7 +775,7 @@ export function IssueCreationModal({
                                 setFormData(prev => ({ ...prev, labelIds: newLabels.map(l => l.id) }))
                               }
                             }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors ${
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-start hover:bg-accent transition-colors ${
                               isSelected ? 'bg-accent/50' : ''
                             }`}
                           >
@@ -781,7 +784,7 @@ export function IssueCreationModal({
                               style={{ backgroundColor: label.color }}
                             />
                             <span>{label.name}</span>
-                            {isSelected && <span className="ml-auto text-xs">✓</span>}
+                            {isSelected && <span className="ms-auto text-xs">✓</span>}
                           </button>
                         )
                       })}
@@ -800,7 +803,7 @@ export function IssueCreationModal({
                 disabled={!formData.title.trim() || isSubmitting}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {isSubmitting ? 'Creating...' : 'Create issue'}
+                {isSubmitting ? t("Creating...") : t("Create issue")}
               </Button>
             </div>
           </form>

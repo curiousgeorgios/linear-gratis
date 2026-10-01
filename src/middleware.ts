@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { lookupCustomDomain } from '@/lib/edge-db';
+import { getServerSupabaseUrl, getSupabaseCookieOptions } from '@/lib/supabase/config';
 
 async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -9,9 +10,10 @@ async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getServerSupabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: getSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();

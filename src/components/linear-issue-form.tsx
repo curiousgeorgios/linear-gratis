@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
+import { useT } from '@/lib/i18n/client'
 
 const formSchema = z.object({
   projectId: z.string().min(1, "Project ID is required"),
@@ -33,6 +34,8 @@ type Project = {
 }
 
 export function LinearIssueForm() {
+  const t = useT()
+
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
@@ -180,14 +183,14 @@ export function LinearIssueForm() {
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="text-xl">Create Linear customer request</CardTitle>
+          <CardTitle className="text-xl">{t("Create Linear customer request")}</CardTitle>
           <CardDescription>
-            Loading your profile...
+            {t("Loading your profile...")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Checking your Linear configuration...</p>
+            <p className="text-muted-foreground">{t("Checking your Linear configuration...")}</p>
           </div>
         </CardContent>
       </Card>
@@ -198,18 +201,18 @@ export function LinearIssueForm() {
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="text-xl">Create Linear customer request</CardTitle>
+          <CardTitle className="text-xl">{t("Create Linear customer request")}</CardTitle>
           <CardDescription>
-            Connect a Linear workspace before you can submit customer requests.
+            {t("Connect a Linear workspace before you can submit customer requests.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 space-y-4">
             <p className="text-muted-foreground">
-              You haven&apos;t configured a Linear API token yet.
+              {t("You haven't configured a Linear API token yet.")}
             </p>
             <Button asChild>
-              <Link href="/profile">Add Linear API token</Link>
+              <Link href="/profile">{t("Add Linear API token")}</Link>
             </Button>
           </div>
         </CardContent>
@@ -220,9 +223,9 @@ export function LinearIssueForm() {
   return (
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
       <CardHeader>
-        <CardTitle className="text-xl">Create Linear customer request</CardTitle>
+        <CardTitle className="text-xl">{t("Create Linear customer request")}</CardTitle>
         <CardDescription>
-          Submit a customer request to Linear. If the customer doesn&apos;t exist, they&apos;ll be created automatically.
+          {t("Submit a customer request to Linear. If the customer doesn't exist, they'll be created automatically.")}
         </CardDescription>
       </CardHeader>
         <CardContent>
@@ -233,7 +236,7 @@ export function LinearIssueForm() {
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
+                    <FormLabel>{t("Project")}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -243,7 +246,7 @@ export function LinearIssueForm() {
                         <SelectTrigger>
                           <SelectValue placeholder={
                             isLoadingProjects
-                              ? "Loading projects..."
+                              ? t("Loading projects...")
                               : projects.length === 0
                                 ? "No projects available"
                                 : "Select a project"
@@ -259,7 +262,7 @@ export function LinearIssueForm() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Using your saved Linear token. <Link href="/profile" className="text-primary hover:underline">Manage in profile</Link>
+                      {t("Using your saved Linear token.")} <Link href="/profile" className="text-primary hover:underline">{t("Manage in profile")}</Link>
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -272,9 +275,9 @@ export function LinearIssueForm() {
                   name="customerName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer name</FormLabel>
+                      <FormLabel>{t("Customer name")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input placeholder={t("John Doe")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -286,11 +289,11 @@ export function LinearIssueForm() {
                   name="customerEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer email</FormLabel>
+                      <FormLabel>{t("Customer email")}</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder="john@example.com"
+                          placeholder={t("john@example.com")}
                           {...field}
                         />
                       </FormControl>
@@ -305,12 +308,12 @@ export function LinearIssueForm() {
                 name="externalId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>External ID (optional)</FormLabel>
+                    <FormLabel>{t("External ID (optional)")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="customer_123" {...field} />
+                      <Input placeholder={t("customer_123")} {...field} />
                     </FormControl>
                     <FormDescription>
-                      Your internal customer ID for reference
+                      {t("Your internal customer ID for reference")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -322,9 +325,9 @@ export function LinearIssueForm() {
                 name="issueTitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Issue title</FormLabel>
+                    <FormLabel>{t("Issue title")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Feature request: Dark mode support" {...field} />
+                      <Input placeholder={t("Feature request: Dark mode support")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -336,10 +339,10 @@ export function LinearIssueForm() {
                 name="issueBody"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Issue description</FormLabel>
+                    <FormLabel>{t("Issue description")}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Describe the issue or feature request in detail..."
+                        placeholder={t("Describe the issue or feature request in detail...")}
                         className="min-h-[120px]"
                         {...field}
                       />
@@ -354,16 +357,16 @@ export function LinearIssueForm() {
                 name="attachmentUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Attachment URL (optional)</FormLabel>
+                    <FormLabel>{t("Attachment URL (optional)")}</FormLabel>
                     <FormControl>
                       <Input
                         type="url"
-                        placeholder="https://example.com/screenshot.png"
+                        placeholder={t("https://example.com/screenshot.png")}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Link to any relevant files or screenshots
+                      {t("Link to any relevant files or screenshots")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -371,7 +374,7 @@ export function LinearIssueForm() {
               />
 
               <Button type="submit" disabled={isSubmitting} className="w-full h-11 font-medium">
-                {isSubmitting ? "Creating request..." : "Create customer request"}
+                {isSubmitting ? t("Creating request...") : t("Create customer request")}
               </Button>
             </form>
           </Form>
@@ -383,13 +386,13 @@ export function LinearIssueForm() {
                 : "bg-red-50/80 border-red-200/50 text-red-800 dark:bg-red-950/20 dark:border-red-800/30 dark:text-red-400"
             }`}>
               <p className="font-semibold">
-                {result.success ? "Success!" : "Error"}
+                {result.success ? t("Success!") : t("Error")}
               </p>
               <p className="text-sm mt-1 opacity-90">{result.message}</p>
               {result.success && result.data && (
                 <div className="mt-3 text-xs opacity-80 space-y-1">
-                  <p><span className="font-medium">Customer ID:</span> {result.data.customer?.id}</p>
-                  <p><span className="font-medium">Request ID:</span> {result.data.request?.id}</p>
+                  <p><span className="font-medium">{t("Customer ID:")}</span> {result.data.customer?.id}</p>
+                  <p><span className="font-medium">{t("Request ID:")}</span> {result.data.request?.id}</p>
                 </div>
               )}
             </div>

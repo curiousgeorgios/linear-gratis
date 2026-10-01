@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -383,7 +383,7 @@
   .linear-rich-editor-content ul:not([data-type="taskList"]),
   .linear-rich-editor-content ol {
     margin: 0.45rem 0;
-    padding-left: 1.4rem;
+    padding-inline-start: 1.4rem;
   }
 
   .linear-rich-editor-content ul:not([data-type="taskList"]) {
@@ -396,12 +396,12 @@
 
   .linear-rich-editor-content li {
     margin: 0.2rem 0;
-    padding-left: 0.1rem;
+    padding-inline-start: 0.1rem;
   }
 
   .linear-rich-editor-content ul[data-type="taskList"] {
     margin: 0.45rem 0;
-    padding-left: 0;
+    padding-inline-start: 0;
     list-style: none;
   }
 
@@ -409,7 +409,7 @@
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   .linear-rich-editor-content ul[data-type="taskList"] li > label {
@@ -438,8 +438,8 @@
 
   .linear-rich-editor-content blockquote {
     margin: 0.75rem 0;
-    padding-left: 0.85rem;
-    border-left: 3px solid var(--border);
+    padding-inline-start: 0.85rem;
+    border-inline-start: 3px solid var(--border);
     color: var(--muted-foreground);
   }
 
@@ -486,7 +486,7 @@
 
   .linear-rich-editor-content p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
-    float: left;
+    float: inline-start;
     height: 0;
     color: var(--muted-foreground);
     pointer-events: none;
@@ -520,6 +520,17 @@
   }
 }
 
+@keyframes slideInRightRtl {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes slideInRight {
   from {
     opacity: 0;
@@ -533,4 +544,25 @@
 
 .animate-slide-in-right {
   animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[dir="rtl"] .animate-slide-in-right {
+  animation-name: slideInRightRtl;
+}
+
+/* Arabic script joins letters, so any tracking (letter-spacing) breaks words
+   apart; Linear's tight heading tracking is for Latin text only. */
+:lang(ar),
+:lang(ar) * {
+  letter-spacing: 0 !important;
+}
+
+/* Keep code, URLs and identifiers readable inside right-to-left layouts. */
+[dir="rtl"] code,
+[dir="rtl"] pre,
+[dir="rtl"] kbd,
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="url"],
+[dir="rtl"] input[type="password"] {
+  unicode-bidi: plaintext;
 }

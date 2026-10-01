@@ -3,7 +3,9 @@
  * These functions use fetch() instead of the Supabase client to work in Edge Runtime.
  */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+import { getServerSupabaseUrl } from '@/lib/supabase/config'
+
+const supabaseUrl = getServerSupabaseUrl()
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export type CustomDomain = {

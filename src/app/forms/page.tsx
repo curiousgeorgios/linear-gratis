@@ -26,6 +26,7 @@ import { getActiveOrganisationId } from "@/lib/organisations";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Eye, Copy, Link2, Pencil, Save, X } from "lucide-react";
+import { useI18n } from '@/lib/i18n/client'
 
 type Project = {
   id: string;
@@ -57,6 +58,8 @@ type FormDraft = {
 };
 
 export default function FormsPage() {
+  const { t, intlLocale } = useI18n()
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [forms, setForms] = useState<CustomerRequestForm[]>([]);
@@ -307,7 +310,7 @@ export default function FormsPage() {
       : null;
 
     if (!editDraft.selectedProject || !projectName) {
-      setMessage({ type: "error", text: "Please select a project" });
+      setMessage({ type: "error", text: t("Please select a project") });
       return;
     }
 
@@ -339,25 +342,25 @@ export default function FormsPage() {
         if (error.code === "23505") {
           setMessage({
             type: "error",
-            text: "This URL slug is already taken. Please choose a different one.",
+            text: t("This URL slug is already taken. Please choose a different one."),
           });
         } else {
           setMessage({
             type: "error",
-            text: "Failed to update form. Please try again.",
+            text: t("Failed to update form. Please try again."),
           });
         }
         console.error("Error updating form:", error);
         return;
       }
 
-      setMessage({ type: "success", text: "Form updated successfully!" });
+      setMessage({ type: "success", text: t("Form updated successfully!") });
       cancelEditingForm();
       await loadUserData();
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to update form. Please try again.",
+        text: t("Failed to update form. Please try again."),
       });
       console.error("Error updating form:", error);
     } finally {
@@ -379,12 +382,12 @@ export default function FormsPage() {
         (template) => template.id === selectedTemplate,
       );
       if (!selectedProjectData) {
-        setMessage({ type: "error", text: "Please select a project" });
+        setMessage({ type: "error", text: t("Please select a project") });
         return;
       }
 
       if (!activeOrgId) {
-        setMessage({ type: "error", text: "No active organisation. Reload the page and try again." });
+        setMessage({ type: "error", text: t("No active organisation. Reload the page and try again.") });
         setSubmitting(false);
         return;
       }
@@ -423,24 +426,24 @@ export default function FormsPage() {
           // Unique constraint violation
           setMessage({
             type: "error",
-            text: "This URL slug is already taken. Please choose a different one.",
+            text: t("This URL slug is already taken. Please choose a different one."),
           });
         } else {
           setMessage({
             type: "error",
-            text: "Failed to create form. Please try again.",
+            text: t("Failed to create form. Please try again."),
           });
         }
         console.error("Error creating form:", error);
       } else {
-        setMessage({ type: "success", text: "Form created successfully!" });
+        setMessage({ type: "success", text: t("Form created successfully!") });
         resetForm();
         await loadUserData();
       }
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to create form. Please try again.",
+        text: t("Failed to create form. Please try again."),
       });
       console.error("Error creating form:", error);
     } finally {
@@ -451,7 +454,7 @@ export default function FormsPage() {
   const deleteForm = async (formId: string) => {
     if (
       !confirm(
-        "Are you sure you want to delete this form? This action cannot be undone.",
+        t("Are you sure you want to delete this form? This action cannot be undone."),
       )
     ) {
       return;
@@ -465,13 +468,13 @@ export default function FormsPage() {
 
       if (error) {
         console.error("Error deleting form:", error);
-        alert("Failed to delete form");
+        alert(t("Failed to delete form"));
       } else {
         await loadUserData();
       }
     } catch (error) {
       console.error("Error deleting form:", error);
-      alert("Failed to delete form");
+      alert(t("Failed to delete form"));
     }
   };
 
@@ -497,8 +500,8 @@ export default function FormsPage() {
     setMessage({
       type: "success",
       text: prefillData
-        ? "Prefilled form link copied to clipboard!"
-        : "Form link copied to clipboard!",
+        ? t("Prefilled form link copied to clipboard!")
+        : t("Form link copied to clipboard!"),
     });
     setTimeout(() => setMessage(null), 3000);
     setShowPrefillOptions(null);
@@ -538,11 +541,11 @@ export default function FormsPage() {
   };
 
   if (authLoading) {
-    return <div>Loading...</div>;
+    return <div>{t("Loading...")}</div>;
   }
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div>{t("Loading...")}</div>;
   }
 
   return (
@@ -552,12 +555,10 @@ export default function FormsPage() {
         <div className="mb-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">
-              Shareable customer forms
+              {t("Shareable customer forms")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Create branded forms for specific Linear projects that your
-              customers can use to submit feedback directly. Perfect for support
-              tickets, feature requests, or bug reports.
+              {t("Create branded forms for specific Linear projects that your customers can use to submit feedback directly. Perfect for support tickets, feature requests, or bug reports.")}
             </p>
           </div>
 
@@ -568,10 +569,9 @@ export default function FormsPage() {
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                   1
                 </div>
-                <CardTitle className="text-lg">Create a form</CardTitle>
+                <CardTitle className="text-lg">{t("Create a form")}</CardTitle>
                 <CardDescription>
-                  Choose a Linear project and customise the form title and
-                  description
+                  {t("Choose a Linear project and customise the form title and description")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -581,10 +581,9 @@ export default function FormsPage() {
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                   2
                 </div>
-                <CardTitle className="text-lg">Share the link</CardTitle>
+                <CardTitle className="text-lg">{t("Share the link")}</CardTitle>
                 <CardDescription>
-                  Send the unique form URL to your customers via email, chat, or
-                  website
+                  {t("Send the unique form URL to your customers via email, chat, or website")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -595,11 +594,10 @@ export default function FormsPage() {
                   3
                 </div>
                 <CardTitle className="text-lg">
-                  Issues appear in Linear
+                  {t("Issues appear in Linear")}
                 </CardTitle>
                 <CardDescription>
-                  Customer submissions automatically create issues in your
-                  chosen Linear project
+                  {t("Customer submissions automatically create issues in your chosen Linear project")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -617,13 +615,13 @@ export default function FormsPage() {
                 className="h-12 px-8 font-semibold"
               >
                 {forms.length === 0
-                  ? "Create your first form"
-                  : "Create new form"}
+                  ? t("Create your first form")
+                  : t("Create new form")}
               </Button>
             ) : (
               <Link href="/profile">
                 <Button variant="outline" size="lg" className="h-12 px-8 font-semibold">
-                  Set up Linear API token to create forms
+                  {t("Set up Linear API token to create forms")}
                 </Button>
               </Link>
             )}
@@ -646,8 +644,7 @@ export default function FormsPage() {
           <Card className="mb-6">
             <CardContent className="pt-6">
               <p className="text-center text-gray-600">
-                No projects found. Make sure your Linear API token is valid and
-                you have access to projects.
+                {t("No projects found. Make sure your Linear API token is valid and you have access to projects.")}
               </p>
             </CardContent>
           </Card>
@@ -657,11 +654,10 @@ export default function FormsPage() {
           <Card className="mb-8 border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-xl">
-                Create a new customer form
+                {t("Create a new customer form")}
               </CardTitle>
               <CardDescription className="text-base">
-                Set up a custom form that your customers can use to submit
-                requests directly to your Linear project
+                {t("Set up a custom form that your customers can use to submit requests directly to your Linear project")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -671,34 +667,34 @@ export default function FormsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     1
                   </div>
-                  Basic information
+                  {t("Basic information")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="form-name">Form name *</Label>
+                    <Label htmlFor="form-name">{t("Form name *")}</Label>
                     <Input
                       id="form-name"
-                      placeholder="e.g., Support requests, Feature requests"
+                      placeholder={t("e.g., Support requests, Feature requests")}
                       value={formName}
                       onChange={(e) => handleNameChange(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Internal name for your reference
+                      {t("Internal name for your reference")}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="form-slug">URL slug *</Label>
+                    <Label htmlFor="form-slug">{t("URL slug *")}</Label>
                     <Input
                       id="form-slug"
-                      placeholder="support-requests"
+                      placeholder={t("support-requests")}
                       value={formSlug}
                       onChange={(e) => setFormSlug(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Form will be available at:{" "}
+                      {t("Form will be available at:")}{" "}
                       <code className="bg-muted px-1 py-0.5 rounded">
-                        /form/{formSlug || "[slug]"}
+                        {t("/form/")}{formSlug || "[slug]"}
                       </code>
                     </p>
                   </div>
@@ -711,16 +707,16 @@ export default function FormsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     2
                   </div>
-                  Linear integration
+                  {t("Linear integration")}
                 </h3>
                 <div className="space-y-2">
-                  <Label htmlFor="project">Target Linear project *</Label>
+                  <Label htmlFor="project">{t("Target Linear project *")}</Label>
                   <Select
                     value={selectedProject}
                     onValueChange={setSelectedProject}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose where customer submissions will go" />
+                      <SelectValue placeholder={t("Choose where customer submissions will go")} />
                     </SelectTrigger>
                     <SelectContent>
                       {projects.map((project) => (
@@ -731,13 +727,12 @@ export default function FormsPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    All submissions from this form will create issues in the
-                    selected project
+                    {t("All submissions from this form will create issues in the selected project")}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="template">Default issue template</Label>
+                  <Label htmlFor="template">{t("Default issue template")}</Label>
                   <Select
                     value={selectedTemplate || NO_TEMPLATE_VALUE}
                     onValueChange={(value) => {
@@ -751,13 +746,13 @@ export default function FormsPage() {
                       <SelectValue
                         placeholder={
                           loadingTemplates
-                            ? "Loading templates..."
-                            : "Choose a default issue template"
+                            ? t("Loading templates...")
+                            : t("Choose a default issue template")
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_TEMPLATE_VALUE}>No template</SelectItem>
+                      <SelectItem value={NO_TEMPLATE_VALUE}>{t("No template")}</SelectItem>
                       {templates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.team ? `${template.team.name} · ${template.name}` : template.name}
@@ -768,9 +763,9 @@ export default function FormsPage() {
                   <p className="text-xs text-muted-foreground">
                     {selectedProject
                       ? templates.length === 0 && !loadingTemplates
-                        ? "No issue templates are available for this project."
-                        : "The selected template will be applied when a submission creates a Linear issue."
-                      : "Select a project to load compatible issue templates."}
+                        ? t("No issue templates are available for this project.")
+                        : t("The selected template will be applied when a submission creates a Linear issue.")
+                      : t("Select a project to load compatible issue templates.")}
                   </p>
                 </div>
 
@@ -784,10 +779,10 @@ export default function FormsPage() {
                   />
                   <span>
                     <span className="block font-medium">
-                      Let submitters change the template
+                      {t("Let submitters change the template")}
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      When enabled, the public form will show compatible issue templates with your default preselected.
+                      {t("When enabled, the public form will show compatible issue templates with your default preselected.")}
                     </span>
                   </span>
                 </label>
@@ -799,37 +794,35 @@ export default function FormsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     3
                   </div>
-                  Customer experience
+                  {t("Customer experience")}
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="form-title">Form title *</Label>
+                    <Label htmlFor="form-title">{t("Form title *")}</Label>
                     <Input
                       id="form-title"
-                      placeholder="e.g., Submit a support request, Report a bug, Request a feature"
+                      placeholder={t("e.g., Submit a support request, Report a bug, Request a feature")}
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      This is what your customers will see at the top of the
-                      form
+                      {t("This is what your customers will see at the top of the form")}
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="form-description">
-                      Instructions (optional)
+                      {t("Instructions (optional)")}
                     </Label>
                     <Textarea
                       id="form-description"
-                      placeholder="e.g., Please provide as much detail as possible to help us resolve your issue quickly..."
+                      placeholder={t("e.g., Please provide as much detail as possible to help us resolve your issue quickly...")}
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
                       rows={3}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Optional instructions to help your customers provide
-                      better information
+                      {t("Optional instructions to help your customers provide better information")}
                     </p>
                   </div>
                 </div>
@@ -847,14 +840,14 @@ export default function FormsPage() {
                   }
                   className="h-11 px-6 font-semibold"
                 >
-                  {submitting ? "Creating form..." : "Create form"}
+                  {submitting ? t("Creating form...") : t("Create form")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={resetForm}
                   className="h-11 px-6"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </Button>
               </div>
             </CardContent>
@@ -863,18 +856,17 @@ export default function FormsPage() {
 
         {loading ? (
           <div className="text-center py-8">
-            <p className="text-gray-600">Loading forms...</p>
+            <p className="text-gray-600">{t("Loading forms...")}</p>
           </div>
         ) : forms.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
                 <h3 className="text-lg font-medium mb-2">
-                  No forms created yet
+                  {t("No forms created yet")}
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Create your first customer request form to start collecting
-                  submissions.
+                  {t("Create your first customer request form to start collecting submissions.")}
                 </p>
                 <Button
                   onClick={() => {
@@ -883,7 +875,7 @@ export default function FormsPage() {
                   }}
                   disabled={!activeOrgId || projects.length === 0}
                 >
-                  Create your first form
+                  {t("Create your first form")}
                 </Button>
               </div>
             </CardContent>
@@ -891,9 +883,9 @@ export default function FormsPage() {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Your forms</h2>
+              <h2 className="text-xl font-semibold">{t("Your forms")}</h2>
               <span className="text-sm text-muted-foreground">
-                {forms.length} form{forms.length !== 1 ? "s" : ""}
+                {forms.length} {t("form")}{forms.length !== 1 ? "s" : ""}
               </span>
             </div>
 
@@ -934,9 +926,9 @@ export default function FormsPage() {
                       <CardContent className="space-y-6">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div>
-                            <h3 className="text-lg font-semibold">Edit form</h3>
+                            <h3 className="text-lg font-semibold">{t("Edit form")}</h3>
                             <code className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
-                              /form/{draft.slug || form.slug}
+                              {t("/form/")}{draft.slug || form.slug}
                             </code>
                           </div>
                         </div>
@@ -944,7 +936,7 @@ export default function FormsPage() {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor={`edit-form-name-${form.id}`}>
-                              Form name *
+                              {t("Form name *")}
                             </Label>
                             <Input
                               id={`edit-form-name-${form.id}`}
@@ -957,7 +949,7 @@ export default function FormsPage() {
 
                           <div className="space-y-2">
                             <Label htmlFor={`edit-form-slug-${form.id}`}>
-                              URL slug *
+                              {t("URL slug *")}
                             </Label>
                             <Input
                               id={`edit-form-slug-${form.id}`}
@@ -972,7 +964,7 @@ export default function FormsPage() {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor={`edit-project-${form.id}`}>
-                              Target Linear project *
+                              {t("Target Linear project *")}
                             </Label>
                             <Select
                               value={draft.selectedProject}
@@ -982,7 +974,7 @@ export default function FormsPage() {
                                 id={`edit-project-${form.id}`}
                                 className="w-full"
                               >
-                                <SelectValue placeholder="Choose a Linear project" />
+                                <SelectValue placeholder={t("Choose a Linear project")} />
                               </SelectTrigger>
                               <SelectContent>
                                 {projectOptions.map((project) => (
@@ -999,7 +991,7 @@ export default function FormsPage() {
 
                           <div className="space-y-2">
                             <Label htmlFor={`edit-template-${form.id}`}>
-                              Default issue template
+                              {t("Default issue template")}
                             </Label>
                             <Select
                               value={draft.selectedTemplate || NO_TEMPLATE_VALUE}
@@ -1026,14 +1018,14 @@ export default function FormsPage() {
                                 <SelectValue
                                   placeholder={
                                     loadingEditTemplates
-                                      ? "Loading templates..."
-                                      : "Choose a default issue template"
+                                      ? t("Loading templates...")
+                                      : t("Choose a default issue template")
                                   }
                                 />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value={NO_TEMPLATE_VALUE}>
-                                  No template
+                                  {t("No template")}
                                 </SelectItem>
                                 {templateOptions.map((template) => (
                                   <SelectItem
@@ -1064,10 +1056,10 @@ export default function FormsPage() {
                           />
                           <span>
                             <span className="block font-medium">
-                              Let submitters change the template
+                              {t("Let submitters change the template")}
                             </span>
                             <span className="block text-xs text-muted-foreground">
-                              When enabled, the public form will show compatible issue templates with your default preselected.
+                              {t("When enabled, the public form will show compatible issue templates with your default preselected.")}
                             </span>
                           </span>
                         </label>
@@ -1075,7 +1067,7 @@ export default function FormsPage() {
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor={`edit-form-title-${form.id}`}>
-                              Form title *
+                              {t("Form title *")}
                             </Label>
                             <Input
                               id={`edit-form-title-${form.id}`}
@@ -1088,7 +1080,7 @@ export default function FormsPage() {
 
                           <div className="space-y-2">
                             <Label htmlFor={`edit-form-description-${form.id}`}>
-                              Instructions (optional)
+                              {t("Instructions (optional)")}
                             </Label>
                             <Textarea
                               id={`edit-form-description-${form.id}`}
@@ -1117,8 +1109,8 @@ export default function FormsPage() {
                           >
                             <Save className="h-4 w-4" />
                             {savingFormId === form.id
-                              ? "Saving..."
-                              : "Save changes"}
+                              ? t("Saving...")
+                              : t("Save changes")}
                           </Button>
                           <Button
                             variant="outline"
@@ -1126,7 +1118,7 @@ export default function FormsPage() {
                             className="flex items-center gap-2"
                           >
                             <X className="h-4 w-4" />
-                            Cancel
+                            {t("Cancel")}
                           </Button>
                         </div>
                       </CardContent>
@@ -1150,7 +1142,7 @@ export default function FormsPage() {
                             {form.linear_template_name && (
                               <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                                 {form.allow_template_selection
-                                  ? `${form.linear_template_name} · changeable`
+                                  ? t("{linear_template_name} · changeable", { linear_template_name: form.linear_template_name })
                                   : form.linear_template_name}
                               </span>
                             )}
@@ -1165,12 +1157,12 @@ export default function FormsPage() {
                           )}
                           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                             <span>
-                              Created{" "}
-                              {new Date(form.created_at).toLocaleDateString()}
+                              {t("Created")}{" "}
+                              {new Date(form.created_at).toLocaleDateString(intlLocale)}
                             </span>
                             <span className="flex items-center gap-1">
                               <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                                /form/{form.slug}
+                                {t("/form/")}{form.slug}
                               </code>
                             </span>
                           </div>
@@ -1183,7 +1175,7 @@ export default function FormsPage() {
                             className="flex items-center gap-2"
                           >
                             <Pencil className="h-4 w-4" />
-                            Edit
+                            {t("Edit")}
                           </Button>
                           <Button
                             variant="outline"
@@ -1192,7 +1184,7 @@ export default function FormsPage() {
                             className="flex items-center gap-2"
                           >
                             <Copy className="h-4 w-4" />
-                            Copy link
+                            {t("Copy link")}
                           </Button>
                           <Button
                             variant="outline"
@@ -1205,7 +1197,7 @@ export default function FormsPage() {
                             className="flex items-center gap-2"
                           >
                             <Link2 className="h-4 w-4" />
-                            Prefill
+                            {t("Prefill")}
                           </Button>
                           <Link href={`/form/${form.slug}`} target="_blank">
                             <Button
@@ -1214,7 +1206,7 @@ export default function FormsPage() {
                               className="flex items-center gap-2"
                             >
                               <Eye className="h-4 w-4" />
-                              Preview
+                              {t("Preview")}
                             </Button>
                           </Link>
                           <Button
@@ -1232,12 +1224,10 @@ export default function FormsPage() {
                     {showPrefillOptions === form.id && (
                       <div className="border-t border-border/50 bg-muted/30 p-6">
                         <h4 className="mb-4 font-semibold">
-                          Create prefilled link
+                          {t("Create prefilled link")}
                         </h4>
                         <p className="mb-4 text-sm text-muted-foreground">
-                          Fill out any fields below to create a shareable link
-                          with prefilled data. Your customers will see these
-                          values when they open the form.
+                          {t("Fill out any fields below to create a shareable link with prefilled data. Your customers will see these values when they open the form.")}
                         </p>
                         <form
                           id={`prefill-form-${form.slug}`}
@@ -1250,70 +1240,70 @@ export default function FormsPage() {
                           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                               <Label htmlFor={`name-${form.slug}`}>
-                                Customer name
+                                {t("Customer name")}
                               </Label>
                               <Input
                                 id={`name-${form.slug}`}
                                 name={`name-${form.slug}`}
-                                placeholder="John Doe"
+                                placeholder={t("John Doe")}
                               />
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor={`email-${form.slug}`}>
-                                Email address
+                                {t("Email address")}
                               </Label>
                               <Input
                                 id={`email-${form.slug}`}
                                 name={`email-${form.slug}`}
                                 type="email"
-                                placeholder="john@example.com"
+                                placeholder={t("john@example.com")}
                               />
                             </div>
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor={`ref-${form.slug}`}>
-                              Reference ID
+                              {t("Reference ID")}
                             </Label>
                             <Input
                               id={`ref-${form.slug}`}
                               name={`ref-${form.slug}`}
-                              placeholder="TICKET-123"
+                              placeholder={t("TICKET-123")}
                             />
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor={`title-${form.slug}`}>
-                              Issue title
+                              {t("Issue title")}
                             </Label>
                             <Input
                               id={`title-${form.slug}`}
                               name={`title-${form.slug}`}
-                              placeholder="Brief description of the issue"
+                              placeholder={t("Brief description of the issue")}
                             />
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor={`body-${form.slug}`}>
-                              Issue description
+                              {t("Issue description")}
                             </Label>
                             <Textarea
                               id={`body-${form.slug}`}
                               name={`body-${form.slug}`}
-                              placeholder="Detailed description of the issue..."
+                              placeholder={t("Detailed description of the issue...")}
                               rows={3}
                             />
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor={`attachment-${form.slug}`}>
-                              Attachment URL
+                              {t("Attachment URL")}
                             </Label>
                             <Input
                               id={`attachment-${form.slug}`}
                               name={`attachment-${form.slug}`}
                               type="url"
-                              placeholder="https://example.com/screenshot.png"
+                              placeholder={t("https://example.com/screenshot.png")}
                             />
                           </div>
 
@@ -1323,14 +1313,14 @@ export default function FormsPage() {
                               className="flex items-center gap-2"
                             >
                               <Copy className="h-4 w-4" />
-                              Copy prefilled link
+                              {t("Copy prefilled link")}
                             </Button>
                             <Button
                               type="button"
                               variant="outline"
                               onClick={() => setShowPrefillOptions(null)}
                             >
-                              Cancel
+                              {t("Cancel")}
                             </Button>
                           </div>
                         </form>

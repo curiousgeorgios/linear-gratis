@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, X, ArrowRight, Star, Github, Clock, Zap, AlertTriangle, Code2, Lightbulb, HelpCircle } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 interface IntegrationPageProps {
   params: Promise<{
@@ -39,6 +40,8 @@ export async function generateMetadata({ params }: IntegrationPageProps): Promis
 }
 
 export default async function IntegrationPage({ params }: IntegrationPageProps) {
+  const t = await getT()
+
   const resolvedParams = await params
   const integration = integrations[resolvedParams.slug]
 
@@ -82,20 +85,20 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="text-xl font-semibold">
-                linear.gratis
+                {t("linear.gratis")}
               </Link>
               <div className="flex items-center gap-4">
                 <Link href="/integrations" className="text-sm text-muted-foreground hover:text-foreground">
-                  All integrations
+                  {t("All integrations")}
                 </Link>
                 <Link href="/use-cases" className="text-sm text-muted-foreground hover:text-foreground">
-                  Use cases
+                  {t("Use cases")}
                 </Link>
                 <Link href="/templates" className="text-sm text-muted-foreground hover:text-foreground">
-                  Templates
+                  {t("Templates")}
                 </Link>
                 <Button asChild size="sm">
-                  <Link href="/login">Get started free</Link>
+                  <Link href="/login">{t("Get started free")}</Link>
                 </Button>
               </div>
             </div>
@@ -116,7 +119,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                 </Badge>
                 {integration.officialSupport && (
                   <Badge variant="green">
-                    ✓ Official
+                    {t("✓ Official")}
                   </Badge>
                 )}
               </div>
@@ -134,7 +137,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                 <CardContent className="p-4">
                   <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
                   <div className="font-medium">{integration.timeToSetup}</div>
-                  <div className="text-xs text-muted-foreground">Setup time</div>
+                  <div className="text-xs text-muted-foreground">{t("Setup time")}</div>
                 </CardContent>
               </Card>
 
@@ -142,15 +145,15 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                 <CardContent className="p-4">
                   <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
                   <div className="font-medium">{integration.difficulty}</div>
-                  <div className="text-xs text-muted-foreground">Difficulty</div>
+                  <div className="text-xs text-muted-foreground">{t("Difficulty")}</div>
                 </CardContent>
               </Card>
 
               <Card className="border-border/50 text-center">
                 <CardContent className="p-4">
                   <Star className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <div className="font-medium">{integration.officialSupport ? 'Official' : 'Community'}</div>
-                  <div className="text-xs text-muted-foreground">Support</div>
+                  <div className="font-medium">{integration.officialSupport ? t("Official") : t("Community")}</div>
+                  <div className="text-xs text-muted-foreground">{t("Support")}</div>
                 </CardContent>
               </Card>
             </div>
@@ -158,7 +161,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
             {/* Overview */}
             <Card className="border-border/50 mb-8">
               <CardHeader>
-                <CardTitle>Overview</CardTitle>
+                <CardTitle>{t("Overview")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed">
@@ -176,41 +179,41 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />
-                    Features
+                    {t("Features")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Bidirectional sync</span>
+                      <span className="text-sm">{t("Bidirectional sync")}</span>
                       {integration.features.bidirectionalSync ?
                         <Check className="h-4 w-4 text-green-500" /> :
                         <X className="h-4 w-4 text-red-500" />
                       }
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Automation</span>
+                      <span className="text-sm">{t("Automation")}</span>
                       {integration.features.automation ?
                         <Check className="h-4 w-4 text-green-500" /> :
                         <X className="h-4 w-4 text-red-500" />
                       }
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Real-time notifications</span>
+                      <span className="text-sm">{t("Real-time notifications")}</span>
                       {integration.features.realTimeNotifications ?
                         <Check className="h-4 w-4 text-green-500" /> :
                         <X className="h-4 w-4 text-red-500" />
                       }
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Custom fields</span>
+                      <span className="text-sm">{t("Custom fields")}</span>
                       {integration.features.customFields ?
                         <Check className="h-4 w-4 text-green-500" /> :
                         <X className="h-4 w-4 text-red-500" />
                       }
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Bulk operations</span>
+                      <span className="text-sm">{t("Bulk operations")}</span>
                       {integration.features.bulkOperations ?
                         <Check className="h-4 w-4 text-green-500" /> :
                         <X className="h-4 w-4 text-red-500" />
@@ -224,7 +227,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
               <div className="space-y-6">
                 <Card className="border-border/50 bg-gradient-to-br from-green-50/50 to-blue-50/50 dark:from-green-950/20 dark:to-blue-950/20">
                   <CardHeader>
-                    <CardTitle className="text-green-800 dark:text-green-400 text-lg">Benefits</CardTitle>
+                    <CardTitle className="text-green-800 dark:text-green-400 text-lg">{t("Benefits")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
@@ -240,7 +243,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
 
                 <Card className="border-border/50 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20">
                   <CardHeader>
-                    <CardTitle className="text-orange-800 dark:text-orange-400 text-lg">Limitations</CardTitle>
+                    <CardTitle className="text-orange-800 dark:text-orange-400 text-lg">{t("Limitations")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
@@ -263,10 +266,10 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Code2 className="h-5 w-5 text-primary" />
-                  Setup guide
+                  {t("Setup guide")}
                 </CardTitle>
                 <CardDescription>
-                  Step-by-step instructions to integrate {integration.name} with Linear
+                  {t("Step-by-step instructions to integrate")} {integration.name} {t("with Linear")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -298,10 +301,10 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lightbulb className="h-5 w-5 text-primary" />
-                  Automation ideas
+                  {t("Automation ideas")}
                 </CardTitle>
                 <CardDescription>
-                  Popular automation workflows you can set up
+                  {t("Popular automation workflows you can set up")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -313,10 +316,10 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                       </h4>
                       <div className="space-y-2 text-xs text-muted-foreground">
                         <div>
-                          <strong>Trigger:</strong> {idea.trigger}
+                          <strong>{t("Trigger:")}</strong> {idea.trigger}
                         </div>
                         <div>
-                          <strong>Action:</strong> {idea.action}
+                          <strong>{t("Action:")}</strong> {idea.action}
                         </div>
                       </div>
                     </div>
@@ -332,16 +335,16 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5 text-primary" />
-                  Troubleshooting
+                  {t("Troubleshooting")}
                 </CardTitle>
                 <CardDescription>
-                  Common issues and their solutions
+                  {t("Common issues and their solutions")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {integration.troubleshooting.map((item, index) => (
-                    <div key={index} className="border-l-4 border-primary/20 pl-4">
+                    <div key={index} className="border-s-4 border-primary/20 ps-4">
                       <h4 className="font-medium mb-1 text-sm">{item.issue}</h4>
                       <p className="text-sm text-muted-foreground">{item.solution}</p>
                     </div>
@@ -355,9 +358,9 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
           <div className="max-w-4xl mx-auto mb-12">
             <Card className="border-border/50">
               <CardHeader>
-                <CardTitle>Use cases</CardTitle>
+                <CardTitle>{t("Use cases")}</CardTitle>
                 <CardDescription>
-                  Perfect for teams working on
+                  {t("Perfect for teams working on")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -377,23 +380,22 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
             <Card className="border-border/50 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-4">
-                  Ready to integrate {integration.name}?
+                  {t("Ready to integrate")} {integration.name}?
                 </h2>
                 <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                  Start with linear.gratis and connect your {integration.name} workflow.
-                  Free setup, no limits, ready in minutes.
+                  {t("Start with linear.gratis and connect your")} {integration.name} {t("workflow. Free setup, no limits, ready in minutes.")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="h-12 px-8">
                     <Link href="/login">
-                      Start free setup
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {t("Start free setup")}
+                      <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="h-12 px-8">
                     <Link href="https://github.com/curiousgeorgios/linear-gratis" target="_blank">
-                      <Github className="mr-2 h-4 w-4" />
-                      View on GitHub
+                      <Github className="me-2 h-4 w-4" />
+                      {t("View on GitHub")}
                     </Link>
                   </Button>
                 </div>
@@ -403,7 +405,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
 
           {/* Related integrations */}
           <div className="max-w-4xl mx-auto mt-16">
-            <h3 className="text-xl font-semibold mb-6">Related integrations</h3>
+            <h3 className="text-xl font-semibold mb-6">{t("Related integrations")}</h3>
             <div className="grid md:grid-cols-3 gap-4">
               {integration.relatedIntegrations.slice(0, 3).map((relatedSlug) => {
                 const related = integrations[relatedSlug]
@@ -419,7 +421,7 @@ export default async function IntegrationPage({ params }: IntegrationPageProps) 
                             {related.difficulty}
                           </Badge>
                         </div>
-                        <h4 className="font-medium mb-1">Linear + {related.name}</h4>
+                        <h4 className="font-medium mb-1">{t("Linear +")} {related.name}</h4>
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {related.overview}
                         </p>

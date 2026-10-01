@@ -7,8 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n/client'
+import { McpTokensCard } from '@/components/mcp-tokens-card'
+import { LanguageToggle } from '@/components/language-toggle'
 
 export default function ProfilePage() {
+  const t = useT()
+
   const { user, signOut, loading: authLoading } = useAuth()
   const [linearToken, setLinearToken] = useState('')
   const [hasLinearToken, setHasLinearToken] = useState(false)
@@ -56,7 +61,7 @@ export default function ProfilePage() {
     if (!user) return
 
     if (!linearToken.trim()) {
-      setMessage({ type: 'error', text: 'Enter a Linear API token to save.' })
+      setMessage({ type: 'error', text: t("Enter a Linear API token to save.") })
       return
     }
 
@@ -71,15 +76,15 @@ export default function ProfilePage() {
       })
 
       if (!response.ok) {
-        setMessage({ type: 'error', text: 'Failed to save profile. Please try again.' })
+        setMessage({ type: 'error', text: t("Failed to save profile. Please try again.") })
         console.error('Error saving profile:', response.status)
       } else {
-        setMessage({ type: 'success', text: 'Profile saved successfully!' })
+        setMessage({ type: 'success', text: t("Profile saved successfully!") })
         setHasLinearToken(true)
         setLinearToken('')
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save profile. Please try again.' })
+      setMessage({ type: 'error', text: t("Failed to save profile. Please try again.") })
       console.error('Error saving profile:', error)
     } finally {
       setSaving(false)
@@ -98,14 +103,14 @@ export default function ProfilePage() {
       })
 
       if (!response.ok) {
-        setMessage({ type: 'error', text: 'Failed to remove token. Please try again.' })
+        setMessage({ type: 'error', text: t("Failed to remove token. Please try again.") })
       } else {
-        setMessage({ type: 'success', text: 'Linear token removed.' })
+        setMessage({ type: 'success', text: t("Linear token removed.") })
         setHasLinearToken(false)
         setLinearToken('')
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to remove token. Please try again.' })
+      setMessage({ type: 'error', text: t("Failed to remove token. Please try again.") })
       console.error('Error clearing token:', error)
     } finally {
       setSaving(false)
@@ -121,7 +126,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+          <h2 className="text-xl font-semibold mb-2">{t("Loading...")}</h2>
         </div>
       </div>
     )
@@ -131,7 +136,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+          <h2 className="text-xl font-semibold mb-2">{t("Loading...")}</h2>
         </div>
       </div>
     )
@@ -141,22 +146,25 @@ export default function ProfilePage() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Profile settings</h1>
+          <h1 className="text-2xl font-bold">{t("Profile settings")}</h1>
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
           <Button variant="outline" onClick={handleSignOut}>
-            Sign out
+            {t("Sign out")}
           </Button>
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Account information</CardTitle>
+            <CardTitle>{t("Account information")}</CardTitle>
             <CardDescription>
-              Your account details and preferences
+              {t("Your account details and preferences")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Email address</Label>
+              <Label>{t("Email address")}</Label>
               <Input value={user.email || ''} disabled />
             </div>
           </CardContent>
@@ -164,15 +172,15 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Linear integration</CardTitle>
+            <CardTitle>{t("Linear integration")}</CardTitle>
             <CardDescription>
-              Connect your Linear workspace to start collecting customer feedback directly in your issues.
+              {t("Connect your Linear workspace to start collecting customer feedback directly in your issues.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {loading && (
               <div className="text-center py-4">
-                <p className="text-gray-600">Loading profile...</p>
+                <p className="text-gray-600">{t("Loading profile...")}</p>
               </div>
             )}
 
@@ -180,40 +188,40 @@ export default function ProfilePage() {
               <>
                 {/* Instructions */}
                 <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
-                  <h3 className="font-semibold mb-3">How to get your Linear API token:</h3>
+                  <h3 className="font-semibold mb-3">{t("How to get your Linear API token:")}</h3>
                   <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
                     <li>
-                      <span className="font-medium">Open Linear</span> and go to{' '}
-                      <span className="bg-muted px-2 py-1 rounded text-xs font-mono">Settings → API</span>
+                      <span className="font-medium">{t("Open Linear")}</span> {t("and go to")}{' '}
+                      <span className="bg-muted px-2 py-1 rounded text-xs font-mono">{t("Settings → API")}</span>
                     </li>
                     <li>
-                      <span className="font-medium">Click &quot;Create personal API key&quot;</span>
+                      <span className="font-medium">{t("Click \"Create personal API key\"")}</span>
                     </li>
                     <li>
-                      <span className="font-medium">Give it a name</span> like &quot;Linear Integration&quot; or &quot;Customer Feedback&quot;
+                      <span className="font-medium">{t("Give it a name")}</span> {t("like \"Linear Integration\" or \"Customer Feedback\"")}
                     </li>
                     <li>
-                      <span className="font-medium">Copy the generated token</span> and paste it below
+                      <span className="font-medium">{t("Copy the generated token")}</span> {t("and paste it below")}
                     </li>
                   </ol>
                   <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800/30 rounded text-xs text-yellow-800 dark:text-yellow-400">
-                    <strong>Important:</strong> Keep this token secure. It provides access to your Linear workspace.
+                    <strong>{t("Important:")}</strong> {t("Keep this token secure. It provides access to your Linear workspace.")}
                   </div>
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); saveProfile(); }} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="linear-token">Linear API token</Label>
+                    <Label htmlFor="linear-token">{t("Linear API token")}</Label>
                     <Input
                       id="linear-token"
                       type="password"
-                      placeholder={hasLinearToken ? "Token is configured (enter a new one to replace it)" : "Paste your Linear API token here"}
+                      placeholder={hasLinearToken ? t("Token is configured (enter a new one to replace it)") : t("Paste your Linear API token here")}
                       value={linearToken}
                       onChange={(e) => setLinearToken(e.target.value)}
                       autoComplete="current-password"
                     />
                     <p className="text-sm text-muted-foreground">
-                      This token will be encrypted and stored securely. It&apos;s used to create customer requests in your Linear workspace.
+                      {t("This token will be encrypted and stored securely. It's used to create customer requests in your Linear workspace.")}
                     </p>
                   </div>
 
@@ -227,7 +235,7 @@ export default function ProfilePage() {
                       {message.type === 'success' && (
                         <div className="mt-2">
                           <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.push('/')}>
-                            → Go to Linear integration
+                            {t("→ Go to Linear integration")}
                           </Button>
                         </div>
                       )}
@@ -240,7 +248,7 @@ export default function ProfilePage() {
                       disabled={saving || !linearToken.trim()}
                       className="flex-1"
                     >
-                      {saving ? 'Saving token...' : hasLinearToken ? 'Replace Linear token' : 'Save Linear token'}
+                      {saving ? t("Saving token...") : hasLinearToken ? t("Replace Linear token") : t("Save Linear token")}
                     </Button>
                     {hasLinearToken && (
                       <Button
@@ -249,7 +257,7 @@ export default function ProfilePage() {
                         onClick={clearToken}
                         disabled={saving}
                       >
-                        Remove token
+                        {t("Remove token")}
                       </Button>
                     )}
                   </div>
@@ -259,9 +267,11 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        <McpTokensCard />
+
         <div className="text-center">
           <Button variant="link" onClick={() => router.push('/')}>
-            ← Back to Linear integration
+            {t("← Back to Linear integration")}
           </Button>
         </div>
       </div>

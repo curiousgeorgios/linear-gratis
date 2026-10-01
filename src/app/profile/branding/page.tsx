@@ -18,6 +18,7 @@ import { Navigation } from "@/components/navigation";
 import { supabase, BrandingSettings } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Palette, Upload, Trash2, Save, RefreshCw } from "lucide-react";
+import { useT } from '@/lib/i18n/client'
 
 // These match the actual CSS theme defaults in globals.css (light theme)
 // Used for display placeholders only - not saved to database when reset
@@ -31,6 +32,8 @@ const DEFAULT_COLORS = {
 };
 
 export default function BrandingPage() {
+  const t = useT()
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -113,13 +116,13 @@ export default function BrandingPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Branding settings saved successfully!" });
+        setMessage({ type: "success", text: t("Branding settings saved successfully!") });
       } else {
-        setMessage({ type: "error", text: "Failed to save branding settings" });
+        setMessage({ type: "error", text: t("Failed to save branding settings") });
       }
     } catch (error) {
       console.error("Error saving branding:", error);
-      setMessage({ type: "error", text: "Failed to save branding settings" });
+      setMessage({ type: "error", text: t("Failed to save branding settings") });
     } finally {
       setSaving(false);
     }
@@ -169,14 +172,14 @@ export default function BrandingPage() {
       }
     } catch (error) {
       console.error("Error uploading file:", error);
-      setMessage({ type: "error", text: "Failed to upload file" });
+      setMessage({ type: "error", text: t("Failed to upload file") });
     } finally {
       setUploading(false);
     }
   };
 
   const handleResetToDefaults = () => {
-    if (confirm("Are you sure you want to reset all branding to defaults?")) {
+    if (confirm(t("Are you sure you want to reset all branding to defaults?"))) {
       setBranding({
         // Clear all colours so pages use their natural CSS theme
         primary_color: undefined,
@@ -199,7 +202,7 @@ export default function BrandingPage() {
         footer_text: undefined,
         custom_css: undefined,
       });
-      setMessage({ type: "success", text: "Reset to defaults. Remember to save!" });
+      setMessage({ type: "success", text: t("Reset to defaults. Remember to save!") });
     }
   };
 
@@ -209,7 +212,7 @@ export default function BrandingPage() {
         <Navigation />
         <div className="max-w-6xl mx-auto p-6">
           <div className="text-center py-8">
-            <p className="text-gray-600">Loading branding settings...</p>
+            <p className="text-gray-600">{t("Loading branding settings...")}</p>
           </div>
         </div>
       </div>
@@ -227,9 +230,9 @@ export default function BrandingPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Custom branding</h1>
+              <h1 className="text-3xl font-bold mb-2">{t("Custom branding")}</h1>
               <p className="text-muted-foreground">
-                Customise the appearance of your public forms and views with your own branding
+                {t("Customise the appearance of your public forms and views with your own branding")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -239,7 +242,7 @@ export default function BrandingPage() {
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
-                Reset to defaults
+                {t("Reset to defaults")}
               </Button>
               <Button
                 onClick={handleSave}
@@ -247,7 +250,7 @@ export default function BrandingPage() {
                 className="flex items-center gap-2"
               >
                 <Save className="h-4 w-4" />
-                {saving ? "Saving..." : "Save changes"}
+                {saving ? t("Saving...") : t("Save changes")}
               </Button>
             </div>
           </div>
@@ -271,19 +274,19 @@ export default function BrandingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Brand identity
+                {t("Brand identity")}
               </CardTitle>
               <CardDescription>
-                Your brand name and tagline that will appear on your public pages
+                {t("Your brand name and tagline that will appear on your public pages")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="brand-name">Brand name</Label>
+                  <Label htmlFor="brand-name">{t("Brand name")}</Label>
                   <Input
                     id="brand-name"
-                    placeholder="e.g., Acme Inc"
+                    placeholder={t("e.g., Acme Inc")}
                     value={branding.brand_name || ""}
                     onChange={(e) =>
                       setBranding({ ...branding, brand_name: e.target.value })
@@ -291,10 +294,10 @@ export default function BrandingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tagline">Tagline</Label>
+                  <Label htmlFor="tagline">{t("Tagline")}</Label>
                   <Input
                     id="tagline"
-                    placeholder="e.g., Building the future"
+                    placeholder={t("e.g., Building the future")}
                     value={branding.tagline || ""}
                     onChange={(e) =>
                       setBranding({ ...branding, tagline: e.target.value })
@@ -310,22 +313,22 @@ export default function BrandingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
-                Logo and favicon
+                {t("Logo and favicon")}
               </CardTitle>
               <CardDescription>
-                Upload your brand logo and favicon (PNG, JPG, or WebP, max 2MB)
+                {t("Upload your brand logo and favicon (PNG, JPG, or WebP, max 2MB)")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <Label>Logo</Label>
+                  <Label>{t("Logo")}</Label>
                   {branding.logo_url && (
                     <div className="border border-border rounded-lg p-4 bg-muted/20">
                       {/* eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time */}
                       <img
                         src={branding.logo_url}
-                        alt="Logo preview"
+                        alt={t("Logo preview")}
                         className="max-h-20 mx-auto"
                       />
                     </div>
@@ -349,7 +352,7 @@ export default function BrandingPage() {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="logo-height" className="text-xs">Max height (px)</Label>
+                    <Label htmlFor="logo-height" className="text-xs">{t("Max height (px)")}</Label>
                     <Input
                       id="logo-height"
                       type="number"
@@ -360,19 +363,19 @@ export default function BrandingPage() {
                       className="h-8"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Width scales automatically to preserve the logo&apos;s aspect ratio.
+                      {t("Width scales automatically to preserve the logo's aspect ratio.")}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <Label>Favicon</Label>
+                  <Label>{t("Favicon")}</Label>
                   {branding.favicon_url && (
                     <div className="border border-border rounded-lg p-4 bg-muted/20 h-[100px] flex items-center justify-center">
                       {/* eslint-disable-next-line @next/next/no-img-element -- user-provided URL, domain not known at build time */}
                       <img
                         src={branding.favicon_url}
-                        alt="Favicon preview"
+                        alt={t("Favicon preview")}
                         className="w-8 h-8"
                       />
                     </div>
@@ -403,9 +406,9 @@ export default function BrandingPage() {
           {/* Colours */}
           <Card>
             <CardHeader>
-              <CardTitle>Colour palette</CardTitle>
+              <CardTitle>{t("Colour palette")}</CardTitle>
               <CardDescription>
-                Customise the colours used throughout your public pages
+                {t("Customise the colours used throughout your public pages")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -450,31 +453,31 @@ export default function BrandingPage() {
           {/* Typography */}
           <Card>
             <CardHeader>
-              <CardTitle>Typography</CardTitle>
+              <CardTitle>{t("Typography")}</CardTitle>
               <CardDescription>
-                Choose fonts for your public pages
+                {t("Choose fonts for your public pages")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="font-family">Body font family</Label>
+                <Label htmlFor="font-family">{t("Body font family")}</Label>
                 <Input
                   id="font-family"
-                  placeholder="e.g., Inter, system-ui, sans-serif"
+                  placeholder={t("e.g., Inter, system-ui, sans-serif")}
                   value={branding.font_family || ""}
                   onChange={(e) =>
                     setBranding({ ...branding, font_family: e.target.value })
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use web-safe fonts or Google Fonts. Separate multiple fonts with commas.
+                  {t("Use web-safe fonts or Google Fonts. Separate multiple fonts with commas.")}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="heading-font-family">Heading font family (optional)</Label>
+                <Label htmlFor="heading-font-family">{t("Heading font family (optional)")}</Label>
                 <Input
                   id="heading-font-family"
-                  placeholder="Leave empty to use body font"
+                  placeholder={t("Leave empty to use body font")}
                   value={branding.heading_font_family || ""}
                   onChange={(e) =>
                     setBranding({ ...branding, heading_font_family: e.target.value })
@@ -487,17 +490,17 @@ export default function BrandingPage() {
           {/* Footer */}
           <Card>
             <CardHeader>
-              <CardTitle>Footer customisation</CardTitle>
+              <CardTitle>{t("Footer customisation")}</CardTitle>
               <CardDescription>
-                Customise the footer text that appears on your public pages
+                {t("Customise the footer text that appears on your public pages")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="footer-text">Footer text</Label>
+                <Label htmlFor="footer-text">{t("Footer text")}</Label>
                 <Textarea
                   id="footer-text"
-                  placeholder="e.g., © 2025 Acme Inc. All rights reserved."
+                  placeholder={t("e.g., © 2025 Acme Inc. All rights reserved.")}
                   value={branding.footer_text || ""}
                   onChange={(e) =>
                     setBranding({ ...branding, footer_text: e.target.value })
@@ -513,7 +516,7 @@ export default function BrandingPage() {
                   }
                 />
                 <Label className="cursor-pointer">
-                  Show &quot;Powered by linear.gratis&quot; in footer
+                  {t("Show \"Powered by linear.gratis\" in footer")}
                 </Label>
               </div>
             </CardContent>
@@ -522,14 +525,14 @@ export default function BrandingPage() {
           {/* Custom CSS */}
           <Card>
             <CardHeader>
-              <CardTitle>Advanced: Custom CSS</CardTitle>
+              <CardTitle>{t("Advanced: Custom CSS")}</CardTitle>
               <CardDescription>
-                Add custom CSS for advanced styling (use with caution)
+                {t("Add custom CSS for advanced styling (use with caution)")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="/* Your custom CSS here */"
+                placeholder={t("/* Your custom CSS here */")}
                 value={branding.custom_css || ""}
                 onChange={(e) =>
                   setBranding({ ...branding, custom_css: e.target.value })
@@ -545,7 +548,7 @@ export default function BrandingPage() {
               variant="outline"
               onClick={handleResetToDefaults}
             >
-              Reset to defaults
+              {t("Reset to defaults")}
             </Button>
             <Button
               onClick={handleSave}
@@ -553,7 +556,7 @@ export default function BrandingPage() {
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save changes"}
+              {saving ? t("Saving...") : t("Save changes")}
             </Button>
           </div>
         </div>

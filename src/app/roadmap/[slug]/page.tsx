@@ -9,6 +9,8 @@ import { RefreshCw, Lock, LayoutGrid, Calendar } from 'lucide-react'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 import type { RoadmapIssue } from '@/lib/linear'
 import type { KanbanColumn } from '@/lib/supabase'
+import { useI18n } from '@/lib/i18n/client'
+import { LanguageToggle } from '@/components/language-toggle'
 
 interface RoadmapPageProps {
   params: Promise<{
@@ -66,6 +68,8 @@ async function generateFingerprint(): Promise<string> {
 }
 
 export default function RoadmapPage({ params }: RoadmapPageProps) {
+  const { t, intlLocale } = useI18n()
+
   const [roadmap, setRoadmap] = useState<RoadmapData | null>(null)
   const [issues, setIssues] = useState<RoadmapIssue[]>([])
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({})
@@ -144,12 +148,12 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
 
     } catch (err) {
       console.error('Error loading roadmap:', err)
-      setError('Failed to load the roadmap')
+      setError(t("Failed to load the roadmap"))
     } finally {
       setLoading(false)
       setAuthenticating(false)
     }
-  }, [slug])
+  }, [slug, t])
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,7 +225,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
               <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">Loading roadmap...</p>
+          <p className="text-sm text-muted-foreground">{t("Loading roadmap...")}</p>
         </div>
       </div>
     )
@@ -236,9 +240,9 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
               <div className="w-10 h-10 mx-auto mb-3 bg-primary/10 rounded-full flex items-center justify-center">
                 <Lock className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-lg font-medium tracking-tight mb-2">Protected roadmap</h1>
+              <h1 className="text-lg font-medium tracking-tight mb-2">{t("Protected roadmap")}</h1>
               <p className="text-sm text-muted-foreground">
-                This roadmap is password protected. Enter the password to continue.
+                {t("This roadmap is password protected. Enter the password to continue.")}
               </p>
             </div>
 
@@ -247,7 +251,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                 <input
                   id="password"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder={t("Enter password")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={authenticating}
@@ -274,10 +278,10 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                         <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                     </div>
-                    Authenticating...
+                    {t("Authenticating...")}
                   </div>
                 ) : (
-                  'Access roadmap'
+                  t("Access roadmap")
                 )}
               </button>
             </form>
@@ -337,7 +341,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {lastUpdated && (
               <div className="hidden sm:block text-xs text-muted-foreground">
-                Updated {lastUpdated.toLocaleTimeString()}
+                {t("Updated")} {lastUpdated.toLocaleTimeString(intlLocale)}
               </div>
             )}
 
@@ -345,7 +349,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
               onClick={handleRefresh}
               disabled={refreshing}
               className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
-              aria-label="Refresh"
+              aria-label={t("Refresh")}
             >
               <RefreshCw className={`h-4 w-4 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -354,7 +358,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
 
         {/* Compact view and category toolbar */}
         <div className="flex min-h-12 items-center gap-2 overflow-x-auto border-t border-border/40 px-3 sm:px-6">
-          <div className="flex shrink-0 items-center rounded-md bg-muted/60 p-0.5" aria-label="Roadmap layout">
+          <div className="flex shrink-0 items-center rounded-md bg-muted/60 p-0.5" aria-label={t("Roadmap layout")}>
             <button
               type="button"
               onClick={() => setLayoutType('kanban')}
@@ -364,10 +368,10 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground'
               }`}
-              title="Kanban view"
+              title={t("Kanban view")}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Board</span>
+              <span>{t("Board")}</span>
             </button>
             <button
               type="button"
@@ -378,17 +382,17 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground'
               }`}
-              title="Timeline view"
+              title={t("Timeline view")}
             >
               <Calendar className="h-3.5 w-3.5" />
-              <span>Timeline</span>
+              <span>{t("Timeline")}</span>
             </button>
           </div>
 
           {projects.length > 1 && (
             <>
               <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
-              <div className="flex shrink-0 items-center gap-1.5" aria-label="Roadmap categories">
+              <div className="flex shrink-0 items-center gap-1.5" aria-label={t("Roadmap categories")}>
                 {projects.map((project) => (
                   <span
                     key={project.id}
@@ -420,14 +424,14 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
         )}
         {error ? (
           <div className="max-w-md mx-auto mt-20 p-6 bg-destructive/5 border border-destructive/20 rounded-lg linear-scale-in">
-            <h3 className="font-medium text-destructive mb-2">Error loading data</h3>
+            <h3 className="font-medium text-destructive mb-2">{t("Error loading data")}</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
               className="min-h-11 touch-manipulation rounded-md bg-destructive px-3 py-1.5 text-sm text-destructive-foreground transition-[background-color,transform] duration-150 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-destructive/90 active:scale-[0.96] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
             >
-              {refreshing ? 'Retrying...' : 'Try again'}
+              {refreshing ? t("Retrying...") : t("Try again")}
             </button>
           </div>
         ) : (
@@ -480,22 +484,25 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground mb-1">
-                Product roadmap powered by Linear
+                {t("Product roadmap powered by Linear")}
               </p>
             )}
             {(branding?.show_powered_by !== false) && (
               <p className="text-xs text-muted-foreground">
-                {branding?.footer_text ? 'Powered by ' : 'Create your own at '}
+                {branding?.footer_text ? t("Powered by ") : t("Create your own at ")}
                 <a
                   href="https://linear.gratis"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline transition-colors"
                 >
-                  linear.gratis
+                  {t("linear.gratis")}
                 </a>
               </p>
             )}
+            <div className="mt-3 flex justify-center">
+              <LanguageToggle className="h-7 text-xs font-medium text-muted-foreground" />
+            </div>
           </div>
         </footer>
       )}

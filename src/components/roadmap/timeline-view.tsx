@@ -8,6 +8,7 @@ import {
   isShippedRoadmapIssue,
 } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
+import { useI18n } from '@/lib/i18n/client'
 
 interface TimelineViewProps {
   issues: RoadmapIssue[]
@@ -33,7 +34,7 @@ interface TimelinePeriod {
   endDate: Date
 }
 
-function generatePeriods(granularity: 'month' | 'quarter', monthsAhead: number = 12): TimelinePeriod[] {
+function generatePeriods(granularity: 'month' | 'quarter', intlLocale: string, monthsAhead: number = 12): TimelinePeriod[] {
   const periods: TimelinePeriod[] = []
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -72,8 +73,8 @@ function generatePeriods(granularity: 'month' | 'quarter', monthsAhead: number =
       const startDate = new Date(year, monthIndex, 1)
       const endDate = new Date(year, monthIndex + 1, 0) // Last day of month
 
-      const monthName = startDate.toLocaleDateString('en-GB', { month: 'long' })
-      const shortMonth = startDate.toLocaleDateString('en-GB', { month: 'short' })
+      const monthName = startDate.toLocaleDateString(intlLocale, { month: 'long' })
+      const shortMonth = startDate.toLocaleDateString(intlLocale, { month: 'short' })
 
       periods.push({
         key: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
@@ -127,10 +128,12 @@ export function TimelineView({
   onIssueClick,
   onVote,
 }: TimelineViewProps) {
+  const { t, intlLocale } = useI18n()
+
   const [showShipped, setShowShipped] = useState(false)
 
   // Generate timeline periods
-  const periods = useMemo(() => generatePeriods(granularity, 12), [granularity])
+  const periods = useMemo(() => generatePeriods(granularity, intlLocale, 12), [granularity, intlLocale])
   const shippedIssues = useMemo(() => issues.filter(isShippedRoadmapIssue), [issues])
   const visibleIssues = useMemo(
     () => filterTimelineIssues(issues, showShipped),
@@ -192,8 +195,9 @@ export function TimelineView({
     <div className="space-y-6">
       <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
         <p className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
-          {visibleIssues.length - (showShipped ? shippedIssues.length : 0)} active{' '}
-          {visibleIssues.length - (showShipped ? shippedIssues.length : 0) === 1 ? 'item' : 'items'}
+          {visibleIssues.length - (showShipped ? shippedIssues.length : 0) === 1
+            ? t("1 active item")
+            : t("{count} active items", { count: visibleIssues.length - (showShipped ? shippedIssues.length : 0) })}
         </p>
 
         {shippedIssues.length > 0 && (
@@ -211,12 +215,12 @@ export function TimelineView({
               name={shippedState?.name || 'Shipped'}
               size={13}
             />
-            <span>Shipped</span>
+            <span>{t("Shipped")}</span>
             <span className="rounded bg-muted px-1.5 py-0.5 tabular-nums text-[10px] text-muted-foreground">
               {shippedIssues.length}
             </span>
-            <span className={`min-w-[3.25rem] text-right ${showShipped ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {showShipped ? 'Shown' : 'Hidden'}
+            <span className={`min-w-[3.25rem] text-end ${showShipped ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {showShipped ? t("Shown") : t("Hidden")}
             </span>
             <span
               aria-hidden="true"
@@ -226,7 +230,7 @@ export function TimelineView({
             >
               <span
                 className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform duration-150 motion-reduce:transition-none ${
-                  showShipped ? 'translate-x-4' : 'translate-x-0'
+                  showShipped ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-0'
                 }`}
               />
             </span>
@@ -240,8 +244,8 @@ export function TimelineView({
           {/* Period headers */}
           <div className="flex border-b border-border/50 sticky top-0 bg-background/95 backdrop-blur-sm z-10">
             {/* Unscheduled column */}
-            <div className="flex-shrink-0 w-64 px-3 py-2 border-r border-border/30">
-              <span className="text-sm font-medium text-muted-foreground">Unscheduled</span>
+            <div className="flex-shrink-0 w-64 px-3 py-2 border-e border-border/30">
+              <span className="text-sm font-medium text-muted-foreground">{t("Unscheduled")}</span>
             </div>
 
             {/* Period columns */}
@@ -252,7 +256,7 @@ export function TimelineView({
               return (
                 <div
                   key={period.key}
-                  className={`flex-1 min-w-[180px] px-3 py-2 text-center border-r border-border/30 last:border-r-0 ${
+                  className={`flex-1 min-w-[180px] px-3 py-2 text-center border-e border-border/30 last:border-e-0 ${
                     isCurrent ? 'bg-primary/5' : ''
                   }`}
                 >
@@ -260,8 +264,8 @@ export function TimelineView({
                     {period.label}
                   </span>
                   {isCurrent && (
-                    <span className="ml-2 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                      Now
+                    <span className="ms-2 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {t("Now")}
                     </span>
                   )}
                 </div>
@@ -272,7 +276,7 @@ export function TimelineView({
           {/* Timeline rows by project */}
           {projects.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              No items to display
+              {t("No items to display")}
             </div>
           ) : (
             projects.map((project) => {
@@ -289,14 +293,14 @@ export function TimelineView({
                     />
                     <span className="text-sm font-medium">{project.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      ({projectIssues.length} item{projectIssues.length !== 1 ? 's' : ''})
+                      ({projectIssues.length === 1 ? t('1 item') : t('{count} items', { count: projectIssues.length })})
                     </span>
                   </div>
 
                   {/* Project items row */}
                   <div className="flex">
                     {/* Unscheduled column */}
-                    <div className="flex-shrink-0 w-64 p-2 border-r border-border/30 bg-muted/10 space-y-2">
+                    <div className="flex-shrink-0 w-64 p-2 border-e border-border/30 bg-muted/10 space-y-2">
                       {projectUnscheduled.length === 0 ? (
                         <div className="py-4 text-center text-xs text-muted-foreground">—</div>
                       ) : (
@@ -332,7 +336,7 @@ export function TimelineView({
                       return (
                         <div
                           key={period.key}
-                          className={`flex-1 min-w-[180px] p-2 border-r border-border/30 last:border-r-0 space-y-2 ${
+                          className={`flex-1 min-w-[180px] p-2 border-e border-border/30 last:border-e-0 space-y-2 ${
                             isCurrent ? 'bg-primary/5' : ''
                           }`}
                         >
@@ -373,11 +377,11 @@ export function TimelineView({
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-primary/10 border border-primary/30 rounded" />
-          <span>Current period</span>
+          <span>{t("Current period")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-muted/30 rounded" />
-          <span>Unscheduled items (no due date)</span>
+          <span>{t("Unscheduled items (no due date)")}</span>
         </div>
       </div>
     </div>

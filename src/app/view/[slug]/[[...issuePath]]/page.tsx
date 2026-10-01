@@ -10,6 +10,8 @@ import { PublicView } from '@/lib/supabase'
 import { LinearIssue } from '@/app/api/linear/issues/route'
 import { RefreshCw, Lock } from 'lucide-react'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
+import { useI18n } from '@/lib/i18n/client'
+import { LanguageToggle } from '@/components/language-toggle'
 
 interface PublicViewPageProps {
   params: Promise<{
@@ -55,6 +57,8 @@ function updateBrowserPath(path: string, mode: 'push' | 'replace') {
 }
 
 export default function PublicViewPage({ params }: PublicViewPageProps) {
+  const { t, intlLocale } = useI18n()
+
   const [view, setView] = useState<PublicView | null>(null)
   const [issues, setIssues] = useState<LinearIssue[]>([])
   const [loading, setLoading] = useState(true)
@@ -157,7 +161,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
 
     } catch (err) {
       console.error('Error loading view:', err)
-      setError('Failed to load the public view')
+      setError(t("Failed to load the public view"))
     } finally {
       setLoading(false)
       setAuthenticating(false)
@@ -286,7 +290,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">Loading public view...</p>
+          <p className="text-sm text-muted-foreground">{t("Loading public view...")}</p>
         </div>
       </div>
     )
@@ -301,9 +305,9 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               <div className="w-10 h-10 mx-auto mb-3 bg-primary/10 rounded-full flex items-center justify-center">
                 <Lock className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-lg font-medium tracking-tight mb-2">Protected view</h1>
+              <h1 className="text-lg font-medium tracking-tight mb-2">{t("Protected view")}</h1>
               <p className="text-sm text-muted-foreground">
-                This view is password protected. Enter the password to continue.
+                {t("This view is password protected. Enter the password to continue.")}
               </p>
             </div>
 
@@ -312,7 +316,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
                 <input
                   id="password"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder={t("Enter password")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={authenticating}
@@ -339,10 +343,10 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
                         <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                     </div>
-                    Authenticating...
+                    {t("Authenticating...")}
                   </div>
                 ) : (
-                  'Access view'
+                  t("Access view")
                 )}
               </button>
             </form>
@@ -409,7 +413,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
                     <span className="text-sm">👤</span>
                   </div>
                   <h2 className="text-base sm:text-lg font-medium tracking-tight truncate">
-                    {branding?.brand_name || view.project_name || view.team_name || 'Public View'}
+                    {branding?.brand_name || view.project_name || view.team_name || t("Public View")}
                   </h2>
                 </>
               )}
@@ -427,7 +431,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             {lastUpdated && (
               <div className="hidden sm:block text-xs text-muted-foreground">
-                Updated {lastUpdated.toLocaleTimeString()}
+                {t("Updated")} {lastUpdated.toLocaleTimeString(intlLocale)}
               </div>
             )}
 
@@ -439,7 +443,7 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
                 <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M2.5 2.5h11v11h-11v-11zM2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm3.5 4a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1H6z"/>
                 </svg>
-                <span className="hidden sm:inline">Updates</span>
+                <span className="hidden sm:inline">{t("Updates")}</span>
               </button>
             )}
 
@@ -447,13 +451,13 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
               onClick={handleRefresh}
               disabled={refreshing}
               className="p-2 hover:bg-accent rounded-md transition-colors"
-              aria-label="Refresh"
+              aria-label={t("Refresh")}
             >
               <RefreshCw className={`h-4 w-4 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`} />
             </button>
 
             <div className="hidden sm:flex items-center gap-2">
-              <button className="p-2 hover:bg-accent rounded-md transition-colors" aria-label="Insights">
+              <button className="p-2 hover:bg-accent rounded-md transition-colors" aria-label={t("Insights")}>
                 <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 16 16" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M3 9C3.55228 9 4 9.44772 4 10V13C4 13.5523 3.55228 14 3 14H2C1.44772 14 1 13.5523 1 13V10C1 9.44772 1.44772 9 2 9H3ZM14 6C14.5523 6 15 6.44772 15 7V13C15 13.5523 14.5523 14 14 14H13C12.4477 14 12 13.5523 12 13V7C12 6.44772 12.4477 6 13 6H14ZM8.5 2C9.05229 2 9.5 2.44772 9.5 3V13C9.5 13.5523 9.05229 14 8.5 14H7.5C6.94772 14 6.5 13.5523 6.5 13V3C6.5 2.44772 6.94772 2 7.5 2H8.5Z"/>
                 </svg>
@@ -468,14 +472,14 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
       <div className="flex-1 p-4 sm:p-6">
         {error ? (
           <div className="max-w-md mx-auto mt-20 p-6 bg-destructive/5 border border-destructive/20 rounded-lg linear-scale-in">
-            <h3 className="font-medium text-destructive mb-2">Error loading data</h3>
+            <h3 className="font-medium text-destructive mb-2">{t("Error loading data")}</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
               className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 transition-colors disabled:opacity-50"
             >
-              {refreshing ? 'Retrying...' : 'Try again'}
+              {refreshing ? t("Retrying...") : t("Try again")}
             </button>
           </div>
         ) : (
@@ -505,22 +509,25 @@ export default function PublicViewPage({ params }: PublicViewPageProps) {
                 </p>
               ) : showReadOnlyNote ? (
                 <p className="text-sm text-muted-foreground mb-1">
-                  Read-only view of Linear issues
+                  {t("Read-only view of Linear issues")}
                 </p>
               ) : null}
               {showPoweredBy && (
                 <p className="text-xs text-muted-foreground">
-                  {branding?.footer_text ? 'Powered by ' : 'Create your own at '}
+                  {branding?.footer_text ? t("Powered by ") : t("Create your own at ")}
                   <a
                     href="https://linear.gratis"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline transition-colors"
                   >
-                    linear.gratis
+                    {t("linear.gratis")}
                   </a>
                 </p>
               )}
+              <div className="mt-3 flex justify-center">
+                <LanguageToggle className="h-7 text-xs font-medium text-muted-foreground" />
+              </div>
             </div>
           </footer>
         )

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { Toaster } from "sonner";
+import { I18nProvider } from "@/lib/i18n/client";
+import { directionOf } from "@/lib/i18n/config";
+import { getLocale } from "@/lib/i18n/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +16,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Geist has no Arabic glyphs; this font fills in for Arabic text only.
+const plexArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -78,13 +88,15 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={directionOf(locale)} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -106,8 +118,9 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${plexArabic.variable} antialiased`}
       >
+        <I18nProvider locale={locale}>
         <ThemeProvider
           defaultTheme="system"
           storageKey="linear-integration-theme"
@@ -133,6 +146,7 @@ export default function RootLayout({
             }}
           />
         </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );

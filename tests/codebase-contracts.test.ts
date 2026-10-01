@@ -120,7 +120,7 @@ describe('public roadmap interface contracts', () => {
     ].map((file) => readFile(path.join(REPO_ROOT, file), 'utf8')))
 
     assert.match(card, /<article/)
-    assert.match(card, /aria-label={`Open \$\{issue\.identifier\}/)
+    assert.match(card, /aria-label={t\('Open \{identifier\}: \{title\}'/)
     assert.match(card, /<VoteButton[\s\S]*compact/)
     assert.match(card, /<StateIcon[\s\S]*issue\.state\.name/)
     assert.match(card, /<VoteCount count={voteCount} votingClosed={votingClosed}/)
@@ -141,9 +141,9 @@ describe('public roadmap interface contracts', () => {
     assert.match(timeline, /filterTimelineIssues\(issues, showShipped\)/)
     assert.match(timeline, /role="switch"/)
     assert.match(timeline, /aria-checked={showShipped}/)
-    assert.match(timeline, /<span>Shipped<\/span>/)
-    assert.match(timeline, /showShipped \? 'Shown' : 'Hidden'/)
-    assert.match(timeline, /showShipped \? 'translate-x-4' : 'translate-x-0'/)
+    assert.match(timeline, /<span>\{t\("Shipped"\)\}<\/span>/)
+    assert.match(timeline, /showShipped \? t\("Shown"\) : t\("Hidden"\)/)
+    assert.match(timeline, /showShipped \? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-0'/)
     assert.doesNotMatch(timeline, /transition-all/)
 
     assert.match(modal, /role="dialog"/)
@@ -154,7 +154,7 @@ describe('public roadmap interface contracts', () => {
     assert.match(modal, /motion-reduce:animate-none/)
     assert.match(modal, /<VoteCount count={voteCount} votingClosed={votingClosed}/)
 
-    assert.match(page, /aria-label="Roadmap layout"/)
+    assert.match(page, /aria-label={t\("Roadmap layout"\)}/)
     assert.match(page, /aria-pressed={layoutType === 'kanban'}/)
     assert.match(page, /min-h-11 min-w-11/)
     assert.match(layout, /mobileOffset=/)

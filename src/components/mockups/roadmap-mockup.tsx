@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { ThumbsUp, MessageSquare } from 'lucide-react'
+import { useT } from '@/lib/i18n/client'
 
 type Status = 'planned' | 'in-progress' | 'shipped'
 
@@ -70,16 +71,18 @@ const statusLabels: Record<Status, string> = {
 }
 
 export function RoadmapMockup() {
+  const t = useT()
+
   return (
     <div className="p-4 bg-muted/30 min-h-[320px]">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-sm">Public roadmap</h3>
-          <p className="text-xs text-muted-foreground">Vote on upcoming features</p>
+          <h3 className="font-semibold text-sm">{t("Public roadmap")}</h3>
+          <p className="text-xs text-muted-foreground">{t("Vote on upcoming features")}</p>
         </div>
         <Badge variant="outline" className="text-xs">
-          Timeline view
+          {t("Timeline view")}
         </Badge>
       </div>
 

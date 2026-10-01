@@ -12,6 +12,7 @@ import {
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
 import { StateIcon } from '@/components/state-icon'
 import { UserAvatar } from '@/components/user-avatar'
+import { useI18n } from '@/lib/i18n/client'
 
 interface IssueDetailViewProps {
   issueId: string
@@ -44,6 +45,8 @@ export function IssueDetailView({
   showLabels = true,
   showPriorities = true,
 }: IssueDetailViewProps) {
+  const { t, locale } = useI18n()
+
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,14 +64,14 @@ export function IssueDetailView({
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load issue details')
         if (!cancelled) setIssue(data.issue || null)
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load issue details')
+        if (!cancelled) setError(err instanceof Error ? err.message : t("Failed to load issue details"))
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [issueId, viewSlug])
+  }, [issueId, viewSlug, t])
 
   // Escape returns to the list (Linear behaviour). No body scroll lock: a full
   // page should scroll normally.
@@ -134,7 +137,7 @@ export function IssueDetailView({
             aria-label={`Back to ${backLabel}`}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-w-0"
           >
-            <ArrowLeft className="h-4 w-4 shrink-0" />
+            <ArrowLeft className="h-4 w-4 shrink-0 rtl:-scale-x-100" />
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, host not known at build time
               <img src={logoUrl} alt={brandName || 'Logo'} className="h-5 w-auto object-contain" />
@@ -153,7 +156,7 @@ export function IssueDetailView({
                   name={issue.state.name}
                   size={16}
                 />
-                <span className="text-sm text-muted-foreground">{issue.state.name}</span>
+                <span className="text-sm text-muted-foreground">{t(issue.state.name)}</span>
               </span>
             </div>
           )}
@@ -213,7 +216,7 @@ export function IssueDetailView({
                           : 'border-transparent text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      Activity
+                      {t("Activity")}
                     </button>
                   )}
                   {showComments && (
@@ -225,7 +228,7 @@ export function IssueDetailView({
                           : 'border-transparent text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      Comments ({issue.comments.length})
+                      {t("Comments ({count})", { count: issue.comments.length })}
                     </button>
                   )}
                 </div>
@@ -234,15 +237,15 @@ export function IssueDetailView({
                 {showActivity && activeTab === 'activity' && (
                   <div className="space-y-4">
                     {activityItems.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">No activity yet</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">{t("No activity yet")}</p>
                     )}
                     {activityItems.map((item) => (
                       <div key={item.id} className="flex gap-3">
                         <UserAvatar name={item.user?.name} avatarUrl={item.user?.avatarUrl} size="md" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-foreground">{item.user?.name || 'Unknown'}</span>
-                            <span className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
+                            <span className="text-sm font-medium text-foreground">{item.user?.name || t("Unknown")}</span>
+                            <span className="text-xs text-muted-foreground">{formatDate(item.createdAt, locale)}</span>
                           </div>
                           {item.type === 'comment' && (
                             <div className="bg-accent/30 rounded-lg p-3">
@@ -261,7 +264,7 @@ export function IssueDetailView({
                             if (item.toState && item.fromState) {
                               changes.push(
                                 <div key="status">
-                                  changed status from <span className="font-medium text-foreground">{item.fromState.name}</span> to <span className="font-medium text-foreground">{item.toState.name}</span>
+                                  {t("changed status from {from} to {to}", { from: item.fromState.name, to: item.toState.name })}
                                 </div>
                               )
                             }
@@ -270,19 +273,19 @@ export function IssueDetailView({
                             if (item.toAssignee && item.fromAssignee) {
                               changes.push(
                                 <div key="assignee-change">
-                                  changed assignee from <span className="font-medium text-foreground">{item.fromAssignee.name}</span> to <span className="font-medium text-foreground">{item.toAssignee.name}</span>
+                                  {t("changed assignee from {from} to {to}", { from: item.fromAssignee.name, to: item.toAssignee.name })}
                                 </div>
                               )
                             } else if (item.toAssignee && !item.fromAssignee) {
                               changes.push(
                                 <div key="assignee-set">
-                                  assigned to <span className="font-medium text-foreground">{item.toAssignee.name}</span>
+                                  {t("assigned to {name}", { name: item.toAssignee.name })}
                                 </div>
                               )
                             } else if (!item.toAssignee && item.fromAssignee) {
                               changes.push(
                                 <div key="assignee-unset">
-                                  unassigned <span className="font-medium text-foreground">{item.fromAssignee.name}</span>
+                                  {t("unassigned {name}", { name: item.fromAssignee.name })}
                                 </div>
                               )
                             }
@@ -299,7 +302,7 @@ export function IssueDetailView({
                               }
                               changes.push(
                                 <div key="priority">
-                                  changed priority from <span className="font-medium text-foreground">{priorityLabels[item.fromPriority] || item.fromPriority}</span> to <span className="font-medium text-foreground">{priorityLabels[item.toPriority] || item.toPriority}</span>
+                                  {t("changed priority from {from} to {to}", { from: t(priorityLabels[item.fromPriority] || String(item.fromPriority)), to: t(priorityLabels[item.toPriority] || String(item.toPriority)) })}
                                 </div>
                               )
                             }
@@ -320,15 +323,15 @@ export function IssueDetailView({
                 {showComments && activeTab === 'comments' && (
                   <div className="space-y-4">
                     {issue.comments.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">No comments yet</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">{t("No comments yet")}</p>
                     )}
                     {issue.comments.map((comment) => (
                       <div key={comment.id} className="flex gap-3">
                         <UserAvatar name={comment.user?.name} avatarUrl={comment.user?.avatarUrl} size="md" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-foreground">{comment.user?.name || 'Unknown'}</span>
-                            <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</span>
+                            <span className="text-sm font-medium text-foreground">{comment.user?.name || t("Unknown")}</span>
+                            <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt, locale)}</span>
                           </div>
                           <div className="bg-accent/30 rounded-lg p-3">
                             <LinearMarkdown
@@ -394,32 +397,34 @@ function IssueProperties({
   showLabels: boolean
   showPriorities: boolean
 }) {
+  const { t, locale } = useI18n()
+
   return (
     <div className="space-y-3">
-      <PropertyGroup title="Properties">
-        <PropertyRow label="Status">
+      <PropertyGroup title={t("Properties")}>
+        <PropertyRow label={t("Status")}>
           <StateIcon
             type={issue.state.type}
             color={issue.state.color}
             name={issue.state.name}
             size={16}
           />
-          <span className="truncate">{issue.state.name}</span>
+          <span className="truncate">{t(issue.state.name)}</span>
         </PropertyRow>
         {showPriorities && (
-          <PropertyRow label="Priority">
+          <PropertyRow label={t("Priority")}>
             <PriorityIcon priority={issue.priority} priorityLabel={issue.priorityLabel} className="w-4 h-4" />
-            <span className="truncate">{issue.priorityLabel}</span>
+            <span className="truncate">{t(issue.priorityLabel)}</span>
           </PropertyRow>
         )}
         {showPriorities && issue.estimate != null && issue.estimate > 0 && (
-          <PropertyRow label="Estimate">
+          <PropertyRow label={t("Estimate")}>
             <EstimateIcon className="w-4 h-4" />
             <span>{issue.estimate}</span>
           </PropertyRow>
         )}
         {showAssignees && issue.assignee && (
-          <PropertyRow label="Assignee">
+          <PropertyRow label={t("Assignee")}>
             <UserAvatar name={issue.assignee.name} avatarUrl={issue.assignee.avatarUrl} />
             <span className="truncate">{issue.assignee.name}</span>
           </PropertyRow>
@@ -427,7 +432,7 @@ function IssueProperties({
       </PropertyGroup>
 
       {showLabels && issue.labels.length > 0 && (
-        <PropertyGroup title="Labels">
+        <PropertyGroup title={t("Labels")}>
           <div className="flex flex-wrap gap-1.5">
             {issue.labels.map((label) => (
               <span
@@ -442,12 +447,12 @@ function IssueProperties({
         </PropertyGroup>
       )}
 
-      <PropertyGroup title="Dates">
-        <PropertyRow label="Created">
-          <span title={formatAbsoluteDate(issue.createdAt)}>{formatRelativeDate(issue.createdAt)}</span>
+      <PropertyGroup title={t("Dates")}>
+        <PropertyRow label={t("Created")}>
+          <span title={formatAbsoluteDate(issue.createdAt, locale)}>{formatRelativeDate(issue.createdAt, locale)}</span>
         </PropertyRow>
-        <PropertyRow label="Updated">
-          <span title={formatAbsoluteDate(issue.updatedAt)}>{formatRelativeDate(issue.updatedAt)}</span>
+        <PropertyRow label={t("Updated")}>
+          <span title={formatAbsoluteDate(issue.updatedAt, locale)}>{formatRelativeDate(issue.updatedAt, locale)}</span>
         </PropertyRow>
       </PropertyGroup>
     </div>

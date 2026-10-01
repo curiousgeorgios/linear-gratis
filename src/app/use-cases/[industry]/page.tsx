@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, ArrowRight, Star, Github, Heart, Users, Target, Workflow, Zap } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 interface UseCasePageProps {
   params: Promise<{
@@ -39,6 +40,8 @@ export async function generateMetadata({ params }: UseCasePageProps): Promise<Me
 }
 
 export default async function UseCasePage({ params }: UseCasePageProps) {
+  const t = await getT()
+
   const resolvedParams = await params
   const useCase = useCases[resolvedParams.industry]
 
@@ -60,20 +63,20 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="text-xl font-semibold">
-                linear.gratis
+                {t("linear.gratis")}
               </Link>
               <div className="flex items-center gap-4">
                 <Link href="/use-cases" className="text-sm text-muted-foreground hover:text-foreground">
-                  All use cases
+                  {t("All use cases")}
                 </Link>
                 <Link href="/comparison" className="text-sm text-muted-foreground hover:text-foreground">
-                  Comparisons
+                  {t("Comparisons")}
                 </Link>
                 <Link href="/templates" className="text-sm text-muted-foreground hover:text-foreground">
-                  Templates
+                  {t("Templates")}
                 </Link>
                 <Button asChild size="sm">
-                  <Link href="/login">Get started free</Link>
+                  <Link href="/login">{t("Get started free")}</Link>
                 </Button>
               </div>
             </div>
@@ -85,7 +88,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
           <div className="max-w-4xl mx-auto mb-12">
             <div className="text-center mb-8">
               <Badge variant="secondary" className="mb-4">
-                {useCase.name} use case
+                {useCase.name} {t("use case")}
               </Badge>
               <h1 className="text-4xl font-bold mb-4">
                 {useCase.title}
@@ -100,7 +103,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
-                  Overview
+                  {t("Overview")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -118,10 +121,10 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
                 <CardHeader>
                   <CardTitle className="text-red-800 dark:text-red-400 flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Common challenges
+                    {t("Common challenges")}
                   </CardTitle>
                   <CardDescription>
-                    Issues {useCase.name.toLowerCase()} typically face
+                    {t("Issues")} {useCase.name.toLowerCase()} {t("typically face")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -140,10 +143,10 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
                 <CardHeader>
                   <CardTitle className="text-green-800 dark:text-green-400 flex items-center gap-2">
                     <Zap className="h-5 w-5" />
-                    Linear solutions
+                    {t("Linear solutions")}
                   </CardTitle>
                   <CardDescription>
-                    How linear.gratis solves these problems
+                    {t("How linear.gratis solves these problems")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -166,10 +169,10 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Star className="h-5 w-5 text-primary" />
-                  Benefits for {useCase.name}
+                  {t("Benefits for")} {useCase.name}
                 </CardTitle>
                 <CardDescription>
-                  What teams achieve with linear.gratis
+                  {t("What teams achieve with linear.gratis")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -188,9 +191,9 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
           {/* Workflows */}
           <div className="max-w-6xl mx-auto mb-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">Common workflows</h2>
+              <h2 className="text-3xl font-bold mb-4">{t("Common workflows")}</h2>
               <p className="text-muted-foreground">
-                How {useCase.name.toLowerCase()} typically use linear.gratis
+                {t("How")} {useCase.name.toLowerCase()} {t("typically use linear.gratis")}
               </p>
             </div>
 
@@ -223,9 +226,9 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
           {/* Form Templates */}
           <div className="max-w-6xl mx-auto mb-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">Ready-to-use templates</h2>
+              <h2 className="text-3xl font-bold mb-4">{t("Ready-to-use templates")}</h2>
               <p className="text-muted-foreground">
-                Pre-built forms designed for {useCase.name.toLowerCase()}
+                {t("Pre-built forms designed for")} {useCase.name.toLowerCase()}
               </p>
             </div>
 
@@ -245,7 +248,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
                       ))}
                     </div>
                     <Button size="sm" className="w-full" asChild>
-                      <Link href="/login">Use this template</Link>
+                      <Link href="/login">{t("Use this template")}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -257,9 +260,9 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
           <div className="max-w-4xl mx-auto mb-12">
             <Card className="border-border/50">
               <CardHeader>
-                <CardTitle>Popular integrations for {useCase.name}</CardTitle>
+                <CardTitle>{t("Popular integrations for")} {useCase.name}</CardTitle>
                 <CardDescription>
-                  Tools that work well with linear.gratis
+                  {t("Tools that work well with linear.gratis")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -281,7 +284,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Heart className="h-5 w-5 text-red-500" />
-                    Success story
+                    {t("Success story")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -302,23 +305,22 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
             <Card className="border-border/50 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-4">
-                  Ready to transform your {useCase.name.toLowerCase()} workflow?
+                  {t("Ready to transform your")} {useCase.name.toLowerCase()} {t("workflow?")}
                 </h2>
                 <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                  Start collecting structured feedback and managing projects transparently.
-                  Completely free, open source, and ready in 2 minutes.
+                  {t("Start collecting structured feedback and managing projects transparently. Completely free, open source, and ready in 2 minutes.")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="h-12 px-8">
                     <Link href="/login">
-                      Start free now
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {t("Start free now")}
+                      <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="h-12 px-8">
                     <Link href="https://github.com/curiousgeorgios/linear-gratis" target="_blank">
-                      <Github className="mr-2 h-4 w-4" />
-                      View on GitHub
+                      <Github className="me-2 h-4 w-4" />
+                      {t("View on GitHub")}
                     </Link>
                   </Button>
                 </div>
@@ -328,7 +330,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
 
           {/* Related use cases */}
           <div className="max-w-4xl mx-auto mt-16">
-            <h3 className="text-xl font-semibold mb-6">Other use cases</h3>
+            <h3 className="text-xl font-semibold mb-6">{t("Other use cases")}</h3>
             <div className="grid md:grid-cols-3 gap-4">
               {Object.values(useCases)
                 .filter(uc => uc.slug !== useCase.slug)
@@ -337,7 +339,7 @@ export default async function UseCasePage({ params }: UseCasePageProps) {
                   <Link key={otherUseCase.slug} href={`/use-cases/${otherUseCase.slug}`}>
                     <Card className="border-border/50 hover:border-primary/20 transition-colors cursor-pointer h-full">
                       <CardContent className="p-4">
-                        <h4 className="font-medium mb-1">Linear for {otherUseCase.name}</h4>
+                        <h4 className="font-medium mb-1">{t("Linear for")} {otherUseCase.name}</h4>
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {otherUseCase.description}
                         </p>

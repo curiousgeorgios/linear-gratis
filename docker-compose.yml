@@ -1,0 +1,173 @@
+# Self-hosted linear.gratis: the app plus a minimal Supabase stack
+# (Postgres, GoTrue, PostgREST, Storage) behind one Caddy gateway.
+#
+#   docker run --rm -v "$PWD:/out" ghcr.io/OWNER/linear-gratis gen-env --out /out/.env   # or: node docker/generate-env.mjs
+#   docker compose up -d
+#
+# Then open APP_URL, create an account on /login, save your Linear API token in
+# the profile settings, and (optionally) create an MCP token for Claude Code.
+# Full guide: docs/self-hosting.md
+
+name: linear-gratis
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  gateway:
+    <<: *restart
+    image: caddy:2.10-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    <<: *restart
+    image: ${LINEAR_GRATIS_IMAGE:-linear-gratis:local}
+    build:
+      context: .
+    environment:
+      # Public address (what browsers use) and the in-network address the
+      # server uses to reach the same Supabase API.
+      NEXT_PUBLIC_SUPABASE_URL: ${APP_URL:?Run docker/generate-env.mjs first}
+      SUPABASE_INTERNAL_URL: http://gateway
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      NEXT_PUBLIC_SUPABASE_COOKIE_NAME: linear-gratis-auth
+      NEXT_PUBLIC_APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      NEXT_PUBLIC_AUTH_METHODS: ${AUTH_METHODS:-password}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${DEFAULT_LOCALE:-ar}
+      APP_URL: ${APP_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+      ACCESS_COOKIE_SECRET: ${ACCESS_COOKIE_SECRET:?}
+      IP_HASH_SALT: ${IP_HASH_SALT:?}
+      FEEDBACK_WEBHOOK_SECRET: ${FEEDBACK_WEBHOOK_SECRET:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rest:
+        condition: service_started
+
+  migrate:
+    image: supabase/postgres:15.8.1.060
+    entrypoint: ["/bin/sh", "/migrate.sh"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - ./docker/supabase/migrate.sh:/migrate.sh:ro
+      - ./supabase/migrations:/migrations:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      storage:
+        condition: service_started
+    restart: "no"
+
+  db:
+    <<: *restart
+    image: supabase/postgres:15.8.1.060
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET:?}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/supabase/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    <<: *restart
+    image: supabase/gotrue:v2.174.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${APP_URL}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${APP_URL}
+      GOTRUE_URI_ALLOW_LIST: ${APP_URL}/**
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: ${AUTH_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_EXTERNAL_GITHUB_ENABLED: ${GITHUB_ENABLED:-false}
+      GOTRUE_EXTERNAL_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GITHUB_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI: ${APP_URL}/auth/v1/callback
+
+  rest:
+    <<: *restart
+    image: postgrest/postgrest:v12.2.12
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  storage:
+    <<: *restart
+    image: supabase/storage-api:v1.24.7
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: linear-gratis
+      REGION: local
+      GLOBAL_S3_BUCKET: linear-gratis
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - storage-data:/var/lib/storage
+
+volumes:
+  db-data:
+  storage-data:
+  caddy-data:
+  caddy-config:

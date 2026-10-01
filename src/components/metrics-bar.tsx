@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { FileText, Eye, Map } from 'lucide-react'
+import { useT } from '@/lib/i18n/client'
 
 interface Metrics {
   forms: number
@@ -41,6 +42,8 @@ function StatItem({
 }
 
 export function MetricsBar() {
+  const t = useT()
+
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -80,13 +83,13 @@ export function MetricsBar() {
   return (
     <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 py-6 border-t border-b border-border/50">
       {metrics.forms > 0 && (
-        <StatItem icon={FileText} value={metrics.forms} label="forms created" />
+        <StatItem icon={FileText} value={metrics.forms} label={t("forms created")} />
       )}
       {metrics.views > 0 && (
-        <StatItem icon={Eye} value={metrics.views} label="views shared" />
+        <StatItem icon={Eye} value={metrics.views} label={t("views shared")} />
       )}
       {metrics.roadmaps > 0 && (
-        <StatItem icon={Map} value={metrics.roadmaps} label="roadmaps published" />
+        <StatItem icon={Map} value={metrics.roadmaps} label={t("roadmaps published")} />
       )}
     </div>
   )

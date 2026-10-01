@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronsUpDown, Trash2, Eye, Copy, Globe, Lock, Edit3, X } from "lucide-react";
 import bcrypt from "bcryptjs";
+import { useI18n } from '@/lib/i18n/client'
 
 type Project = {
   id: string;
@@ -131,7 +132,7 @@ function SourceCombobox({
                   />
                   <span className="truncate">{option.label}</span>
                   {option.description ? (
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    <span className="ms-auto shrink-0 text-xs text-muted-foreground">
                       {option.description}
                     </span>
                   ) : null}
@@ -146,6 +147,8 @@ function SourceCombobox({
 }
 
 export default function PublicViewsPage() {
+  const { t: tr, intlLocale } = useI18n()
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [views, setViews] = useState<PublicView[]>([]);
@@ -398,7 +401,7 @@ export default function PublicViewsPage() {
           (p) => p.id === selectedProject,
         );
         if (!selectedProjectData) {
-          setMessage({ type: "error", text: "Please select a project" });
+          setMessage({ type: "error", text: tr("Please select a project") });
           return;
         }
         sourceData = {
@@ -408,7 +411,7 @@ export default function PublicViewsPage() {
       } else {
         const selectedTeamData = teams.find((t) => t.id === selectedTeam);
         if (!selectedTeamData) {
-          setMessage({ type: "error", text: "Please select a team" });
+          setMessage({ type: "error", text: tr("Please select a team") });
           return;
         }
         sourceData = {
@@ -421,14 +424,14 @@ export default function PublicViewsPage() {
       let passwordHash = null;
       if (passwordProtected) {
         if (!password.trim()) {
-          setMessage({ type: "error", text: "Please enter a password" });
+          setMessage({ type: "error", text: tr("Please enter a password") });
           return;
         }
         passwordHash = await bcrypt.hash(password, 12);
       }
 
       if (!activeOrgId) {
-        setMessage({ type: "error", text: "No active organisation. Reload the page and try again." });
+        setMessage({ type: "error", text: tr("No active organisation. Reload the page and try again.") });
         setSubmitting(false);
         return;
       }
@@ -473,19 +476,19 @@ export default function PublicViewsPage() {
           // Unique constraint violation
           setMessage({
             type: "error",
-            text: "This URL slug is already taken. Please choose a different one.",
+            text: tr("This URL slug is already taken. Please choose a different one."),
           });
         } else {
           setMessage({
             type: "error",
-            text: "Failed to create view. Please try again.",
+            text: tr("Failed to create view. Please try again."),
           });
         }
         console.error("Error creating view:", error);
       } else {
         setMessage({
           type: "success",
-          text: "Public view created successfully!",
+          text: tr("Public view created successfully!"),
         });
         resetForm();
         await loadUserData();
@@ -493,7 +496,7 @@ export default function PublicViewsPage() {
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to create view. Please try again.",
+        text: tr("Failed to create view. Please try again."),
       });
       console.error("Error creating view:", error);
     } finally {
@@ -504,7 +507,7 @@ export default function PublicViewsPage() {
   const deleteView = async (viewId: string) => {
     if (
       !confirm(
-        "Are you sure you want to delete this public view? This action cannot be undone.",
+        tr("Are you sure you want to delete this public view? This action cannot be undone."),
       )
     ) {
       return;
@@ -518,20 +521,20 @@ export default function PublicViewsPage() {
 
       if (error) {
         console.error("Error deleting view:", error);
-        alert("Failed to delete view");
+        alert(tr("Failed to delete view"));
       } else {
         await loadUserData();
       }
     } catch (error) {
       console.error("Error deleting view:", error);
-      alert("Failed to delete view");
+      alert(tr("Failed to delete view"));
     }
   };
 
   const copyViewLink = (slug: string) => {
     const url = `${window.location.origin}/view/${slug}`;
     navigator.clipboard.writeText(url);
-    setMessage({ type: "success", text: "View link copied to clipboard!" });
+    setMessage({ type: "success", text: tr("View link copied to clipboard!") });
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -713,7 +716,7 @@ export default function PublicViewsPage() {
       if (sourceType === "project") {
         const selectedProjectData = projects.find((p) => p.id === selectedProject);
         if (!selectedProjectData) {
-          setMessage({ type: "error", text: "Please select a project" });
+          setMessage({ type: "error", text: tr("Please select a project") });
           setSubmitting(false);
           return;
         }
@@ -726,7 +729,7 @@ export default function PublicViewsPage() {
       } else {
         const selectedTeamData = teams.find((t) => t.id === selectedTeam);
         if (!selectedTeamData) {
-          setMessage({ type: "error", text: "Please select a team" });
+          setMessage({ type: "error", text: tr("Please select a team") });
           setSubmitting(false);
           return;
         }
@@ -768,18 +771,18 @@ export default function PublicViewsPage() {
       if (error) {
         setMessage({
           type: "error",
-          text: "Failed to update view. Please try again.",
+          text: tr("Failed to update view. Please try again."),
         });
         console.error("Error updating view:", error);
       } else {
-        setMessage({ type: "success", text: "View updated successfully!" });
+        setMessage({ type: "success", text: tr("View updated successfully!") });
         resetForm();
         await loadUserData();
       }
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to update view. Please try again.",
+        text: tr("Failed to update view. Please try again."),
       });
       console.error("Error updating view:", error);
     } finally {
@@ -794,23 +797,22 @@ export default function PublicViewsPage() {
     return (
       <div className="space-y-3">
         <div>
-          <Label className="text-sm font-medium">Included labels</Label>
+          <Label className="text-sm font-medium">{tr("Included labels")}</Label>
           <p className="text-xs text-muted-foreground mt-1">
-            Leave empty to include every issue in this source. Select labels to
-            show only issues with at least one selected label.
+            {tr("Leave empty to include every issue in this source. Select labels to show only issues with at least one selected label.")}
           </p>
         </div>
         {!hasSelectedSource ? (
           <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
-            Select a source to load labels.
+            {tr("Select a source to load labels.")}
           </p>
         ) : loadingLabels ? (
           <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
-            Loading labels…
+            {tr("Loading labels…")}
           </p>
         ) : availableLabels.length === 0 ? (
           <p className="text-sm text-muted-foreground border border-border rounded-lg p-3">
-            No labels found for this source.
+            {tr("No labels found for this source.")}
           </p>
         ) : (
           <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
@@ -850,7 +852,7 @@ export default function PublicViewsPage() {
         {allowedLabelIds.length > 0 && (
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              {allowedLabelIds.length} label{allowedLabelIds.length === 1 ? "" : "s"} selected.
+              {allowedLabelIds.length === 1 ? tr("1 label selected.") : tr("{count} labels selected.", { count: allowedLabelIds.length })}
             </p>
             <Button
               type="button"
@@ -860,7 +862,7 @@ export default function PublicViewsPage() {
               className="h-8 px-2 gap-1"
             >
               <X className="h-3 w-3" />
-              Clear
+              {tr("Clear")}
             </Button>
           </div>
         )}
@@ -869,11 +871,11 @@ export default function PublicViewsPage() {
   };
 
   if (authLoading) {
-    return <div>Loading...</div>;
+    return <div>{tr("Loading...")}</div>;
   }
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div>{tr("Loading...")}</div>;
   }
 
   return (
@@ -882,7 +884,7 @@ export default function PublicViewsPage() {
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Public read-only views</h1>
+            <h1 className="text-3xl font-bold mb-4">{tr("Public read-only views")}</h1>
           </div>
 
           {/* How it works */}
@@ -892,10 +894,9 @@ export default function PublicViewsPage() {
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                   1
                 </div>
-                <CardTitle className="text-lg">Create a public view</CardTitle>
+                <CardTitle className="text-lg">{tr("Create a public view")}</CardTitle>
                 <CardDescription>
-                  Choose a Linear project or team and customise what information
-                  to display
+                  {tr("Choose a Linear project or team and customise what information to display")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -905,10 +906,9 @@ export default function PublicViewsPage() {
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                   2
                 </div>
-                <CardTitle className="text-lg">Share the link</CardTitle>
+                <CardTitle className="text-lg">{tr("Share the link")}</CardTitle>
                 <CardDescription>
-                  Send the unique view URL to stakeholders via email, Slack, or
-                  embed in your website
+                  {tr("Send the unique view URL to stakeholders via email, Slack, or embed in your website")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -919,11 +919,10 @@ export default function PublicViewsPage() {
                   3
                 </div>
                 <CardTitle className="text-lg">
-                  Stakeholders see live updates
+                  {tr("Stakeholders see live updates")}
                 </CardTitle>
                 <CardDescription>
-                  Viewers see a beautiful kanban board with real-time Linear
-                  issue updates
+                  {tr("Viewers see a beautiful kanban board with real-time Linear issue updates")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -941,13 +940,13 @@ export default function PublicViewsPage() {
                 className="h-12 px-8 font-semibold"
               >
                 {views.length === 0
-                  ? "Create your first public view"
-                  : "Create new view"}
+                  ? tr("Create your first public view")
+                  : tr("Create new view")}
               </Button>
             ) : (
               <Link href="/profile">
                 <Button variant="outline" size="lg" className="h-12 px-8 font-semibold">
-                  Set up Linear API token to create views
+                  {tr("Set up Linear API token to create views")}
                 </Button>
               </Link>
             )}
@@ -970,8 +969,7 @@ export default function PublicViewsPage() {
           <Card className="mb-6">
             <CardContent className="pt-6">
               <p className="text-center text-gray-600">
-                No projects or teams found. Make sure your Linear API token is
-                valid and you have access to projects and teams.
+                {tr("No projects or teams found. Make sure your Linear API token is valid and you have access to projects and teams.")}
               </p>
             </CardContent>
           </Card>
@@ -981,11 +979,10 @@ export default function PublicViewsPage() {
           <Card className="mb-8 border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-xl">
-                Create a new public view
+                {tr("Create a new public view")}
               </CardTitle>
               <CardDescription className="text-base">
-                Set up a shareable view that external stakeholders can access to
-                see Linear project or team progress
+                {tr("Set up a shareable view that external stakeholders can access to see Linear project or team progress")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -995,34 +992,34 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     1
                   </div>
-                  Basic information
+                  {tr("Basic information")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="view-name">View name *</Label>
+                    <Label htmlFor="view-name">{tr("View name *")}</Label>
                     <Input
                       id="view-name"
-                      placeholder="e.g., Client project progress, roadmap"
+                      placeholder={tr("e.g., Client project progress, roadmap")}
                       value={viewName}
                       onChange={(e) => handleNameChange(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Internal name for your reference
+                      {tr("Internal name for your reference")}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="view-slug">URL slug *</Label>
+                    <Label htmlFor="view-slug">{tr("URL slug *")}</Label>
                     <Input
                       id="view-slug"
-                      placeholder="client-project-progress"
+                      placeholder={tr("client-project-progress")}
                       value={viewSlug}
                       onChange={(e) => setViewSlug(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      View will be available at:{" "}
+                      {tr("View will be available at:")}{" "}
                       <code className="bg-muted px-1 py-0.5 rounded">
-                        /view/{viewSlug || "[slug]"}
+                        {tr("/view/")}{viewSlug || "[slug]"}
                       </code>
                     </p>
                   </div>
@@ -1035,33 +1032,33 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     2
                   </div>
-                  Choose data source
+                  {tr("Choose data source")}
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Source type *</Label>
+                    <Label>{tr("Source type *")}</Label>
                     <Select
                       value={sourceType}
                       onValueChange={handleSourceTypeChange}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose data source type" />
+                        <SelectValue placeholder={tr("Choose data source type")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="project">Project</SelectItem>
-                        <SelectItem value="team">Team</SelectItem>
+                        <SelectItem value="project">{tr("Project")}</SelectItem>
+                        <SelectItem value="team">{tr("Team")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {sourceType === "project" ? (
                     <div className="space-y-2">
-                      <Label htmlFor="project">Linear project *</Label>
+                      <Label htmlFor="project">{tr("Linear project *")}</Label>
                       <SourceCombobox
                         id="project"
                         value={selectedProject}
                         options={projectOptions}
-                        placeholder="Choose which project to share"
+                        placeholder={tr("Choose which project to share")}
                         searchPlaceholder="Search projects..."
                         emptyMessage="No projects found."
                         onValueChange={handleProjectChange}
@@ -1069,12 +1066,12 @@ export default function PublicViewsPage() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="team">Linear team *</Label>
+                      <Label htmlFor="team">{tr("Linear team *")}</Label>
                       <SourceCombobox
                         id="team"
                         value={selectedTeam}
                         options={teamOptions}
-                        placeholder="Choose which team to share"
+                        placeholder={tr("Choose which team to share")}
                         searchPlaceholder="Search teams..."
                         emptyMessage="No teams found."
                         onValueChange={handleTeamChange}
@@ -1091,36 +1088,35 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     3
                   </div>
-                  Public view settings
+                  {tr("Public view settings")}
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="view-title">View title *</Label>
+                    <Label htmlFor="view-title">{tr("View title *")}</Label>
                     <Input
                       id="view-title"
-                      placeholder="e.g., Project progress, roadmap, development status"
+                      placeholder={tr("e.g., Project progress, roadmap, development status")}
                       value={viewTitle}
                       onChange={(e) => setViewTitle(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      This is what viewers will see at the top of the public
-                      view
+                      {tr("This is what viewers will see at the top of the public view")}
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="view-description">
-                      Description (optional)
+                      {tr("Description (optional)")}
                     </Label>
                     <Textarea
                       id="view-description"
-                      placeholder="e.g., Live view of our project progress. Issues are updated in real-time..."
+                      placeholder={tr("e.g., Live view of our project progress. Issues are updated in real-time...")}
                       value={viewDescription}
                       onChange={(e) => setViewDescription(e.target.value)}
                       rows={3}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Optional description to provide context to viewers
+                      {tr("Optional description to provide context to viewers")}
                     </p>
                   </div>
                 </div>
@@ -1132,7 +1128,7 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     4
                   </div>
-                  Interaction settings
+                  {tr("Interaction settings")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
@@ -1147,10 +1143,10 @@ export default function PublicViewsPage() {
                         htmlFor="allow-issue-creation"
                         className="text-sm font-medium cursor-pointer"
                       >
-                        Allow viewers to create issues
+                        {tr("Allow viewers to create issues")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Enable a &quot;Create issue&quot; button in the public board view
+                        {tr("Enable a \"Create issue\" button in the public board view")}
                       </p>
                     </div>
                   </div>
@@ -1163,10 +1159,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show project updates button
+                        {tr("Show project updates button")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Display the &quot;Updates&quot; button on project-based views
+                        {tr("Display the \"Updates\" button on project-based views")}
                       </p>
                     </div>
                   </div>
@@ -1179,10 +1175,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show comments on issue detail
+                        {tr("Show comments on issue detail")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Expose Linear comments when a viewer opens an issue
+                        {tr("Expose Linear comments when a viewer opens an issue")}
                       </p>
                     </div>
                   </div>
@@ -1195,10 +1191,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show activity history on issue detail
+                        {tr("Show activity history on issue detail")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Expose status, assignee and priority changes on an issue
+                        {tr("Expose status, assignee and priority changes on an issue")}
                       </p>
                     </div>
                   </div>
@@ -1211,7 +1207,7 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     5
                   </div>
-                  Security options
+                  {tr("Security options")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
@@ -1226,26 +1222,26 @@ export default function PublicViewsPage() {
                         htmlFor="password-protected"
                         className="text-sm font-medium cursor-pointer"
                       >
-                        Password protect this view
+                        {tr("Password protect this view")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Require a password to access this public view
+                        {tr("Require a password to access this public view")}
                       </p>
                     </div>
                   </div>
 
                   {passwordProtected && (
-                    <div className="space-y-2 ml-7">
-                      <Label htmlFor="view-password">Password *</Label>
+                    <div className="space-y-2 ms-7">
+                      <Label htmlFor="view-password">{tr("Password *")}</Label>
                       <Input
                         id="view-password"
                         type="password"
-                        placeholder="Enter a secure password"
+                        placeholder={tr("Enter a secure password")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Share this password separately with authorised viewers
+                        {tr("Share this password separately with authorised viewers")}
                       </p>
                     </div>
                   )}
@@ -1265,14 +1261,14 @@ export default function PublicViewsPage() {
                   }
                   className="h-11 px-6 font-semibold"
                 >
-                  {submitting ? "Creating view..." : "Create public view"}
+                  {submitting ? tr("Creating view...") : tr("Create public view")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={resetForm}
                   className="h-11 px-6"
                 >
-                  Cancel
+                  {tr("Cancel")}
                 </Button>
               </div>
             </CardContent>
@@ -1282,9 +1278,9 @@ export default function PublicViewsPage() {
         {showEditView && editingView && (
           <Card className="mb-8 border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-xl">Edit public view</CardTitle>
+              <CardTitle className="text-xl">{tr("Edit public view")}</CardTitle>
               <CardDescription className="text-base">
-                Update settings for &ldquo;{editingView.name}&rdquo;
+                {tr("Update settings for “")}{editingView.name}&rdquo;
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1294,21 +1290,21 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     1
                   </div>
-                  Basic information
+                  {tr("Basic information")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-view-name">View name *</Label>
+                    <Label htmlFor="edit-view-name">{tr("View name *")}</Label>
                     <Input
                       id="edit-view-name"
-                      placeholder="e.g., Client project progress, roadmap"
+                      placeholder={tr("e.g., Client project progress, roadmap")}
                       value={viewName}
                       onChange={(e) => setViewName(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="edit-view-slug">URL slug</Label>
+                    <Label htmlFor="edit-view-slug">{tr("URL slug")}</Label>
                     <Input
                       id="edit-view-slug"
                       value={viewSlug}
@@ -1316,7 +1312,7 @@ export default function PublicViewsPage() {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      URL cannot be changed after creation
+                      {tr("URL cannot be changed after creation")}
                     </p>
                   </div>
                 </div>
@@ -1328,33 +1324,33 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     2
                   </div>
-                  Data source
+                  {tr("Data source")}
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Source type *</Label>
+                    <Label>{tr("Source type *")}</Label>
                     <Select
                       value={sourceType}
                       onValueChange={handleSourceTypeChange}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose data source type" />
+                        <SelectValue placeholder={tr("Choose data source type")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="project">Project</SelectItem>
-                        <SelectItem value="team">Team</SelectItem>
+                        <SelectItem value="project">{tr("Project")}</SelectItem>
+                        <SelectItem value="team">{tr("Team")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {sourceType === "project" ? (
                     <div className="space-y-2">
-                      <Label htmlFor="edit-project">Linear project *</Label>
+                      <Label htmlFor="edit-project">{tr("Linear project *")}</Label>
                       <SourceCombobox
                         id="edit-project"
                         value={selectedProject}
                         options={projectOptions}
-                        placeholder="Choose which project to share"
+                        placeholder={tr("Choose which project to share")}
                         searchPlaceholder="Search projects..."
                         emptyMessage="No projects found."
                         onValueChange={handleProjectChange}
@@ -1362,12 +1358,12 @@ export default function PublicViewsPage() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="edit-team">Linear team *</Label>
+                      <Label htmlFor="edit-team">{tr("Linear team *")}</Label>
                       <SourceCombobox
                         id="edit-team"
                         value={selectedTeam}
                         options={teamOptions}
-                        placeholder="Choose which team to share"
+                        placeholder={tr("Choose which team to share")}
                         searchPlaceholder="Search teams..."
                         emptyMessage="No teams found."
                         onValueChange={handleTeamChange}
@@ -1384,14 +1380,14 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     3
                   </div>
-                  Public view settings
+                  {tr("Public view settings")}
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-view-title">View title *</Label>
+                    <Label htmlFor="edit-view-title">{tr("View title *")}</Label>
                     <Input
                       id="edit-view-title"
-                      placeholder="e.g., Project progress, roadmap, development status"
+                      placeholder={tr("e.g., Project progress, roadmap, development status")}
                       value={viewTitle}
                       onChange={(e) => setViewTitle(e.target.value)}
                     />
@@ -1399,11 +1395,11 @@ export default function PublicViewsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="edit-view-description">
-                      Description (optional)
+                      {tr("Description (optional)")}
                     </Label>
                     <Textarea
                       id="edit-view-description"
-                      placeholder="e.g., Live view of our project progress. Issues are updated in real-time..."
+                      placeholder={tr("e.g., Live view of our project progress. Issues are updated in real-time...")}
                       value={viewDescription}
                       onChange={(e) => setViewDescription(e.target.value)}
                       rows={3}
@@ -1418,7 +1414,7 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     4
                   </div>
-                  Interaction settings
+                  {tr("Interaction settings")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
@@ -1433,10 +1429,10 @@ export default function PublicViewsPage() {
                         htmlFor="edit-allow-issue-creation"
                         className="text-sm font-medium cursor-pointer"
                       >
-                        Allow viewers to create issues
+                        {tr("Allow viewers to create issues")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Enable a &quot;Create issue&quot; button in the public board view
+                        {tr("Enable a \"Create issue\" button in the public board view")}
                       </p>
                     </div>
                   </div>
@@ -1449,10 +1445,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show project updates button
+                        {tr("Show project updates button")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Display the &quot;Updates&quot; button on project-based views
+                        {tr("Display the \"Updates\" button on project-based views")}
                       </p>
                     </div>
                   </div>
@@ -1465,10 +1461,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show comments on issue detail
+                        {tr("Show comments on issue detail")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Expose Linear comments when a viewer opens an issue
+                        {tr("Expose Linear comments when a viewer opens an issue")}
                       </p>
                     </div>
                   </div>
@@ -1481,10 +1477,10 @@ export default function PublicViewsPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="text-sm font-medium cursor-pointer">
-                        Show activity history on issue detail
+                        {tr("Show activity history on issue detail")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Expose status, assignee and priority changes on an issue
+                        {tr("Expose status, assignee and priority changes on an issue")}
                       </p>
                     </div>
                   </div>
@@ -1497,7 +1493,7 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     5
                   </div>
-                  Security options
+                  {tr("Security options")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
@@ -1512,36 +1508,36 @@ export default function PublicViewsPage() {
                         htmlFor="edit-password-protected"
                         className="text-sm font-medium cursor-pointer"
                       >
-                        Password protect this view
+                        {tr("Password protect this view")}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Require a password to access this public view
+                        {tr("Require a password to access this public view")}
                       </p>
                     </div>
                   </div>
 
                   {passwordProtected && (
-                    <div className="space-y-2 ml-7">
+                    <div className="space-y-2 ms-7">
                       <Label htmlFor="edit-view-password">
                         {editingView.password_protected
-                          ? "New password (leave empty to keep current)"
-                          : "Password *"}
+                          ? tr("New password (leave empty to keep current)")
+                          : tr("Password *")}
                       </Label>
                       <Input
                         id="edit-view-password"
                         type="password"
                         placeholder={
                           editingView.password_protected
-                            ? "Enter new password or leave empty"
-                            : "Enter a secure password"
+                            ? tr("Enter new password or leave empty")
+                            : tr("Enter a secure password")
                         }
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
                         {editingView.password_protected
-                          ? "Leave empty to keep the current password unchanged"
-                          : "Share this password separately with authorised viewers"}
+                          ? tr("Leave empty to keep the current password unchanged")
+                          : tr("Share this password separately with authorised viewers")}
                       </p>
                     </div>
                   )}
@@ -1554,21 +1550,21 @@ export default function PublicViewsPage() {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                     6
                   </div>
-                  Excluded issues
+                  {tr("Excluded issues")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Tick any issues you want hidden from the public view.
+                  {tr("Tick any issues you want hidden from the public view.")}
                 </p>
                 <Input
-                  placeholder="Filter by ID or title..."
+                  placeholder={tr("Filter by ID or title...")}
                   value={issueFilter}
                   onChange={(e) => setIssueFilter(e.target.value)}
                 />
                 <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
                   {loadingIssues ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">Loading issues…</p>
+                    <p className="text-sm text-muted-foreground py-4 text-center">{tr("Loading issues…")}</p>
                   ) : filteredPickerIssues.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No issues match that filter.</p>
+                    <p className="text-sm text-muted-foreground py-4 text-center">{tr("No issues match that filter.")}</p>
                   ) : (
                     visiblePickerIssues.map((issue) => (
                       <label
@@ -1589,12 +1585,12 @@ export default function PublicViewsPage() {
                 </div>
                 {hiddenPickerCount > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Showing first {EXCLUDED_PICKER_LIMIT} of {filteredPickerIssues.length} matches. Refine the filter to see more.
+                    {tr("Showing first {shown} of {total} matches. Refine the filter to see more.", { shown: EXCLUDED_PICKER_LIMIT, total: filteredPickerIssues.length })}
                   </p>
                 )}
                 {excludedIssueIds.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {excludedIssueIds.length} issue{excludedIssueIds.length === 1 ? "" : "s"} will be hidden from this view.
+                    {excludedIssueIds.length === 1 ? tr("1 issue will be hidden from this view.") : tr("{count} issues will be hidden from this view.", { count: excludedIssueIds.length })}
                   </p>
                 )}
               </div>
@@ -1612,14 +1608,14 @@ export default function PublicViewsPage() {
                   }
                   className="h-11 px-6 font-semibold"
                 >
-                  {submitting ? "Updating view..." : "Update view"}
+                  {submitting ? tr("Updating view...") : tr("Update view")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={resetForm}
                   className="h-11 px-6"
                 >
-                  Cancel
+                  {tr("Cancel")}
                 </Button>
               </div>
             </CardContent>
@@ -1628,18 +1624,17 @@ export default function PublicViewsPage() {
 
         {loading ? (
           <div className="text-center py-8">
-            <p className="text-gray-600">Loading views...</p>
+            <p className="text-gray-600">{tr("Loading views...")}</p>
           </div>
         ) : views.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
                 <h3 className="text-lg font-medium mb-2">
-                  No public views created yet
+                  {tr("No public views created yet")}
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Create your first public view to start sharing Linear progress
-                  with stakeholders.
+                  {tr("Create your first public view to start sharing Linear progress with stakeholders.")}
                 </p>
                 <Button
                   onClick={() => {
@@ -1648,7 +1643,7 @@ export default function PublicViewsPage() {
                   }}
                   disabled={!activeOrgId || (projects.length === 0 && teams.length === 0)}
                 >
-                  Create your first view
+                  {tr("Create your first view")}
                 </Button>
               </div>
             </CardContent>
@@ -1656,9 +1651,9 @@ export default function PublicViewsPage() {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Your public views</h2>
+              <h2 className="text-xl font-semibold">{tr("Your public views")}</h2>
               <span className="text-sm text-muted-foreground">
-                {views.length} view{views.length !== 1 ? "s" : ""}
+                {views.length} {tr("view")}{views.length !== 1 ? "s" : ""}
               </span>
             </div>
 
@@ -1679,13 +1674,13 @@ export default function PublicViewsPage() {
                           {view.is_active && (
                             <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center gap-1">
                               <Globe className="h-3 w-3" />
-                              Live
+                              {tr("Live")}
                             </span>
                           )}
                           {view.password_protected && (
                             <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full flex items-center gap-1">
                               <Lock className="h-3 w-3" />
-                              Protected
+                              {tr("Protected")}
                             </span>
                           )}
                         </div>
@@ -1699,12 +1694,12 @@ export default function PublicViewsPage() {
                         )}
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>
-                            Created{" "}
-                            {new Date(view.created_at).toLocaleDateString()}
+                            {tr("Created")}{" "}
+                            {new Date(view.created_at).toLocaleDateString(intlLocale)}
                           </span>
                           <span className="flex items-center gap-1">
                             <code className="bg-muted px-1 py-0.5 rounded text-xs">
-                              /view/{view.slug}
+                              {tr("/view/")}{view.slug}
                             </code>
                           </span>
                         </div>
@@ -1717,7 +1712,7 @@ export default function PublicViewsPage() {
                           className="flex items-center gap-2"
                         >
                           <Copy className="h-4 w-4" />
-                          Copy link
+                          {tr("Copy link")}
                         </Button>
                         <Link href={`/view/${view.slug}`} target="_blank">
                           <Button
@@ -1726,7 +1721,7 @@ export default function PublicViewsPage() {
                             className="flex items-center gap-2"
                           >
                             <Eye className="h-4 w-4" />
-                            Preview
+                            {tr("Preview")}
                           </Button>
                         </Link>
                         <>
@@ -1737,7 +1732,7 @@ export default function PublicViewsPage() {
                             className="flex items-center gap-2"
                           >
                             <Edit3 className="h-4 w-4" />
-                            Edit
+                            {tr("Edit")}
                           </Button>
                           <Button
                             variant="outline"

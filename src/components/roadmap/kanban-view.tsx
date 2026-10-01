@@ -5,6 +5,7 @@ import { RoadmapCard } from './roadmap-card'
 import { StateIcon } from '@/components/state-icon'
 import type { RoadmapIssue } from '@/lib/linear'
 import type { KanbanColumn } from '@/lib/supabase'
+import { useT } from '@/lib/i18n/client'
 
 interface KanbanViewProps {
   issues: RoadmapIssue[]
@@ -54,6 +55,8 @@ export function KanbanView({
   onIssueClick,
   onVote,
 }: KanbanViewProps) {
+  const t = useT()
+
   // Group issues by column based on state type
   const groupedIssues = useMemo(() => {
     const groups: Record<string, RoadmapIssue[]> = {}
@@ -86,7 +89,7 @@ export function KanbanView({
 
   return (
     <div
-      aria-label="Roadmap board"
+      aria-label={t("Roadmap board")}
       className="-mx-2 flex w-[calc(100%+1rem)] snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-2 px-2 pb-4 touch-pan-x sm:mx-0 sm:w-full sm:gap-4 sm:px-0 lg:grid lg:overflow-visible"
       style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
     >
@@ -104,7 +107,7 @@ export function KanbanView({
                 <div className="flex items-center gap-2">
                   <ColumnIcon columnKey={column.key} />
                   <h3 className="text-sm font-medium text-foreground">
-                    {column.label}
+                    {t(column.label)}
                   </h3>
                 </div>
                 <span className="text-xs text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded">
@@ -117,7 +120,7 @@ export function KanbanView({
             <div className="space-y-2 p-2 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto">
               {columnIssues.length === 0 ? (
                 <div className="py-8 text-center text-xs text-muted-foreground">
-                  No items
+                  {t("No items")}
                 </div>
               ) : (
                 columnIssues.map((issue) => (
