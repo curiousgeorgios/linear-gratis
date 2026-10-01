@@ -24,6 +24,9 @@ progress, or publish a roadmap.
 - [Database Migrations](#database-migrations)
 - [Scripts](#scripts)
 - [Deployment](#deployment)
+- [Self-Hosting with Docker](#self-hosting-with-docker)
+- [MCP Server for Claude Code](#mcp-server-for-claude-code)
+- [Arabic and RTL](#arabic-and-rtl)
 - [Project Structure](#project-structure)
 - [Security](#security)
 - [Contributing](#contributing)
@@ -37,6 +40,9 @@ progress, or publish a roadmap.
 - Public roadmaps with voting, comments, password protection and expiry support.
 - Custom domains for forms, views and roadmaps.
 - Branded public pages with logos, colours, favicons and footer settings.
+- Full Arabic interface with right-to-left layout, switchable per visitor.
+- Docker image and `docker compose` stack for self-hosting, including Supabase.
+- MCP server so Claude Code can read and update your Linear workspace.
 - Organisation-scoped access control backed by Supabase RLS.
 - Organisation-scoped Linear connections instead of user-scoped token reads.
 - Encrypted Linear API token storage with lazy legacy-token rotation.
@@ -109,6 +115,11 @@ The local template lives in [.env.example](.env.example).
 | `CLOUDFLARE_ZONE_ID` | For custom domains | Cloudflare zone ID used to manage custom hostnames. |
 | `FEEDBACK_WEBHOOK_SECRET` | For signed feedback | Shared HMAC secret for inbound public-view feedback webhooks. |
 | `NEXT_PUBLIC_APP_DOMAIN` | Recommended | Canonical app domain used for custom-domain CNAME instructions. |
+| `APP_URL` | Self-hosting | Public origin used when building links in the MCP server. |
+| `SUPABASE_INTERNAL_URL` | Self-hosting | Server-side Supabase address when it differs from the public one. |
+| `NEXT_PUBLIC_SUPABASE_COOKIE_NAME` | Self-hosting | Pins the auth cookie name when server and browser Supabase URLs differ. |
+| `NEXT_PUBLIC_AUTH_METHODS` | No | Sign-in methods: `magic_link`, `github`, `password`. Defaults to `magic_link,github`. |
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | No | Default interface language, `en` or `ar`. |
 | `SUPABASE_DB_HOST` | Deployments | Production database host used only by the migration gate. |
 | `SUPABASE_DB_PORT` | Deployments | Production database port, normally `5432`. |
 | `SUPABASE_DB_NAME` | Deployments | Production database name, normally `postgres`. |
@@ -250,6 +261,49 @@ npx wrangler secret put SECRET_NAME
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public
 configuration values and may live in Wrangler vars; they are also available in
 the Infisical project so release builds have one consistent configuration source.
+
+## Self-Hosting with Docker
+
+The repository ships a `Dockerfile` and a `docker-compose.yml` that run the app
+together with Postgres, GoTrue, PostgREST and Storage behind one Caddy gateway.
+
+```bash
+node docker/generate-env.mjs --url http://localhost:3000   # fresh secrets in .env
+docker compose up -d --build                               # open http://localhost:3000
+```
+
+The image is built once and configured at start-up, so the same
+`<user>/linear-gratis` image can be pushed to Docker Hub and run anywhere. The
+`Docker image` GitHub workflow publishes multi-architecture images when the
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set. Full guide:
+[docs/self-hosting.md](docs/self-hosting.md) ([العربية](docs/self-hosting.ar.md)). On Dokploy use `docker-compose.dokploy.yml`: [docs/dokploy.md](docs/dokploy.md).
+
+## MCP Server for Claude Code
+
+Every installation, hosted or self-hosted, serves an MCP endpoint at
+`/api/mcp`. Create a token under **Profile → MCP access**, then:
+
+```bash
+claude mcp add --transport http linear-gratis https://your-host/api/mcp \
+  --header "Authorization: Bearer lgk_your_token"
+```
+
+Claude Code can then list teams, projects and issues, create and update issues,
+add comments and look up your public forms, views and roadmaps. See
+[docs/mcp.md](docs/mcp.md).
+
+## Arabic and RTL
+
+The interface is available in English and Arabic. The root layout sets `lang`
+and `dir` from the visitor's choice (cookie), then `NEXT_PUBLIC_DEFAULT_LOCALE`,
+then the browser's `Accept-Language`. Layout uses logical Tailwind utilities
+(`ms-*`, `pe-*`, `start-*`, `text-start`, ...) so everything mirrors in RTL; a
+test fails the build if a physical `left`/`right` utility slips back in.
+
+Strings are keyed by their English source text: write `t('Save changes')` (client:
+`useT()`, server: `await getT()`) and add the Arabic in
+`src/lib/i18n/messages/ar.ts`. Missing keys fall back to English. The marketing
+pages' long-form catalogue content (`src/data/*`) is English only for now.
 
 ## Project Structure
 

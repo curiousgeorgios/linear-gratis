@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { UserAvatar } from '@/components/user-avatar'
+import { useI18n } from '@/lib/i18n/client'
 
 interface ProjectUpdate {
   id: string
@@ -45,6 +46,8 @@ interface ProjectUpdatesModalProps {
 }
 
 export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdatesModalProps) {
+  const { t, intlLocale } = useI18n()
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ProjectUpdateData | null>(null)
@@ -72,7 +75,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
       }
     } catch (err) {
       console.error('Error fetching project updates:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load project updates')
+      setError(err instanceof Error ? err.message : t("Failed to load project updates"))
     } finally {
       setLoading(false)
     }
@@ -116,17 +119,17 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
 
     if (diffInDays === 0) {
-      return 'Today'
+      return t('Today')
     } else if (diffInDays === 1) {
-      return 'Yesterday'
+      return t('Yesterday')
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return date.toLocaleDateString(intlLocale, { month: 'short', day: 'numeric' })
     }
   }
 
   const formatMonth = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { month: 'long' })
+    return date.toLocaleDateString(intlLocale, { month: 'long' })
   }
 
   // Group updates by month
@@ -156,7 +159,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
               <use href="#Project"></use>
             </svg>
             <h2 className="text-lg font-medium text-[lch(100%_0_272)]">
-              {data?.project.name || 'Project'} updates
+              {data?.project.name || t("Project")} {t("updates")}
             </h2>
           </div>
           <button
@@ -186,13 +189,13 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
                   onClick={fetchProjectUpdates}
                   className="px-4 py-2 bg-[lch(10.633%_3.033_272)] hover:bg-[lch(14.133%_4.2_272)] text-[lch(100%_0_272)] rounded-md transition-colors text-sm"
                 >
-                  Try again
+                  {t("Try again")}
                 </button>
               </div>
             </div>
           ) : !data?.updates.length ? (
             <div className="flex items-center justify-center py-20">
-              <p className="text-[lch(62.6%_1.35_272)]">No project updates found</p>
+              <p className="text-[lch(62.6%_1.35_272)]">{t("No project updates found")}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -223,7 +226,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
                               <path fillRule="evenodd" clipRule="evenodd" d="M12.6807 5.7029C12.9925 5.97566 13.0241 6.44948 12.7513 6.76121L9.71942 10.2263C9.56569 10.402 9.33892 10.4961 9.10596 10.4808C8.873 10.4656 8.66044 10.3427 8.53094 10.1485L6.76432 7.49855L4.37742 10.2263C4.10466 10.5381 3.63083 10.5696 3.31911 10.2969C3.00739 10.0241 2.97581 9.55028 3.24857 9.23856L6.28056 5.77356C6.43429 5.59788 6.66106 5.50379 6.89401 5.51905C7.12696 5.53432 7.33952 5.65718 7.46902 5.85142L9.23562 8.50133L11.6224 5.77347C11.8952 5.46174 12.369 5.43015 12.6807 5.7029Z"></path>
                             </svg>
                             <span className="text-sm font-medium" style={{ color: getHealthColor(update.health) }}>
-                              {getHealthLabel(update.health)}
+                              {t(getHealthLabel(update.health))}
                             </span>
                           </div>
 
@@ -261,7 +264,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
                       {/* Progress diff if available */}
                       {update.diffMarkdown && !update.isDiffHidden && (
                         <div className="mt-4 pt-4 border-t border-[lch(14.74%_3.54_272)]">
-                          <div className="text-xs font-medium text-[lch(62.6%_1.35_272)] mb-2">Changes</div>
+                          <div className="text-xs font-medium text-[lch(62.6%_1.35_272)] mb-2">{t("Changes")}</div>
                           <div className="text-sm text-[lch(90.65%_1.35_272)]">
                             <ReactMarkdown>{update.diffMarkdown}</ReactMarkdown>
                           </div>

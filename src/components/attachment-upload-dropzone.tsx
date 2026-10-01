@@ -9,6 +9,7 @@ import {
   MAX_FORM_ATTACHMENT_SIZE_BYTES,
   formatFileSize,
 } from '@/lib/form-attachment'
+import { useT } from '@/lib/i18n/client'
 
 type AttachmentUploadDropzoneProps = {
   files: File[]
@@ -35,6 +36,8 @@ export function AttachmentUploadDropzone({
   idleTitle = 'Drop files here, or click to choose',
   busyTitle = 'Submitting attachments...',
 }: AttachmentUploadDropzoneProps) {
+  const t = useT()
+
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const isDisabled = disabled || busy
@@ -106,31 +109,31 @@ export function AttachmentUploadDropzone({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium">
-              {busy ? busyTitle : idleTitle}
+              {busy ? t(busyTitle) : t(idleTitle)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {busy && files.length > 0
-                ? `Processing ${files.length} file${files.length === 1 ? '' : 's'}`
-                : `Up to ${maxFiles} files, ${formatFileSize(MAX_FORM_ATTACHMENT_SIZE_BYTES)} each`}
+                ? (files.length === 1 ? t('Processing 1 file') : t('Processing {count} files', { count: files.length }))
+                : t('Up to {max} files, {size} each', { max: maxFiles, size: formatFileSize(MAX_FORM_ATTACHMENT_SIZE_BYTES) })}
             </p>
           </div>
         </div>
         <div className="hidden shrink-0 items-center gap-2 rounded-md border bg-background px-3 py-2 text-xs font-medium text-muted-foreground sm:flex">
           <Upload className="h-3.5 w-3.5" />
-          Upload
+          {t("Upload")}
         </div>
       </div>
 
       {files.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground">
-            {files.length} file{files.length === 1 ? '' : 's'} ready
+            {files.length === 1 ? t('1 file ready') : t('{count} files ready', { count: files.length })}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {files.map((file, index) => (
               <span
                 key={`${file.name}-${file.lastModified}-${file.size}-${index}`}
-                className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/40 py-1 pl-2 pr-1 text-xs"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/40 py-1 ps-2 pe-1 text-xs"
               >
                 <span className="max-w-[180px] truncate">{file.name}</span>
                 <span className="shrink-0 text-muted-foreground">

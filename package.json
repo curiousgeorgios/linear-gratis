@@ -23,13 +23,17 @@
 		"preview": "npm run build:worker && wrangler dev",
 		"deploy": "infisical run --env=prod --command 'bun run release:build && bun run release:deploy'",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts",
-		"generate-og": "node scripts/generate-og.js"
+		"generate-og": "node scripts/generate-og.js",
+		"docker:env": "node docker/generate-env.mjs",
+		"docker:up": "docker compose up -d --build",
+		"docker:down": "docker compose down"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.2.2",
 		"@linear/sdk": "^60.0.0",
 		"@radix-ui/react-avatar": "^1.1.10",
 		"@radix-ui/react-dialog": "^1.1.17",
+		"@radix-ui/react-direction": "^1.1.1",
 		"@radix-ui/react-label": "^2.1.7",
 		"@radix-ui/react-popover": "^1.1.17",
 		"@radix-ui/react-select": "^2.2.6",

@@ -13,8 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTheme } from "@/contexts/theme-context"
+import { useT } from '@/lib/i18n/client'
 
 export function ThemeToggle() {
+  const t = useT()
+
   const { theme, setTheme } = useTheme()
 
   return (
@@ -26,19 +29,19 @@ export function ThemeToggle() {
         <SelectItem value="light">
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4" />
-            <span>Light</span>
+            <span>{t("Light")}</span>
           </div>
         </SelectItem>
         <SelectItem value="dark">
           <div className="flex items-center gap-2">
             <Moon className="h-4 w-4" />
-            <span>Dark</span>
+            <span>{t("Dark")}</span>
           </div>
         </SelectItem>
         <SelectItem value="system">
           <div className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
-            <span>System</span>
+            <span>{t("System")}</span>
           </div>
         </SelectItem>
       </SelectContent>
@@ -47,6 +50,8 @@ export function ThemeToggle() {
 }
 
 export function SimpleThemeToggle() {
+  const t = useT()
+
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
 
@@ -78,7 +83,7 @@ export function SimpleThemeToggle() {
     return (
       <Button variant="ghost" size="sm" className="font-medium">
         <Monitor className="h-4 w-4" />
-        <span className="sr-only">Toggle theme</span>
+        <span className="sr-only">{t("Toggle theme")}</span>
       </Button>
     )
   }
@@ -89,7 +94,7 @@ export function SimpleThemeToggle() {
       size="sm"
       onClick={toggleTheme}
       className="font-medium relative overflow-hidden"
-      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      title={isDark ? t('Switch to light mode') : t('Switch to dark mode')}
     >
       <AnimatePresence initial={false}>
         <motion.div
@@ -122,7 +127,7 @@ export function SimpleThemeToggle() {
           )}
         </motion.div>
       </AnimatePresence>
-      <span className="sr-only">Switch to {isDark ? 'light' : 'dark'} mode</span>
+      <span className="sr-only">{isDark ? t("Switch to light mode") : t("Switch to dark mode")}</span>
     </Button>
   )
 }

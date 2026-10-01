@@ -10,6 +10,11 @@ type AuthContextType = {
   loading: boolean
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>
   signInWithGitHub: () => Promise<{ error: Error | null }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>
+  signUpWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: Error | null; needsConfirmation: boolean }>
   signOut: () => Promise<{ error: Error | null }>
 }
 
@@ -64,6 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error }
+  }
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
+    // With e-mail confirmation enabled Supabase returns a user but no session.
+    return { error, needsConfirmation: !error && !data.session }
+  }
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     return { error }
@@ -75,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signInWithMagicLink,
     signInWithGitHub,
+    signInWithPassword,
+    signUpWithPassword,
     signOut,
   }
 

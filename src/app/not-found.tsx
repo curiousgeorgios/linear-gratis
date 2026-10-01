@@ -1,7 +1,12 @@
-export default function NotFound() {
+
+import { getT } from '@/lib/i18n/server'
+
+export default async function NotFound() {
+  const t = await getT()
+
   return (
     <>
-      <title>404: This page could not be found.</title>
+      <title>{t("404: This page could not be found.")}</title>
       <div style={styles.error}>
         <div>
           <style
@@ -13,7 +18,7 @@ export default function NotFound() {
             404
           </h1>
           <div style={styles.desc}>
-            <h2 style={styles.h2}>This page could not be found.</h2>
+            <h2 style={styles.h2}>{t("This page could not be found.")}</h2>
           </div>
         </div>
       </div>

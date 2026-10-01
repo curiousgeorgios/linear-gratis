@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm'
 import { IssueDetail, ReferencedIssue } from '@/app/api/public-view/[slug]/issue/[issueId]/route'
 import { EstimateIcon } from '@/components/priority-icon'
 import { StateIcon } from '@/components/state-icon'
+import type { Locale } from '@/lib/i18n/config'
+import { translate } from '@/lib/i18n/translate'
 
 export type { IssueDetail, ReferencedIssue }
 
@@ -171,7 +173,7 @@ export function LinearMarkdown({
           input: ({ ...props }) => (
             <input
               {...props}
-              className="mr-2 accent-primary cursor-default"
+              className="me-2 accent-primary cursor-default"
               disabled
             />
           ),
@@ -208,32 +210,32 @@ export function LinearMarkdown({
             )
           },
           ul: ({ ...props }) => (
-            <ul {...props} className="list-disc list-outside space-y-1 my-2 ml-5" />
+            <ul {...props} className="list-disc list-outside space-y-1 my-2 ms-5" />
           ),
           ol: ({ ...props }) => (
-            <ol {...props} className="list-decimal list-outside space-y-1 my-2 ml-5" />
+            <ol {...props} className="list-decimal list-outside space-y-1 my-2 ms-5" />
           ),
           li: ({ ...props }) => (
-            <li {...props} className="leading-7 marker:text-muted-foreground" />
+            <li dir="auto" {...props} className="leading-7 marker:text-muted-foreground" />
           ),
           p: ({ ...props }) => (
-            <p {...props} className="my-2 leading-relaxed" />
+            <p dir="auto" {...props} className="my-2 leading-relaxed" />
           ),
           h1: ({ ...props }) => (
-            <h1 {...props} className="text-xl font-semibold mt-6 mb-3" />
+            <h1 dir="auto" {...props} className="text-xl font-semibold mt-6 mb-3" />
           ),
           h2: ({ ...props }) => (
-            <h2 {...props} className="text-lg font-semibold mt-5 mb-2" />
+            <h2 dir="auto" {...props} className="text-lg font-semibold mt-5 mb-2" />
           ),
           h3: ({ ...props }) => (
-            <h3 {...props} className="text-base font-semibold mt-4 mb-2" />
+            <h3 dir="auto" {...props} className="text-base font-semibold mt-4 mb-2" />
           ),
           img: ({ alt, ...props }) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img {...props} alt={alt ?? ''} className="rounded-lg max-w-full my-4" />
           ),
           blockquote: ({ ...props }) => (
-            <blockquote {...props} className="border-l-4 border-border pl-4 italic text-muted-foreground my-3" />
+            <blockquote {...props} className="border-s-4 border-border ps-4 italic text-muted-foreground my-3" />
           ),
           hr: ({ ...props }) => (
             <hr {...props} className="border-border my-4" />
@@ -247,7 +249,7 @@ export function LinearMarkdown({
             <thead {...props} className="bg-accent/40" />
           ),
           th: ({ ...props }) => (
-            <th {...props} className="border border-border px-3 py-2 text-left font-medium" />
+            <th {...props} className="border border-border px-3 py-2 text-start font-medium" />
           ),
           td: ({ ...props }) => (
             <td {...props} className="border border-border px-3 py-2 align-top" />
@@ -260,7 +262,9 @@ export function LinearMarkdown({
   )
 }
 
-export const formatDate = (dateString: string) => {
+const dateLocaleOf = (locale: Locale) => (locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB')
+
+export const formatDate = (dateString: string, locale: Locale = 'en') => {
   const date = new Date(dateString)
   const now = new Date()
   const diffInMs = now.getTime() - date.getTime()
@@ -268,37 +272,37 @@ export const formatDate = (dateString: string) => {
   const diffInHours = Math.floor(diffInMs / 3600000)
   const diffInDays = Math.floor(diffInMs / 86400000)
 
-  if (diffInMins < 1) return 'just now'
-  if (diffInMins < 60) return `${diffInMins}m ago`
-  if (diffInHours < 24) return `${diffInHours}h ago`
-  if (diffInDays < 7) return `${diffInDays}d ago`
+  if (diffInMins < 1) return translate(locale, 'just now')
+  if (diffInMins < 60) return translate(locale, '{n}m ago', { n: diffInMins })
+  if (diffInHours < 24) return translate(locale, '{n}h ago', { n: diffInHours })
+  if (diffInDays < 7) return translate(locale, '{n}d ago', { n: diffInDays })
 
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString(dateLocaleOf(locale), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 // Relative label that continues past a week (Linear shows e.g. "5mo ago").
 // The existing formatDate only goes up to days, so dates like "created" —
 // almost always older than a week — need this wider scale.
-export function formatRelativeDate(dateString: string): string {
+export function formatRelativeDate(dateString: string, locale: Locale = 'en'): string {
   const date = new Date(dateString)
   const diffMs = Date.now() - date.getTime()
   const min = Math.floor(diffMs / 60000)
   const hour = Math.floor(diffMs / 3600000)
   const day = Math.floor(diffMs / 86400000)
 
-  if (min < 1) return 'just now'
-  if (min < 60) return `${min}m ago`
-  if (hour < 24) return `${hour}h ago`
-  if (day < 7) return `${day}d ago`
-  if (day < 30) return `${Math.floor(day / 7)}w ago`
-  if (day < 365) return `${Math.floor(day / 30)}mo ago`
-  return `${Math.floor(day / 365)}y ago`
+  if (min < 1) return translate(locale, 'just now')
+  if (min < 60) return translate(locale, '{n}m ago', { n: min })
+  if (hour < 24) return translate(locale, '{n}h ago', { n: hour })
+  if (day < 7) return translate(locale, '{n}d ago', { n: day })
+  if (day < 30) return translate(locale, '{n}w ago', { n: Math.floor(day / 7) })
+  if (day < 365) return translate(locale, '{n}mo ago', { n: Math.floor(day / 30) })
+  return translate(locale, '{n}y ago', { n: Math.floor(day / 365) })
 }
 
 // Full timestamp for the hover tooltip, British day-month-year order,
 // e.g. "Thu, 19 Feb 2026, 20:31:31".
-export function formatAbsoluteDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-GB', {
+export function formatAbsoluteDate(dateString: string, locale: Locale = 'en'): string {
+  return new Date(dateString).toLocaleString(dateLocaleOf(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

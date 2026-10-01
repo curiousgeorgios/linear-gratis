@@ -1,3 +1,4 @@
+import { toPublicSupabaseUrl } from '@/lib/supabase/config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -69,8 +70,12 @@ export async function POST(request: NextRequest) {
     // Get public URL
     const { data: urlData } = supabaseAdmin.storage.from('branding').getPublicUrl(fileName);
 
+    // Server-side clients may use an internal Supabase address (self-hosted
+    // Docker); stored links must always use the browser-reachable one.
+    const publicUrl = toPublicSupabaseUrl(urlData.publicUrl);
+
     return NextResponse.json({
-      url: urlData.publicUrl,
+      url: publicUrl,
       path: fileName,
       success: true,
     });

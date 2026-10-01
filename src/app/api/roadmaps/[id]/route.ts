@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSupabaseUrl } from '@/lib/supabase/config'
 import { createClient } from '@supabase/supabase-js';
 import type { Roadmap } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseUrl = getServerSupabaseUrl();
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {

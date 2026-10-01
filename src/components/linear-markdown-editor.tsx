@@ -12,6 +12,7 @@ import {
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
+import { useT } from "@/lib/i18n/client";
 import {
   Bold,
   Code,
@@ -188,6 +189,7 @@ export function LinearMarkdownEditor({
   disabled = false,
   ...rootProps
 }: LinearMarkdownEditorProps) {
+  const t = useT();
   const onChangeRef = useRef(onChange);
   const onBlurRef = useRef(onBlur);
   const lastMarkdownRef = useRef(value);
@@ -214,7 +216,7 @@ export function LinearMarkdownEditor({
         nested: true,
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: t(placeholder),
       }),
       Markdown.configure({
         indentation: {
@@ -223,7 +225,7 @@ export function LinearMarkdownEditor({
         },
       }),
     ],
-    [placeholder],
+    [placeholder, t],
   );
 
   const editor = useEditor(
@@ -236,6 +238,8 @@ export function LinearMarkdownEditor({
       editorProps: {
         attributes: {
           class: "linear-rich-editor-content",
+          // Mixed-language content: each paragraph picks its own direction.
+          dir: "auto",
           "aria-multiline": "true",
         },
         handleDOMEvents: {
@@ -331,7 +335,7 @@ export function LinearMarkdownEditor({
             key={groupIndex}
             className={cn(
               "flex items-center gap-0.5",
-              groupIndex > 0 && "border-l border-border pl-1.5",
+              groupIndex > 0 && "border-s border-border ps-1.5",
             )}
           >
             {group.map((item) => {
@@ -348,8 +352,8 @@ export function LinearMarkdownEditor({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  title={item.label}
-                  aria-label={item.label}
+                  title={t(item.label)}
+                  aria-label={t(item.label)}
                   aria-pressed={item.active ? Boolean(isActive) : undefined}
                   disabled={isDisabled}
                   onClick={() => {

@@ -1,0 +1,16 @@
+.git
+.github
+.next
+.open-next
+node_modules
+coverage
+.env
+.env.*
+!.env.example
+*.log
+Linear-API-graphql-schema.json
+linear-gratis-og.png
+docs
+tests
+.vscode
+.wrangler

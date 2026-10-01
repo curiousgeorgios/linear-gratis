@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Check, ArrowRight, Github, Settings, Zap, Users, Target } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 interface TemplatePageProps {
   params: Promise<{
@@ -41,6 +42,8 @@ export async function generateMetadata({ params }: TemplatePageProps): Promise<M
 }
 
 export default async function TemplatePage({ params }: TemplatePageProps) {
+  const tr = await getT()
+
   const resolvedParams = await params
   const template = templates[resolvedParams.slug]
 
@@ -83,20 +86,20 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="text-xl font-semibold">
-                linear.gratis
+                {tr("linear.gratis")}
               </Link>
               <div className="flex items-center gap-4">
                 <Link href="/templates" className="text-sm text-muted-foreground hover:text-foreground">
-                  All templates
+                  {tr("All templates")}
                 </Link>
                 <Link href="/use-cases" className="text-sm text-muted-foreground hover:text-foreground">
-                  Use cases
+                  {tr("Use cases")}
                 </Link>
                 <Link href="/comparison" className="text-sm text-muted-foreground hover:text-foreground">
-                  Comparisons
+                  {tr("Comparisons")}
                 </Link>
                 <Button asChild size="sm">
-                  <Link href="/login">Use this template</Link>
+                  <Link href="/login">{tr("Use this template")}</Link>
                 </Button>
               </div>
             </div>
@@ -112,7 +115,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                   {template.category}
                 </Badge>
                 <Badge variant="outline">
-                  Template
+                  {tr("Template")}
                 </Badge>
               </div>
               <h1 className="text-4xl font-bold mb-4">
@@ -128,7 +131,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
-                  Template overview
+                  {tr("Template overview")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -143,7 +146,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                   ))}
                   {template.useCases.length > 3 && (
                     <Badge variant="outline" className="text-xs">
-                      +{template.useCases.length - 3} more
+                      +{template.useCases.length - 3} {tr("more")}
                     </Badge>
                   )}
                 </div>
@@ -156,15 +159,15 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
             <div className="grid lg:grid-cols-2 gap-8">
               {/* Form Preview */}
               <div>
-                <h2 className="text-2xl font-bold mb-4">Live preview</h2>
+                <h2 className="text-2xl font-bold mb-4">{tr("Live preview")}</h2>
                 <Card className="border-border/50 shadow-lg">
                   <CardHeader>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>your-form-url.com/{template.slug}</span>
+                      <span>{tr("your-form-url.com/")}{template.slug}</span>
                     </div>
                     <CardTitle className="text-lg">
-                      {template.name} Form
+                      {template.name} {tr("Form")}
                     </CardTitle>
                     <CardDescription>
                       {template.overview}
@@ -202,7 +205,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                       </div>
                     ))}
                     <Button className="w-full" disabled>
-                      Submit {template.name}
+                      {tr("Submit")} {template.name}
                     </Button>
                   </CardContent>
                 </Card>
@@ -210,15 +213,15 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
 
               {/* Form Structure */}
               <div>
-                <h2 className="text-2xl font-bold mb-4">Form structure</h2>
+                <h2 className="text-2xl font-bold mb-4">{tr("Form structure")}</h2>
                 <Card className="border-border/50">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="h-5 w-5 text-primary" />
-                      Fields included ({template.fields.length})
+                      {tr("Fields included (")}{template.fields.length})
                     </CardTitle>
                     <CardDescription>
-                      All fields in this template with their types and settings
+                      {tr("All fields in this template with their types and settings")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -232,7 +235,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                 {field.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </h4>
                               {field.required && (
-                                <Badge variant="destructive" className="text-xs">Required</Badge>
+                                <Badge variant="destructive" className="text-xs">{tr("Required")}</Badge>
                               )}
                               <Badge variant="outline" className="text-xs">{field.type}</Badge>
                             </div>
@@ -241,7 +244,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                             )}
                             {field.options && (
                               <div className="mt-2">
-                                <p className="text-xs font-medium mb-1">Options:</p>
+                                <p className="text-xs font-medium mb-1">{tr("Options:")}</p>
                                 <div className="flex flex-wrap gap-1">
                                   {field.options.slice(0, 3).map((option, optIndex) => (
                                     <span key={optIndex} className="text-xs bg-muted px-1 py-0.5 rounded">
@@ -250,7 +253,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                   ))}
                                   {field.options.length > 3 && (
                                     <span className="text-xs text-muted-foreground">
-                                      +{field.options.length - 3} more
+                                      +{field.options.length - 3} {tr("more")}
                                     </span>
                                   )}
                                 </div>
@@ -273,10 +276,10 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                 <CardHeader>
                   <CardTitle className="text-green-800 dark:text-green-400 flex items-center gap-2">
                     <Zap className="h-5 w-5" />
-                    Benefits
+                    {tr("Benefits")}
                   </CardTitle>
                   <CardDescription>
-                    What you get with this template
+                    {tr("What you get with this template")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -295,10 +298,10 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                 <CardHeader>
                   <CardTitle className="text-blue-800 dark:text-blue-400 flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Best for
+                    {tr("Best for")}
                   </CardTitle>
                   <CardDescription>
-                    Teams that get the most value from this template
+                    {tr("Teams that get the most value from this template")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -321,16 +324,16 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
-                  Linear integration setup
+                  {tr("Linear integration setup")}
                 </CardTitle>
                 <CardDescription>
-                  Recommended Linear configuration for this template
+                  {tr("Recommended Linear configuration for this template")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-medium mb-3">Recommended labels</h4>
+                    <h4 className="font-medium mb-3">{tr("Recommended labels")}</h4>
                     <div className="flex flex-wrap gap-2">
                       {template.linearSetup.recommendedLabels.map((label, index) => (
                         <Badge key={index} variant="outline" className="text-sm">
@@ -341,12 +344,12 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-medium mb-3">Priority mapping</h4>
+                    <h4 className="font-medium mb-3">{tr("Priority mapping")}</h4>
                     <div className="space-y-2 text-sm">
                       {Object.entries(template.linearSetup.priorityMapping).map(([key, value], index) => (
                         <div key={index} className="flex justify-between items-center">
                           <span className="text-muted-foreground">{key}</span>
-                          <Badge variant="outline" className="text-xs">Priority {value}</Badge>
+                          <Badge variant="outline" className="text-xs">{tr("Priority")} {value}</Badge>
                         </div>
                       ))}
                     </div>
@@ -355,7 +358,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
 
                 {template.integrationTips.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-border/30">
-                    <h4 className="font-medium mb-3">Integration tips</h4>
+                    <h4 className="font-medium mb-3">{tr("Integration tips")}</h4>
                     <ul className="space-y-2">
                       {template.integrationTips.map((tip, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -375,23 +378,22 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
             <Card className="border-border/50 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-4">
-                  Ready to use this template?
+                  {tr("Ready to use this template?")}
                 </h2>
                 <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                  Start collecting structured {template.category.toLowerCase()} with this proven template.
-                  Completely free, ready in 2 minutes.
+                  {tr("Start collecting structured")} {template.category.toLowerCase()} {tr("with this proven template. Completely free, ready in 2 minutes.")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="h-12 px-8">
                     <Link href="/login">
-                      Use this template
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {tr("Use this template")}
+                      <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="h-12 px-8">
                     <Link href="https://github.com/curiousgeorgios/linear-gratis" target="_blank">
-                      <Github className="mr-2 h-4 w-4" />
-                      View on GitHub
+                      <Github className="me-2 h-4 w-4" />
+                      {tr("View on GitHub")}
                     </Link>
                   </Button>
                 </div>
@@ -401,7 +403,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
 
           {/* Related templates */}
           <div className="max-w-4xl mx-auto mt-16">
-            <h3 className="text-xl font-semibold mb-6">Related templates</h3>
+            <h3 className="text-xl font-semibold mb-6">{tr("Related templates")}</h3>
             <div className="grid md:grid-cols-3 gap-4">
               {Object.values(templates)
                 .filter(t => t.slug !== template.slug && t.category === template.category)

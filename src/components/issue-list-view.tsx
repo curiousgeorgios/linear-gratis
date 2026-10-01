@@ -7,6 +7,7 @@ import { StateIcon } from '@/components/state-icon'
 import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
 import { UserAvatar } from '@/components/user-avatar'
 import { groupIssues, type DisplayOptions, type ViewFlags } from '@/lib/issue-filters'
+import { useI18n } from '@/lib/i18n/client'
 
 interface IssueListViewProps {
   issues: LinearIssue[] // already tab + filter reduced by IssuesView
@@ -18,9 +19,9 @@ interface IssueListViewProps {
   onCreateIssue: (stateName?: string) => void
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, intlLocale: string): string {
   // Month-first ("Jun 16") to match Linear's list rows exactly.
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString(intlLocale, { month: 'short', day: 'numeric' })
 }
 
 export function IssueListView({
@@ -32,6 +33,8 @@ export function IssueListView({
   onIssueClick,
   onCreateIssue,
 }: IssueListViewProps) {
+  const { t, intlLocale } = useI18n()
+
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   const toggleCollapse = (key: string) => {
@@ -47,8 +50,8 @@ export function IssueListView({
     return (
       <div className="text-center py-20">
         <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues found</div>
-          <div className="text-sm">This view doesn&apos;t contain any issues yet.</div>
+          <div className="text-lg font-medium mb-2">{t("No issues found")}</div>
+          <div className="text-sm">{t("This view doesn't contain any issues yet.")}</div>
         </div>
       </div>
     )
@@ -58,8 +61,8 @@ export function IssueListView({
     return (
       <div className="text-center py-20">
         <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues match your filters</div>
-          <div className="text-sm">Try adjusting your filter criteria to see more results.</div>
+          <div className="text-lg font-medium mb-2">{t("No issues match your filters")}</div>
+          <div className="text-sm">{t("Try adjusting your filter criteria to see more results.")}</div>
         </div>
       </div>
     )
@@ -89,7 +92,7 @@ export function IssueListView({
               >
                 <ChevronRight
                   className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none ${
-                    isCollapsed ? '' : 'rotate-90'
+                    isCollapsed ? 'rtl:-scale-x-100' : 'rotate-90'
                   }`}
                 />
                 {display.grouping === 'status' && (
@@ -105,7 +108,7 @@ export function IssueListView({
                 {display.grouping === 'assignee' && (
                   <UserAvatar name={group.assignee?.name} avatarUrl={group.assignee?.avatarUrl} />
                 )}
-                <span className="text-sm font-medium text-foreground tracking-tight">{group.name}</span>
+                <span className="text-sm font-medium text-foreground tracking-tight">{t(group.name)}</span>
                 <span className="text-xs text-muted-foreground">{group.issues.length}</span>
                 {allowIssueCreation && (
                   <button
@@ -113,8 +116,8 @@ export function IssueListView({
                       e.stopPropagation()
                       onCreateIssue(display.grouping === 'status' ? group.name : undefined)
                     }}
-                    className="ml-auto opacity-0 group-hover/header:opacity-100 p-1 rounded hover:bg-accent transition-opacity duration-150"
-                    aria-label="New issue"
+                    className="ms-auto opacity-0 group-hover/header:opacity-100 p-1 rounded hover:bg-accent transition-opacity duration-150"
+                    aria-label={t("New issue")}
                   >
                     <Plus className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
@@ -127,7 +130,7 @@ export function IssueListView({
                 <button
                   key={issue.id}
                   onClick={() => onIssueClick(issue.identifier)}
-                  className="flex items-center gap-2 w-full h-9 px-3 text-left border-b border-border/40 last:border-b-0 hover:bg-accent/50 transition-colors duration-150"
+                  className="flex items-center gap-2 w-full h-9 px-3 text-start border-b border-border/40 last:border-b-0 hover:bg-accent/50 transition-colors duration-150"
                 >
                   {display.properties.priority && flags.showPriorities && (
                     <span className="flex-shrink-0">
@@ -174,8 +177,8 @@ export function IssueListView({
                         <span className="w-5 h-5 rounded-full border border-dashed border-border/70 flex-shrink-0" />
                       ))}
                     {display.properties.created && (
-                      <span className="hidden sm:block w-[52px] text-right text-xs text-muted-foreground">
-                        {formatDate(issue.createdAt)}
+                      <span className="hidden sm:block w-[52px] text-end text-xs text-muted-foreground">
+                        {formatDate(issue.createdAt, intlLocale)}
                       </span>
                     )}
                   </div>

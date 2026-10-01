@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Star, GitFork, Users } from 'lucide-react'
+import { useT } from '@/lib/i18n/client'
 
 const REPO_OWNER = 'curiousgeorgios'
 const REPO_NAME = 'linear-gratis'
@@ -25,6 +26,8 @@ function formatNumber(num: number): string {
 }
 
 export function GitHubStars() {
+  const t = useT()
+
   const [stars, setStars] = useState<number | null>(null)
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export function GitHubStars() {
       className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 hover:bg-muted transition-colors text-sm font-medium"
     >
       <Star className="h-4 w-4" />
-      <span>Star on GitHub</span>
+      <span>{t("Star on GitHub")}</span>
       {stars !== null && (
         <>
           <span className="text-muted-foreground">•</span>
@@ -66,6 +69,8 @@ export function GitHubStars() {
 }
 
 export function GitHubStatsBar() {
+  const t = useT()
+
   const [stats, setStats] = useState<GitHubStats | null>(null)
 
   useEffect(() => {
@@ -116,16 +121,16 @@ export function GitHubStatsBar() {
     <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
       <div className="flex items-center gap-2">
         <Star className="h-4 w-4" />
-        <span>{formatNumber(stats.stars)} stars</span>
+        <span>{formatNumber(stats.stars)} {t("stars")}</span>
       </div>
       <div className="flex items-center gap-2">
         <GitFork className="h-4 w-4" />
-        <span>{formatNumber(stats.forks)} forks</span>
+        <span>{formatNumber(stats.forks)} {t("forks")}</span>
       </div>
       {stats.contributors > 0 && (
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4" />
-          <span>{stats.contributors} contributors</span>
+          <span>{stats.contributors} {t("contributors")}</span>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { StateIcon } from '@/components/state-icon'
+import { useT } from '@/lib/i18n/client'
 
 type Priority = 'high' | 'medium' | 'low'
 
@@ -112,20 +113,22 @@ function IssueCard({ issue }: { issue: Issue }) {
 }
 
 export function KanbanMockup() {
+  const t = useT()
+
   return (
     <div className="p-4 bg-muted/30 min-h-[320px]">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-sm">Product roadmap</h3>
-          <p className="text-xs text-muted-foreground">Real-time view • 8 issues</p>
+          <h3 className="font-semibold text-sm">{t("Product roadmap")}</h3>
+          <p className="text-xs text-muted-foreground">{t("Real-time view • 8 issues")}</p>
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className="text-xs">
-            All statuses
+            {t("All statuses")}
           </Badge>
           <Badge variant="outline" className="text-xs">
-            All priorities
+            {t("All priorities")}
           </Badge>
         </div>
       </div>
@@ -142,7 +145,7 @@ export function KanbanMockup() {
                 name={column.name}
               />
               <span className="text-xs font-medium">{column.name}</span>
-              <span className="text-xs text-muted-foreground ml-auto">
+              <span className="text-xs text-muted-foreground ms-auto">
                 {column.issues.length}
               </span>
             </div>

@@ -21,6 +21,7 @@ import {
   type IssueTab,
   type ViewFlags,
 } from '@/lib/issue-filters'
+import { useT } from '@/lib/i18n/client'
 
 interface IssuesViewProps {
   issues: LinearIssue[]
@@ -72,6 +73,8 @@ function getVisibleFilterOptions(issues: LinearIssue[], view: PublicView): Filte
 }
 
 export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: IssuesViewProps) {
+  const tr = useT()
+
   const [tab, setTab] = useState<IssueTab>('all')
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -151,7 +154,7 @@ export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: Issues
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
                 }`}
               >
-                {t.label}
+                {tr(t.label)}
               </button>
             ))}
           </div>
@@ -175,7 +178,7 @@ export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: Issues
                   d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"
                 />
               </svg>
-              <span className="hidden sm:inline">Filter</span>
+              <span className="hidden sm:inline">{tr("Filter")}</span>
               {hasActiveFilters && <span className="w-2 h-2 bg-primary rounded-full" />}
             </button>
 
@@ -193,27 +196,27 @@ export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: Issues
               <div className="hidden md:flex items-center gap-2 text-xs">
                 {filters.search && (
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    Search: &quot;{filters.search}&quot;
+                    {tr('Search: "{query}"', { query: filters.search })}
                   </span>
                 )}
                 {filters.statuses.length > 0 && (
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.statuses.length} status{filters.statuses.length !== 1 ? 'es' : ''}
+                    {filters.statuses.length === 1 ? tr("1 status") : tr("{count} statuses", { count: filters.statuses.length })}
                   </span>
                 )}
                 {filters.assignees.length > 0 && (
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.assignees.length} assignee{filters.assignees.length !== 1 ? 's' : ''}
+                    {filters.assignees.length === 1 ? tr("1 assignee") : tr("{count} assignees", { count: filters.assignees.length })}
                   </span>
                 )}
                 {filters.priorities.length > 0 && (
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.priorities.length} priorit{filters.priorities.length !== 1 ? 'ies' : 'y'}
+                    {filters.priorities.length === 1 ? tr("1 priority") : tr("{count} priorities", { count: filters.priorities.length })}
                   </span>
                 )}
                 {filters.labels.length > 0 && (
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {filters.labels.length} label{filters.labels.length !== 1 ? 's' : ''}
+                    {filters.labels.length === 1 ? tr("1 label") : tr("{count} labels", { count: filters.labels.length })}
                   </span>
                 )}
               </div>
@@ -245,7 +248,7 @@ export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: Issues
                   d="M10 13.5C8.88067 13.5 7.93387 12.7642 7.61523 11.75H2.25C1.83579 11.75 1.5 11.4142 1.5 11C1.5 10.5858 1.83579 10.25 2.25 10.25H7.61523C7.93387 9.23584 8.88067 8.5 10 8.5C11.1193 8.5 12.0661 9.23584 12.3848 10.25H14.75C15.1642 10.25 15.5 10.5858 15.5 11C15.5 11.4142 15.1642 11.75 14.75 11.75H12.3848C12.0661 12.7642 11.1193 13.5 10 13.5ZM10 12C10.5523 12 11 11.5523 11 11C11 10.4477 10.5523 10 10 10C9.44772 10 9 10.4477 9 11C9 11.5523 9.44772 12 10 12Z"
                 />
               </svg>
-              <span className="hidden sm:inline">Display</span>
+              <span className="hidden sm:inline">{tr("Display")}</span>
             </button>
 
             <DisplayPopover
@@ -262,10 +265,10 @@ export function IssuesView({ issues, view, onIssueClick, onCreateIssue }: Issues
             <button
               onClick={() => onCreateIssue()}
               className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors duration-150"
-              aria-label="Create issue"
+              aria-label={tr("Create issue")}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New issue</span>
+              <span className="hidden sm:inline">{tr("New issue")}</span>
             </button>
           )}
         </div>

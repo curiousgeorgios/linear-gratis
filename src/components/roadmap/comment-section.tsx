@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Send, User } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/client'
 
 interface Comment {
   id: string
@@ -27,6 +28,8 @@ export function CommentSection({
   requireEmail,
   fingerprint,
 }: CommentSectionProps) {
+  const { t, intlLocale } = useI18n()
+
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -74,18 +77,18 @@ export function CommentSection({
     e.preventDefault()
 
     if (!authorName.trim() || !content.trim()) {
-      setError('Please fill in all required fields')
+      setError(t("Please fill in all required fields"))
       return
     }
 
     if (requireEmail && !authorEmail.trim()) {
-      setError('Email is required')
+      setError(t("Email is required"))
       return
     }
 
     // Basic email validation
     if (authorEmail && !authorEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setError('Please enter a valid email address')
+      setError(t("Please enter a valid email address"))
       return
     }
 
@@ -169,7 +172,7 @@ export function CommentSection({
       setComments((prev) =>
         prev.map((c) => (c.id === tempId ? { ...c, isPending: false, isFailed: true } : c))
       )
-      setError('Failed to post comment. Please try again.')
+      setError(t("Failed to post comment. Please try again."))
     } finally {
       setSubmitting(false)
     }
@@ -197,12 +200,12 @@ export function CommentSection({
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
+    if (diffMins < 1) return t('Just now')
+    if (diffMins < 60) return t('{n}m ago', { n: diffMins })
+    if (diffHours < 24) return t('{n}h ago', { n: diffHours })
+    if (diffDays < 7) return t('{n}d ago', { n: diffDays })
 
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(intlLocale, {
       day: 'numeric',
       month: 'short',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -221,11 +224,11 @@ export function CommentSection({
                 <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
-            <p className="text-xs text-muted-foreground">Loading comments...</p>
+            <p className="text-xs text-muted-foreground">{t("Loading comments...")}</p>
           </div>
         ) : comments.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">
-            No comments yet. Be the first to share your thoughts!
+            {t("No comments yet. Be the first to share your thoughts!")}
           </div>
         ) : (
           comments.map((comment) => (
@@ -243,26 +246,26 @@ export function CommentSection({
                 </div>
                 <span className="text-sm font-medium">{comment.author_name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {comment.isPending ? 'Posting...' : formatDate(comment.created_at)}
+                  {comment.isPending ? t("Posting...") : formatDate(comment.created_at)}
                 </span>
               </div>
-              <p className="text-sm text-foreground/90 pl-8 whitespace-pre-wrap">
+              <p className="text-sm text-foreground/90 ps-8 whitespace-pre-wrap">
                 {comment.content}
               </p>
               {comment.isFailed && (
-                <div className="pl-8 flex items-center gap-2 pt-1">
-                  <span className="text-xs text-destructive">Failed to post</span>
+                <div className="ps-8 flex items-center gap-2 pt-1">
+                  <span className="text-xs text-destructive">{t("Failed to post")}</span>
                   <button
                     onClick={() => retryComment(comment)}
                     className="text-xs text-primary hover:underline"
                   >
-                    Retry
+                    {t("Retry")}
                   </button>
                   <button
                     onClick={() => dismissFailedComment(comment.id)}
                     className="text-xs text-muted-foreground hover:underline"
                   >
-                    Dismiss
+                    {t("Dismiss")}
                   </button>
                 </div>
               )}
@@ -278,7 +281,7 @@ export function CommentSection({
             <div>
               <input
                 type="text"
-                placeholder="Your name"
+                placeholder={t("Your name")}
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 disabled={submitting}
@@ -289,7 +292,7 @@ export function CommentSection({
             <div>
               <input
                 type="email"
-                placeholder={requireEmail ? 'Your email (required)' : 'Your email (optional)'}
+                placeholder={requireEmail ? t("Your email (required)") : t("Your email (optional)")}
                 value={authorEmail}
                 onChange={(e) => setAuthorEmail(e.target.value)}
                 disabled={submitting}
@@ -301,7 +304,7 @@ export function CommentSection({
 
           <div className="relative">
             <textarea
-              placeholder="Share your thoughts..."
+              placeholder={t("Share your thoughts...")}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               disabled={submitting}
@@ -310,7 +313,7 @@ export function CommentSection({
               className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none disabled:opacity-50"
               required
             />
-            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+            <div className="absolute bottom-2 end-2 text-xs text-muted-foreground">
               {content.length}/2000
             </div>
           </div>
@@ -334,7 +337,7 @@ export function CommentSection({
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]"
             >
               <Send className="h-4 w-4" />
-              Post comment
+              {t("Post comment")}
             </button>
           </div>
         </form>

@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle } from 'lucide-react'
+import { useT } from '@/lib/i18n/client'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -27,6 +28,8 @@ export function ConfirmationModal({
   variant = 'default',
   loading = false,
 }: ConfirmationModalProps) {
+  const t = useT()
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -105,14 +108,14 @@ export function ConfirmationModal({
               onClick={onClose}
               disabled={loading}
             >
-              {cancelLabel}
+              {t(cancelLabel)}
             </Button>
             <Button
               className={styles.button}
               onClick={onConfirm}
               disabled={loading}
             >
-              {loading ? 'Processing...' : confirmLabel}
+              {loading ? t("Processing...") : t(confirmLabel)}
             </Button>
           </div>
         </div>

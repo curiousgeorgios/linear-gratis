@@ -1,0 +1,26 @@
+# Single public origin for the app and the Supabase API, so browsers never hit
+# CORS and only one hostname/certificate is needed.
+#
+#   /auth/v1/*     -> GoTrue   (sign-in, sessions)
+#   /rest/v1/*     -> PostgREST (database API, protected by RLS)
+#   /storage/v1/*  -> Storage   (branding logos)
+#   everything else -> the Next.js app
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999
+	}
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
+	handle_path /storage/v1/* {
+		request_body {
+			max_size 50MB
+		}
+		reverse_proxy storage:5000
+	}
+	handle {
+		reverse_proxy app:3000
+	}
+}

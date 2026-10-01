@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight, Users, Building, Zap, Heart, Target, Briefcase } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Linear use cases: SaaS, agencies, startups & more | linear.gratis',
@@ -31,7 +32,9 @@ const industryIcons: Record<string, React.ComponentType<{ className?: string }>>
   nonprofits: Heart,
 }
 
-export default function UseCasesPage() {
+export default async function UseCasesPage() {
+  const t = await getT()
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -39,20 +42,20 @@ export default function UseCasesPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-xl font-semibold">
-              linear.gratis
+              {t("linear.gratis")}
             </Link>
             <div className="flex items-center gap-4">
               <Link href="/comparison" className="text-sm text-muted-foreground hover:text-foreground">
-                Comparisons
+                {t("Comparisons")}
               </Link>
               <Link href="/templates" className="text-sm text-muted-foreground hover:text-foreground">
-                Templates
+                {t("Templates")}
               </Link>
               <Link href="/features" className="text-sm text-muted-foreground hover:text-foreground">
-                Features
+                {t("Features")}
               </Link>
               <Button asChild size="sm">
-                <Link href="/login">Get started free</Link>
+                <Link href="/login">{t("Get started free")}</Link>
               </Button>
             </div>
           </div>
@@ -64,14 +67,13 @@ export default function UseCasesPage() {
         <div className="max-w-4xl mx-auto mb-12">
           <div className="text-center mb-8">
             <Badge variant="secondary" className="mb-4">
-              Use cases
+              {t("Use cases")}
             </Badge>
             <h1 className="text-4xl font-bold mb-4">
-              Linear for every industry
+              {t("Linear for every industry")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Discover how different teams use linear.gratis to collect customer feedback,
-              manage projects, and build better products. Free templates and workflows included.
+              {t("Discover how different teams use linear.gratis to collect customer feedback, manage projects, and build better products. Free templates and workflows included.")}
             </p>
           </div>
         </div>
@@ -99,7 +101,7 @@ export default function UseCasesPage() {
                     <CardContent>
                       <div className="space-y-3">
                         <div>
-                          <h4 className="text-sm font-medium mb-2">Key benefits:</h4>
+                          <h4 className="text-sm font-medium mb-2">{t("Key benefits:")}</h4>
                           <ul className="space-y-1">
                             {useCase.benefits.slice(0, 2).map((benefit, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -111,7 +113,7 @@ export default function UseCasesPage() {
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-medium mb-2">Templates included:</h4>
+                          <h4 className="text-sm font-medium mb-2">{t("Templates included:")}</h4>
                           <div className="flex flex-wrap gap-1">
                             {useCase.formTemplates.slice(0, 2).map((template, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
@@ -120,7 +122,7 @@ export default function UseCasesPage() {
                             ))}
                             {useCase.formTemplates.length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{useCase.formTemplates.length - 2} more
+                                +{useCase.formTemplates.length - 2} {t("more")}
                               </Badge>
                             )}
                           </div>
@@ -149,9 +151,9 @@ export default function UseCasesPage() {
         <div className="max-w-4xl mx-auto mb-12">
           <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20">
             <CardHeader>
-              <CardTitle>What all industries get with linear.gratis</CardTitle>
+              <CardTitle>{t("What all industries get with linear.gratis")}</CardTitle>
               <CardDescription>
-                Core features that work for every team and use case
+                {t("Core features that work for every team and use case")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -162,9 +164,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Custom feedback forms</h4>
+                      <h4 className="font-medium mb-1">{t("Custom feedback forms")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Create unlimited forms tailored to your specific needs
+                        {t("Create unlimited forms tailored to your specific needs")}
                       </p>
                     </div>
                   </div>
@@ -174,9 +176,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Public Linear views</h4>
+                      <h4 className="font-medium mb-1">{t("Public Linear views")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Share progress transparently with customers and stakeholders
+                        {t("Share progress transparently with customers and stakeholders")}
                       </p>
                     </div>
                   </div>
@@ -186,9 +188,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Direct Linear integration</h4>
+                      <h4 className="font-medium mb-1">{t("Direct Linear integration")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Feedback automatically creates Linear issues with full context
+                        {t("Feedback automatically creates Linear issues with full context")}
                       </p>
                     </div>
                   </div>
@@ -200,9 +202,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Always free</h4>
+                      <h4 className="font-medium mb-1">{t("Always free")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        No hidden costs, usage limits, or premium features
+                        {t("No hidden costs, usage limits, or premium features")}
                       </p>
                     </div>
                   </div>
@@ -212,9 +214,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Open source</h4>
+                      <h4 className="font-medium mb-1">{t("Open source")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Transparent code you can trust and contribute to
+                        {t("Transparent code you can trust and contribute to")}
                       </p>
                     </div>
                   </div>
@@ -224,9 +226,9 @@ export default function UseCasesPage() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Ready in 2 minutes</h4>
+                      <h4 className="font-medium mb-1">{t("Ready in 2 minutes")}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Simple setup with your Linear API token and you&apos;re ready
+                        {t("Simple setup with your Linear API token and you're ready")}
                       </p>
                     </div>
                   </div>
@@ -241,22 +243,21 @@ export default function UseCasesPage() {
           <Card className="border-border/50 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
             <CardContent className="p-8">
               <h2 className="text-2xl font-bold mb-4">
-                Ready to get started?
+                {t("Ready to get started?")}
               </h2>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Choose your industry to see specific templates and workflows,
-                or start with the general setup. Completely free forever.
+                {t("Choose your industry to see specific templates and workflows, or start with the general setup. Completely free forever.")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="h-12 px-8">
                   <Link href="/login">
-                    Start free now
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {t("Start free now")}
+                    <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-12 px-8">
                   <Link href="/templates">
-                    Browse templates
+                    {t("Browse templates")}
                   </Link>
                 </Button>
               </div>

@@ -10,6 +10,7 @@ import {
   settleVote,
   type VoteLifecycleState,
 } from '@/lib/roadmap-vote-lifecycle'
+import { useT } from '@/lib/i18n/client'
 
 interface VoteButtonProps {
   issueId: string
@@ -65,6 +66,8 @@ export function VoteButton({
   compact = false,
   onVote,
 }: VoteButtonProps) {
+  const t = useT()
+
   const [voteState, setVoteState] = useState<VoteLifecycleState>(() =>
     createVoteLifecycleState(initialCount),
   )
@@ -150,7 +153,7 @@ export function VoteButton({
       publishVote(settledState)
 
       if (!response.ok && response.status !== 409) {
-        toast.error('Could not save your vote', {
+        toast.error(t("Could not save your vote"), {
           id: VOTE_TOAST_ID,
           description: getErrorMessage(payload),
         })
@@ -162,9 +165,9 @@ export function VoteButton({
       updateVoteState(settledState)
       updateLocalStorage(settledState.hasVoted)
       publishVote(settledState)
-      toast.error('Could not save your vote', {
+      toast.error(t("Could not save your vote"), {
         id: VOTE_TOAST_ID,
-        description: 'Network error. Please try again.',
+        description: t("Network error. Please try again."),
       })
     }
   }
@@ -211,10 +214,10 @@ export function VoteButton({
       )}
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {voteState.isPending
-          ? 'Saving vote'
+          ? t("Saving vote")
           : voteState.hasVoted
-            ? `Voted. ${voteState.count} votes.`
-            : `${voteState.count} votes.`}
+            ? t("Voted. {count} votes.", { count: voteState.count })
+            : t("{count} votes.", { count: voteState.count })}
       </span>
     </button>
   )

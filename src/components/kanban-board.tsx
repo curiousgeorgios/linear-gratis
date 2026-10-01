@@ -6,6 +6,7 @@ import { PriorityIcon, EstimateIcon } from '@/components/priority-icon'
 import { UserAvatar } from '@/components/user-avatar'
 import { StateIcon } from '@/components/state-icon'
 import { applyFilters, STATE_TYPE_ORDER } from '@/lib/issue-filters'
+import { useT } from '@/lib/i18n/client'
 
 // Shared Tailwind classes for the small metadata badges on a kanban card
 // (priority, estimate, label). Using theme tokens so the badges adapt to
@@ -34,6 +35,8 @@ export function KanbanBoard({
   filters,
   onIssueClick
 }: KanbanBoardProps) {
+  const t = useT()
+
   // Filter issues based on provided filters (shared with the list view).
   const filteredIssues = filters
     ? applyFilters(issues, filters, {
@@ -71,8 +74,8 @@ export function KanbanBoard({
     return (
       <div className="text-center py-20">
         <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues match your filters</div>
-          <div className="text-sm">Try adjusting your filter criteria to see more results.</div>
+          <div className="text-lg font-medium mb-2">{t("No issues match your filters")}</div>
+          <div className="text-sm">{t("Try adjusting your filter criteria to see more results.")}</div>
         </div>
       </div>
     )
@@ -82,8 +85,8 @@ export function KanbanBoard({
     return (
       <div className="text-center py-20">
         <div className="text-muted-foreground">
-          <div className="text-lg font-medium mb-2">No issues found</div>
-          <div className="text-sm">This view doesn&apos;t contain any issues yet.</div>
+          <div className="text-lg font-medium mb-2">{t("No issues found")}</div>
+          <div className="text-sm">{t("This view doesn't contain any issues yet.")}</div>
         </div>
       </div>
     )
@@ -100,7 +103,7 @@ export function KanbanBoard({
           return (
             <div key={columnName} className="flex-shrink-0 w-80 sm:w-[356px] group">
               {/* Column Header - matching Linear's exact structure */}
-              <div className="flex flex-row h-12 w-full pl-1" style={{ paddingLeft: '4px' }}>
+              <div className="flex flex-row h-12 w-full ps-1" style={{ paddingInlineStart: '4px' }}>
                 <div className="w-full" style={{ width: '348px' }}>
                   <div className="flex items-center justify-between p-3 mb-2">
                     <div className="flex items-center gap-2">
@@ -119,7 +122,7 @@ export function KanbanBoard({
               </div>
 
               {/* Issues Column - matching Linear's exact structure */}
-              <div className="flex flex-row w-full pl-1" style={{ paddingLeft: '4px' }}>
+              <div className="flex flex-row w-full ps-1" style={{ paddingInlineStart: '4px' }}>
                 <div className="w-full" style={{ width: '348px' }}>
                   <div className="space-y-2 px-1">
                     {column.issues.map((issue) => (
@@ -127,7 +130,7 @@ export function KanbanBoard({
                           {/* Issue Card - matching Linear's exact structure */}
                           <button
                             onClick={() => onIssueClick?.(issue.identifier)}
-                            className="w-full bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group cursor-pointer text-left"
+                            className="w-full bg-card border border-border/40 rounded-md hover:border-border/60 hover:shadow-sm transition-all duration-200 group cursor-pointer text-start"
                           >
                             <div className="relative p-3">
                               {/* Top row: Issue ID, Status Icon, and Assignee */}
@@ -199,7 +202,7 @@ export function KanbanBoard({
 
                     {column.issues.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground/60">
-                        <div className="text-sm">No issues</div>
+                        <div className="text-sm">{t("No issues")}</div>
                       </div>
                     )}
                   </div>

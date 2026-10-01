@@ -1,0 +1,287 @@
+# Linear.gratis for Dokploy (https://dokploy.com): same stack as docker-compose.yml,
+# but self-contained -- no bind mounts, no build, no published ports.
+# Setup guide: docs/dokploy.md
+
+name: linear-gratis
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  gateway:
+    <<: *restart
+    image: caddy:2.10-alpine
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - default
+      - dokploy-network
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    <<: *restart
+    image: ${LINEAR_GRATIS_IMAGE:-samerelhamdousa/linear-gratis:latest}
+    pull_policy: always
+    environment:
+      # Public address (what browsers use) and the in-network address the
+      # server uses to reach the same Supabase API.
+      NEXT_PUBLIC_SUPABASE_URL: ${APP_URL:?Run docker/generate-env.mjs first}
+      SUPABASE_INTERNAL_URL: http://gateway
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      NEXT_PUBLIC_SUPABASE_COOKIE_NAME: linear-gratis-auth
+      NEXT_PUBLIC_APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      NEXT_PUBLIC_AUTH_METHODS: ${AUTH_METHODS:-password}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${DEFAULT_LOCALE:-ar}
+      APP_URL: ${APP_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+      ACCESS_COOKIE_SECRET: ${ACCESS_COOKIE_SECRET:?}
+      IP_HASH_SALT: ${IP_HASH_SALT:?}
+      FEEDBACK_WEBHOOK_SECRET: ${FEEDBACK_WEBHOOK_SECRET:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rest:
+        condition: service_started
+
+  # Copies the migrations shipped inside the app image into a shared volume.
+  export-migrations:
+    image: ${LINEAR_GRATIS_IMAGE:-samerelhamdousa/linear-gratis:latest}
+    pull_policy: always
+    command: ["export-migrations", "/migrations"]
+    user: root
+    volumes:
+      - migrations:/migrations
+    restart: "no"
+
+  migrate:
+    image: supabase/postgres:15.8.1.060
+    entrypoint: ["/bin/sh", "/migrate.sh"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    configs:
+      - source: migrate_script
+        target: /migrate.sh
+    volumes:
+      - migrations:/migrations:ro
+    depends_on:
+      export-migrations:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    restart: "no"
+
+  db:
+    <<: *restart
+    image: supabase/postgres:15.8.1.060
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET:?}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    configs:
+      - source: roles_sql
+        target: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    <<: *restart
+    image: supabase/gotrue:v2.174.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${APP_URL}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${APP_URL}
+      GOTRUE_URI_ALLOW_LIST: ${APP_URL}/**
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: ${AUTH_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_EXTERNAL_GITHUB_ENABLED: ${GITHUB_ENABLED:-false}
+      GOTRUE_EXTERNAL_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GITHUB_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI: ${APP_URL}/auth/v1/callback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rest:
+    <<: *restart
+    image: postgrest/postgrest:v12.2.12
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  storage:
+    <<: *restart
+    image: supabase/storage-api:v1.24.7
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: linear-gratis
+      REGION: local
+      GLOBAL_S3_BUCKET: linear-gratis
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - storage-data:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  migrations:
+  db-data:
+  storage-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  dokploy-network:
+    external: true
+
+configs:
+  caddyfile:
+    content: |
+      # Single public origin for the app and the Supabase API, so browsers never hit
+      # CORS and only one hostname/certificate is needed.
+      #
+      #   /auth/v1/*     -> GoTrue   (sign-in, sessions)
+      #   /rest/v1/*     -> PostgREST (database API, protected by RLS)
+      #   /storage/v1/*  -> Storage   (branding logos)
+      #   everything else -> the Next.js app
+      :80 {
+      	encode zstd gzip
+
+      	handle_path /auth/v1/* {
+      		reverse_proxy auth:9999
+      	}
+      	handle_path /rest/v1/* {
+      		reverse_proxy rest:3000
+      	}
+      	handle_path /storage/v1/* {
+      		request_body {
+      			max_size 50MB
+      		}
+      		reverse_proxy storage:5000
+      	}
+      	handle {
+      		reverse_proxy app:3000
+      	}
+      }
+  roles_sql:
+    content: |
+      -- Runs once on first database start (mounted into docker-entrypoint-initdb.d).
+      -- The supabase/postgres image creates the service roles without usable
+      -- passwords; give them the shared POSTGRES_PASSWORD and expose the JWT secret
+      -- to SQL helpers such as auth.uid().
+      \set pgpass `echo "$$POSTGRES_PASSWORD"`
+      \set jwt_secret `echo "$$JWT_SECRET"`
+
+      ALTER USER authenticator WITH PASSWORD :'pgpass';
+      ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
+      ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
+      ALTER USER supabase_admin WITH PASSWORD :'pgpass';
+
+      ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
+      ALTER DATABASE postgres SET "app.settings.jwt_exp" TO '3600';
+  migrate_script:
+    content: |
+      #!/bin/sh
+      # One-shot job: wait for GoTrue and Storage to create their schemas, then apply
+      # the repository's forward migrations in order. Uses the same ledger as the
+      # Supabase CLI (supabase_migrations.schema_migrations), so the database stays
+      # compatible with `supabase db push` later on.
+      set -eu
+
+      export PGPASSWORD="$$POSTGRES_PASSWORD"
+      PSQL="psql -h db -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -X -q"
+
+      echo "[migrate] waiting for auth.users and storage.buckets..."
+      i=0
+      until [ "$$($$PSQL -tAc "select (to_regclass('auth.users') is not null and to_regclass('storage.buckets') is not null)::int" 2>/dev/null || echo 0)" = "1" ]; do
+        i=$$((i + 1))
+        if [ "$$i" -gt 90 ]; then echo "[migrate] timed out waiting for auth/storage schemas" >&2; exit 1; fi
+        sleep 2
+      done
+
+      $$PSQL <<'SQL'
+      create schema if not exists supabase_migrations;
+      create table if not exists supabase_migrations.schema_migrations (
+        version text primary key,
+        statements text[],
+        name text
+      );
+      SQL
+
+      applied=0
+      for file in $$(ls /migrations/*.sql | sort); do
+        base="$$(basename "$$file" .sql)"
+        version="$${base%%_*}"
+        name="$${base#*_}"
+        if [ "$$($$PSQL -tAc "select 1 from supabase_migrations.schema_migrations where version = '$$version'")" = "1" ]; then
+          continue
+        fi
+        echo "[migrate] applying $$base"
+        $$PSQL -f "$$file"
+        $$PSQL -c "insert into supabase_migrations.schema_migrations (version, name) values ('$$version', '$$name')"
+        applied=$$((applied + 1))
+      done
+
+      echo "[migrate] done ($$applied applied)"

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n/client'
 
 const faqs = [
   {
@@ -43,13 +44,14 @@ function FAQItem({
   isOpen: boolean
   onToggle: () => void
 }) {
+  const t = useT()
   return (
     <div className="border-b border-border/50 last:border-b-0">
       <button
         onClick={onToggle}
-        className="flex w-full items-center justify-between py-5 text-left transition-colors hover:text-primary"
+        className="flex w-full items-center justify-between py-5 text-start transition-colors hover:text-primary"
       >
-        <span className="font-medium pr-4">{question}</span>
+        <span className="font-medium pe-4">{t(question)}</span>
         <ChevronDown
           className={cn(
             'h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200',
@@ -64,7 +66,7 @@ function FAQItem({
         )}
       >
         <div className="overflow-hidden">
-          <p className="pb-5 text-muted-foreground leading-relaxed">{answer}</p>
+          <p className="pb-5 text-muted-foreground leading-relaxed">{t(answer)}</p>
         </div>
       </div>
     </div>

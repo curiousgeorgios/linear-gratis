@@ -12,6 +12,7 @@ import {
 } from '@/lib/structured-data'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import { getT } from '@/lib/i18n/server'
 
 interface ComparisonPageProps {
   params: Promise<{
@@ -40,6 +41,8 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
 }
 
 export default async function ComparisonPage({ params }: ComparisonPageProps) {
+  const t = await getT()
+
   const resolvedParams = await params
   const tool = comparisonTools[resolvedParams.tool]
 
@@ -86,15 +89,15 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         <div className="container mx-auto px-6 py-12">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl font-bold mb-4">
-              {tool.name} vs linear.gratis
+              {tool.name} {t("vs linear.gratis")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Compare {tool.name} and linear.gratis for Linear customer feedback collection.
+              {t("Compare")} {tool.name} {t("and linear.gratis for Linear customer feedback collection.")}
             </p>
             <Button asChild size="lg">
               <Link href="/login">
-                Start free with linear.gratis
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {t("Start free with linear.gratis")}
+                <ArrowRight className="ms-2 h-4 w-4 rtl:-scale-x-100" />
               </Link>
             </Button>
           </div>

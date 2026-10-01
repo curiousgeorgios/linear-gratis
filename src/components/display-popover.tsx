@@ -9,6 +9,7 @@ import type {
   IssueLayout,
   IssueOrdering,
 } from '@/lib/issue-filters'
+import { useT } from '@/lib/i18n/client'
 
 interface DisplayPopoverProps {
   isOpen: boolean
@@ -50,6 +51,8 @@ export function DisplayPopover({
   availableProperties,
   triggerRef,
 }: DisplayPopoverProps) {
+  const t = useT()
+
   const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -88,7 +91,7 @@ export function DisplayPopover({
   return (
     <div
       ref={popoverRef}
-      className="absolute right-0 top-full mt-1 z-50 w-[260px] origin-top-right rounded-md border border-border bg-background shadow-md p-3 space-y-3"
+      className="absolute end-0 top-full mt-1 z-50 w-[260px] origin-top-right rounded-md border border-border bg-background shadow-md p-3 space-y-3"
     >
       {/* Layout segmented control */}
       <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/50">
@@ -101,7 +104,7 @@ export function DisplayPopover({
           }`}
         >
           <LayoutList className="h-3.5 w-3.5" />
-          List
+          {t("List")}
         </button>
         <button
           onClick={() => setLayout('board')}
@@ -112,13 +115,13 @@ export function DisplayPopover({
           }`}
         >
           <Columns3 className="h-3.5 w-3.5" />
-          Board
+          {t("Board")}
         </button>
       </div>
 
       {/* Grouping */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Grouping</span>
+        <span className="text-sm text-muted-foreground">{t("Grouping")}</span>
         <select
           value={value.grouping}
           onChange={e => onChange({ ...value, grouping: e.target.value as IssueGrouping })}
@@ -126,7 +129,7 @@ export function DisplayPopover({
         >
           {GROUPING_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.label)}
             </option>
           ))}
         </select>
@@ -134,7 +137,7 @@ export function DisplayPopover({
 
       {/* Ordering */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Ordering</span>
+        <span className="text-sm text-muted-foreground">{t("Ordering")}</span>
         <select
           value={value.ordering}
           onChange={e => onChange({ ...value, ordering: e.target.value as IssueOrdering })}
@@ -142,7 +145,7 @@ export function DisplayPopover({
         >
           {ORDERING_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.label)}
             </option>
           ))}
         </select>
@@ -151,7 +154,7 @@ export function DisplayPopover({
       {/* Display properties */}
       {availableProperties.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1.5">Display properties</div>
+          <div className="text-xs font-medium text-muted-foreground mb-1.5">{t("Display properties")}</div>
           <div className="flex flex-wrap gap-1.5">
             {availableProperties.map(p => {
               const active = value.properties[p]
@@ -165,7 +168,7 @@ export function DisplayPopover({
                       : 'border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {PROPERTY_LABELS[p]}
+                  {t(PROPERTY_LABELS[p])}
                 </button>
               )
             })}

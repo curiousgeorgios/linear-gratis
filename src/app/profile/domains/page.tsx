@@ -36,8 +36,11 @@ import {
   Copy,
   RefreshCw,
 } from "lucide-react";
+import { useI18n } from '@/lib/i18n/client'
 
 export default function CustomDomainsPage() {
+  const { t, intlLocale } = useI18n()
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [domains, setDomains] = useState<CustomDomain[]>([]);
@@ -144,7 +147,7 @@ export default function CustomDomainsPage() {
 
   const handleAddDomain = async () => {
     if (!user || !newDomain || !targetSlug) {
-      toast.error("Please fill in all fields");
+      toast.error(t("Please fill in all fields"));
       return;
     }
 
@@ -172,7 +175,7 @@ export default function CustomDomainsPage() {
       });
 
       if (response.ok) {
-        toast.success("Domain added successfully!");
+        toast.success(t("Domain added successfully!"));
         setNewDomain("");
         setTargetSlug("");
         setShowAddDomain(false);
@@ -183,7 +186,7 @@ export default function CustomDomainsPage() {
       }
     } catch (error) {
       console.error("Error adding domain:", error);
-      toast.error("Failed to add domain");
+      toast.error(t("Failed to add domain"));
     } finally {
       setSubmitting(false);
     }
@@ -232,7 +235,7 @@ export default function CustomDomainsPage() {
       }
     } catch (error) {
       console.error("Error verifying domain:", error);
-      toast.error("Failed to verify domain");
+      toast.error(t("Failed to verify domain"));
     }
   };
 
@@ -262,16 +265,16 @@ export default function CustomDomainsPage() {
       });
 
       if (response.ok) {
-        toast.success("Domain deleted successfully!");
+        toast.success(t("Domain deleted successfully!"));
         setDeleteModalOpen(false);
         setDomainToDelete(null);
         await loadDomains();
       } else {
-        toast.error("Failed to delete domain");
+        toast.error(t("Failed to delete domain"));
       }
     } catch (error) {
       console.error("Error deleting domain:", error);
-      toast.error("Failed to delete domain");
+      toast.error(t("Failed to delete domain"));
     } finally {
       setDeleting(false);
     }
@@ -279,7 +282,7 @@ export default function CustomDomainsPage() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard!`);
+    toast.success(t("{label} copied to clipboard!", { label }));
   };
 
   const getStatusBadges = (domain: CustomDomain) => {
@@ -290,24 +293,24 @@ export default function CustomDomainsPage() {
       case "verified":
         badges.push(
           <Badge key="verified" className="bg-green-100 text-green-800">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Verified
+            <CheckCircle2 className="h-3 w-3 me-1" />
+            {t("Verified")}
           </Badge>
         );
         break;
       case "failed":
         badges.push(
           <Badge key="failed" className="bg-red-100 text-red-800">
-            <XCircle className="h-3 w-3 mr-1" />
-            Failed
+            <XCircle className="h-3 w-3 me-1" />
+            {t("Failed")}
           </Badge>
         );
         break;
       default:
         badges.push(
           <Badge key="pending" className="bg-yellow-100 text-yellow-800">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending verification
+            <Clock className="h-3 w-3 me-1" />
+            {t("Pending verification")}
           </Badge>
         );
     }
@@ -316,22 +319,22 @@ export default function CustomDomainsPage() {
     if (domain.ssl_status === "active") {
       badges.push(
         <Badge key="ssl-active" className="bg-blue-100 text-blue-800">
-          <Shield className="h-3 w-3 mr-1" />
-          SSL active
+          <Shield className="h-3 w-3 me-1" />
+          {t("SSL active")}
         </Badge>
       );
     } else if (domain.verification_status === "verified" && domain.ssl_status === "pending") {
       badges.push(
         <Badge key="ssl-pending" className="bg-orange-100 text-orange-800">
-          <Clock className="h-3 w-3 mr-1" />
-          SSL provisioning
+          <Clock className="h-3 w-3 me-1" />
+          {t("SSL provisioning")}
         </Badge>
       );
     } else if (domain.ssl_status === "failed") {
       badges.push(
         <Badge key="ssl-failed" className="bg-red-100 text-red-800">
-          <XCircle className="h-3 w-3 mr-1" />
-          SSL failed
+          <XCircle className="h-3 w-3 me-1" />
+          {t("SSL failed")}
         </Badge>
       );
     }
@@ -358,7 +361,7 @@ export default function CustomDomainsPage() {
         <Navigation />
         <div className="max-w-6xl mx-auto p-6">
           <div className="text-center py-8">
-            <p className="text-gray-600">Loading custom domains...</p>
+            <p className="text-gray-600">{t("Loading custom domains...")}</p>
           </div>
         </div>
       </div>
@@ -376,9 +379,9 @@ export default function CustomDomainsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Custom domains</h1>
+              <h1 className="text-3xl font-bold mb-2">{t("Custom domains")}</h1>
               <p className="text-muted-foreground">
-                Use your own domain for your public forms and views
+                {t("Use your own domain for your public forms and views")}
               </p>
             </div>
             <Button
@@ -386,7 +389,7 @@ export default function CustomDomainsPage() {
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add domain
+              {t("Add domain")}
             </Button>
           </div>
         </div>
@@ -398,9 +401,9 @@ export default function CustomDomainsPage() {
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                 1
               </div>
-              <CardTitle className="text-lg">Add your domain</CardTitle>
+              <CardTitle className="text-lg">{t("Add your domain")}</CardTitle>
               <CardDescription>
-                Enter your domain and select which form or view it should point to
+                {t("Enter your domain and select which form or view it should point to")}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -410,9 +413,9 @@ export default function CustomDomainsPage() {
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                 2
               </div>
-              <CardTitle className="text-lg">Configure DNS</CardTitle>
+              <CardTitle className="text-lg">{t("Configure DNS")}</CardTitle>
               <CardDescription>
-                Add the provided DNS records to your domain registrar
+                {t("Add the provided DNS records to your domain registrar")}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -422,9 +425,9 @@ export default function CustomDomainsPage() {
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mb-2">
                 3
               </div>
-              <CardTitle className="text-lg">Verify and activate</CardTitle>
+              <CardTitle className="text-lg">{t("Verify and activate")}</CardTitle>
               <CardDescription>
-                Verify your domain and start using it with your custom branding
+                {t("Verify your domain and start using it with your custom branding")}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -434,28 +437,28 @@ export default function CustomDomainsPage() {
         {showAddDomain && (
           <Card className="mb-8 border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Add a new custom domain</CardTitle>
+              <CardTitle>{t("Add a new custom domain")}</CardTitle>
               <CardDescription>
-                Connect your domain to a specific form or view
+                {t("Connect your domain to a specific form or view")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="domain">Domain name</Label>
+                <Label htmlFor="domain">{t("Domain name")}</Label>
                 <Input
-                  id="domain"
-                  placeholder="e.g., support.yourdomain.com or feedback.example.com"
+                  id="domain" dir="ltr"
+                  placeholder={t("e.g., support.yourdomain.com or feedback.example.com")}
                   value={newDomain}
                   onChange={(e) => setNewDomain(e.target.value.toLowerCase())}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter the full domain or subdomain you want to use
+                  {t("Enter the full domain or subdomain you want to use")}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="target-type">Target type</Label>
+                  <Label htmlFor="target-type">{t("Target type")}</Label>
                   <Select
                     value={targetType}
                     onValueChange={(value) =>
@@ -466,15 +469,15 @@ export default function CustomDomainsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="form">Form</SelectItem>
-                      <SelectItem value="view">View</SelectItem>
+                      <SelectItem value="form">{t("Form")}</SelectItem>
+                      <SelectItem value="view">{t("View")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="target-slug">
-                    Target {targetType === "form" ? "form" : "view"}
+                    {t("Target")} {targetType === "form" ? t("form") : t("view")}
                   </Label>
                   <Select
                     value={targetSlug}
@@ -485,7 +488,7 @@ export default function CustomDomainsPage() {
                       <SelectValue
                         placeholder={
                           loadingTargets
-                            ? "Loading..."
+                            ? t("Loading...")
                             : `Select a ${targetType}`
                         }
                       />
@@ -500,7 +503,7 @@ export default function CustomDomainsPage() {
                           ))
                         ) : (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                            No active forms available
+                            {t("No active forms available")}
                           </div>
                         )
                       ) : availableViews.length > 0 ? (
@@ -511,7 +514,7 @@ export default function CustomDomainsPage() {
                         ))
                       ) : (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          No active views available
+                          {t("No active views available")}
                         </div>
                       )}
                     </SelectContent>
@@ -521,8 +524,8 @@ export default function CustomDomainsPage() {
                     !loadingTargets && (
                       <p className="text-xs text-amber-600">
                         {targetType === "form"
-                          ? "You don't have any active forms. Create a form first."
-                          : "You don't have any active views. Create a view first."}
+                          ? t("You don't have any active forms. Create a form first.")
+                          : t("You don't have any active views. Create a view first.")}
                       </p>
                     )}
                 </div>
@@ -533,10 +536,10 @@ export default function CustomDomainsPage() {
                   onClick={handleAddDomain}
                   disabled={submitting || !newDomain || !targetSlug}
                 >
-                  {submitting ? "Adding..." : "Add domain"}
+                  {submitting ? t("Adding...") : t("Add domain")}
                 </Button>
                 <Button variant="outline" onClick={() => setShowAddDomain(false)}>
-                  Cancel
+                  {t("Cancel")}
                 </Button>
               </div>
             </CardContent>
@@ -549,13 +552,13 @@ export default function CustomDomainsPage() {
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <Globe className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No custom domains yet</h3>
+                <h3 className="text-lg font-medium mb-2">{t("No custom domains yet")}</h3>
                 <p className="text-muted-foreground mb-4">
-                  Add your first custom domain to start using your own branding
+                  {t("Add your first custom domain to start using your own branding")}
                 </p>
                 <Button onClick={() => setShowAddDomain(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add your first domain
+                  <Plus className="h-4 w-4 me-2" />
+                  {t("Add your first domain")}
                 </Button>
               </div>
             </CardContent>
@@ -574,10 +577,10 @@ export default function CustomDomainsPage() {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>
-                            Points to: /{domain.target_type}/{domain.target_slug}
+                            {t("Points to: /")}{domain.target_type}/{domain.target_slug}
                           </span>
                           <span>
-                            Added {new Date(domain.created_at).toLocaleDateString()}
+                            {t("Added")} {new Date(domain.created_at).toLocaleDateString(intlLocale)}
                           </span>
                         </div>
                         {domain.error_message && (
@@ -596,7 +599,7 @@ export default function CustomDomainsPage() {
                             className="flex items-center gap-2"
                           >
                             <RefreshCw className="h-4 w-4" />
-                            Check status
+                            {t("Check status")}
                           </Button>
                         )}
                         {/* Show refresh button for verified domains with pending SSL */}
@@ -608,7 +611,7 @@ export default function CustomDomainsPage() {
                             className="flex items-center gap-2"
                           >
                             <RefreshCw className="h-4 w-4" />
-                            Check SSL
+                            {t("Check SSL")}
                           </Button>
                         )}
                         <Button
@@ -625,9 +628,9 @@ export default function CustomDomainsPage() {
                     {/* DNS Configuration */}
                     {domain.verification_status !== "verified" && domain.dns_records && (
                       <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-3">DNS configuration</h4>
+                        <h4 className="font-semibold mb-3">{t("DNS configuration")}</h4>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Add these DNS records to your domain registrar. DNS changes may take up to 48 hours to propagate.
+                          {t("Add these DNS records to your domain registrar. DNS changes may take up to 48 hours to propagate.")}
                         </p>
                         <div className="space-y-3">
                           {domain.dns_records.map((record, index) => (
@@ -647,7 +650,7 @@ export default function CustomDomainsPage() {
                               </div>
                               <div className="space-y-1">
                                 <div className="flex items-start gap-2">
-                                  <span className="text-muted-foreground text-xs min-w-[50px]">Name:</span>
+                                  <span className="text-muted-foreground text-xs min-w-[50px]">{t("Name:")}</span>
                                   <code className="text-xs break-all flex-1">{record.name}</code>
                                   <Button
                                     variant="ghost"
@@ -659,7 +662,7 @@ export default function CustomDomainsPage() {
                                   </Button>
                                 </div>
                                 <div className="flex items-start gap-2">
-                                  <span className="text-muted-foreground text-xs min-w-[50px]">Value:</span>
+                                  <span className="text-muted-foreground text-xs min-w-[50px]">{t("Value:")}</span>
                                   <code className="text-xs break-all flex-1">{record.value}</code>
                                   <Button
                                     variant="ghost"
@@ -686,20 +689,17 @@ export default function CustomDomainsPage() {
         {/* Help section */}
         <Card className="mt-8 bg-muted/50 border-border/50">
           <CardHeader>
-            <CardTitle className="text-base">Need help?</CardTitle>
+            <CardTitle className="text-base">{t("Need help?")}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              <strong>DNS propagation:</strong> After adding DNS records, it may take up to
-              48 hours for changes to propagate globally.
+              <strong>{t("DNS propagation:")}</strong> {t("After adding DNS records, it may take up to 48 hours for changes to propagate globally.")}
             </p>
             <p>
-              <strong>SSL certificates:</strong> Once verified, SSL certificates are
-              automatically provisioned for your custom domain.
+              <strong>{t("SSL certificates:")}</strong> {t("Once verified, SSL certificates are automatically provisioned for your custom domain.")}
             </p>
             <p>
-              <strong>Troubleshooting:</strong> If verification fails, double-check that your
-              DNS records are correctly configured in your domain registrar.
+              <strong>{t("Troubleshooting:")}</strong> {t("If verification fails, double-check that your DNS records are correctly configured in your domain registrar.")}
             </p>
           </CardContent>
         </Card>
@@ -712,10 +712,10 @@ export default function CustomDomainsPage() {
           setDomainToDelete(null);
         }}
         onConfirm={confirmDeleteDomain}
-        title="Delete domain"
-        description={`Are you sure you want to delete "${domainToDelete?.domain}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("Delete domain")}
+        description={t('Are you sure you want to delete "{domain}"? This action cannot be undone.', { domain: domainToDelete?.domain ?? "" })}
+        confirmLabel={t("Delete")}
+        cancelLabel={t("Cancel")}
         variant="danger"
         loading={deleting}
       />

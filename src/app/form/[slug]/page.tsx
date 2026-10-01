@@ -25,6 +25,8 @@ import {
   MAX_FORM_ATTACHMENT_FILES,
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
+import { useT } from '@/lib/i18n/client'
+import { LanguageToggle } from '@/components/language-toggle'
 
 const formSchema = z.object({
   customerName: z.string().min(1, 'Your name is required'),
@@ -119,6 +121,8 @@ function getTemplateDescriptionContentFromConfig(
 }
 
 export default function PublicFormPage() {
+  const t = useT()
+
   const params = useParams()
   const searchParams = useSearchParams()
   const slug = params.slug as string
@@ -276,13 +280,13 @@ export default function PublicFormPage() {
 
     for (const file of files) {
       if (attachmentFiles.length + acceptedFiles.length >= MAX_FORM_ATTACHMENT_FILES) {
-        setAttachmentError(`You can attach up to ${MAX_FORM_ATTACHMENT_FILES} files`)
+        setAttachmentError(t('You can attach up to {max} files', { max: MAX_FORM_ATTACHMENT_FILES }))
         break
       }
 
       const validation = validateFormAttachmentFile(file)
       if (!validation.ok) {
-        setAttachmentError(`${file.name}: ${validation.error}`)
+        setAttachmentError(`${file.name}: ${t(validation.error)}`)
         continue
       }
 
@@ -350,12 +354,12 @@ export default function PublicFormPage() {
         const defaultIssueBody = getTemplateDescription(defaultTemplateId)
         const issueIdentifier = data.data?.issue?.identifier
 
-        toast.success('Request submitted', {
+        toast.success(t("Request submitted"), {
           id: PUBLIC_FORM_SUBMIT_TOAST_ID,
           toasterId: PUBLIC_FORM_TOASTER_ID,
           description: issueIdentifier
-            ? `Created ${issueIdentifier}. We'll get back to you soon.`
-            : 'We\'ll get back to you soon.',
+            ? t("Created {identifier}. We'll get back to you soon.", { identifier: issueIdentifier })
+            : t("We'll get back to you soon."),
           duration: 6000,
         })
         form.reset({
@@ -370,19 +374,19 @@ export default function PublicFormPage() {
         setSelectedTemplateId(defaultTemplateId)
         clearAttachmentFiles()
       } else {
-        toast.error('Could not submit request', {
+        toast.error(t("Could not submit request"), {
           id: PUBLIC_FORM_SUBMIT_TOAST_ID,
           toasterId: PUBLIC_FORM_TOASTER_ID,
-          description: data.error || 'Failed to submit request. Please try again.',
+          description: data.error || t('Failed to submit request. Please try again.'),
           duration: 8000,
         })
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      toast.error('Could not submit request', {
+      toast.error(t("Could not submit request"), {
         id: PUBLIC_FORM_SUBMIT_TOAST_ID,
         toasterId: PUBLIC_FORM_TOASTER_ID,
-        description: 'Network error. Please try again.',
+        description: t("Network error. Please try again."),
         duration: 8000,
       })
     } finally {
@@ -400,8 +404,8 @@ export default function PublicFormPage() {
         )}
       >
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-          <p className="text-gray-600">Please wait while we load the form.</p>
+          <h2 className="text-xl font-semibold mb-2">{t("Loading...")}</h2>
+          <p className="text-gray-600">{t("Please wait while we load the form.")}</p>
         </div>
       </div>
     )
@@ -417,9 +421,9 @@ export default function PublicFormPage() {
       >
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Form not found</CardTitle>
+            <CardTitle>{t("Form not found")}</CardTitle>
             <CardDescription>
-              The form you&apos;re looking for doesn&apos;t exist or has been deactivated.
+              {t("The form you're looking for doesn't exist or has been deactivated.")}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -485,7 +489,7 @@ export default function PublicFormPage() {
             )}
             {!isEmbedded && !branding?.brand_name && (
               <div className="text-sm text-gray-600">
-                Project: {formConfig.project_name}
+                {t("Project:")} {formConfig.project_name}
               </div>
             )}
           </CardHeader>
@@ -501,7 +505,7 @@ export default function PublicFormPage() {
                     name="templateId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Request type</FormLabel>
+                        <FormLabel>{t("Request type")}</FormLabel>
                         <Select
                           value={effectiveSelectedTemplateId || undefined}
                           onValueChange={(templateId) => {
@@ -518,7 +522,7 @@ export default function PublicFormPage() {
                                   !selectedTemplateLabel && 'text-muted-foreground',
                                 )}
                               >
-                                {selectedTemplateLabel || 'Choose a request type'}
+                                {selectedTemplateLabel || t("Choose a request type")}
                               </span>
                             </SelectTrigger>
                           </FormControl>
@@ -544,9 +548,9 @@ export default function PublicFormPage() {
                     name="customerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Your name</FormLabel>
+                        <FormLabel>{t("Your name")}</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder={t("John Doe")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -558,11 +562,11 @@ export default function PublicFormPage() {
                     name="customerEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email address</FormLabel>
+                        <FormLabel>{t("Email address")}</FormLabel>
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="Enter your email address"
+                            placeholder={t("Enter your email address")}
                             {...field}
                           />
                         </FormControl>
@@ -577,9 +581,9 @@ export default function PublicFormPage() {
                   name="externalId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Reference ID (optional)</FormLabel>
+                      <FormLabel>{t("Reference ID (optional)")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your internal reference ID" {...field} />
+                        <Input placeholder={t("Your internal reference ID")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -591,9 +595,9 @@ export default function PublicFormPage() {
                   name="issueTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Issue title</FormLabel>
+                      <FormLabel>{t("Issue title")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Brief description of the issue" {...field} />
+                        <Input placeholder={t("Brief description of the issue")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -605,7 +609,7 @@ export default function PublicFormPage() {
                   name="issueBody"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>{t("Description")}</FormLabel>
                       <FormControl>
                         <LinearMarkdownEditor
                           value={field.value}
@@ -614,7 +618,7 @@ export default function PublicFormPage() {
                           onChange={field.onChange}
                           onBlur={field.onBlur}
                           name={field.name}
-                          placeholder="Please provide a detailed description of your issue or request..."
+                          placeholder={t("Please provide a detailed description of your issue or request...")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -627,7 +631,7 @@ export default function PublicFormPage() {
                   name="attachmentUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Attachments (optional)</FormLabel>
+                      <FormLabel>{t("Attachments (optional)")}</FormLabel>
                       <FormControl>
                         <div className="space-y-3">
                           <Input type="hidden" {...field} />
@@ -643,7 +647,7 @@ export default function PublicFormPage() {
                           {field.value && (
                             <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                               <Paperclip className="size-4 shrink-0" />
-                              <span className="truncate">Linked attachment included</span>
+                              <span className="truncate">{t("Linked attachment included")}</span>
                             </div>
                           )}
                         </div>
@@ -654,7 +658,7 @@ export default function PublicFormPage() {
                 />
 
                 <Button type="submit" disabled={submitting} className="w-full">
-                  {submitting ? 'Submitting...' : 'Submit request'}
+                  {submitting ? t("Submitting...") : t("Submit request")}
                 </Button>
               </form>
             </Form>
@@ -672,20 +676,23 @@ export default function PublicFormPage() {
               ) : null}
               {showPoweredBy && (
                 <p>
-                  Powered by{' '}
+                  {t("Powered by")}{' '}
                   <a
                     href="https://linear.gratis"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    linear.gratis
+                    {t("linear.gratis")}
                   </a>
                 </p>
               )}
             </div>
           )
         })()}
+        <div className="mt-3 flex justify-center">
+          <LanguageToggle className="h-7 text-xs font-medium text-muted-foreground" />
+        </div>
       </div>
     </div>
   )

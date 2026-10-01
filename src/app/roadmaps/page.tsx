@@ -26,6 +26,7 @@ import { supabase, Roadmap } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Eye, Copy, Globe, Lock, Plus, Map } from "lucide-react";
+import { useT } from '@/lib/i18n/client'
 
 type Project = {
   id: string;
@@ -34,6 +35,8 @@ type Project = {
 };
 
 export default function RoadmapsPage() {
+  const t = useT()
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
@@ -159,17 +162,17 @@ export default function RoadmapsPage() {
     e.preventDefault();
 
     if (!roadmapName.trim() || !roadmapSlug.trim() || !roadmapTitle.trim()) {
-      setMessage({ type: "error", text: "Please fill in all required fields" });
+      setMessage({ type: "error", text: t("Please fill in all required fields") });
       return;
     }
 
     if (selectedProjects.length === 0) {
-      setMessage({ type: "error", text: "Please select at least one project" });
+      setMessage({ type: "error", text: t("Please select at least one project") });
       return;
     }
 
     if (passwordProtected && !password.trim()) {
-      setMessage({ type: "error", text: "Please enter a password" });
+      setMessage({ type: "error", text: t("Please enter a password") });
       return;
     }
 
@@ -203,20 +206,20 @@ export default function RoadmapsPage() {
         setRoadmaps((prev) => [result.roadmap!, ...prev]);
         setShowCreateRoadmap(false);
         resetForm();
-        setMessage({ type: "success", text: "Roadmap created successfully!" });
+        setMessage({ type: "success", text: t("Roadmap created successfully!") });
       } else {
         setMessage({ type: "error", text: result.error || "Failed to create roadmap" });
       }
     } catch (error) {
       console.error("Error creating roadmap:", error);
-      setMessage({ type: "error", text: "Failed to create roadmap" });
+      setMessage({ type: "error", text: t("Failed to create roadmap") });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteRoadmap = async (roadmapId: string) => {
-    if (!confirm("Are you sure you want to delete this roadmap? All votes and comments will also be deleted.")) {
+    if (!confirm(t("Are you sure you want to delete this roadmap? All votes and comments will also be deleted."))) {
       return;
     }
 
@@ -232,19 +235,19 @@ export default function RoadmapsPage() {
 
       if (response.ok) {
         setRoadmaps((prev) => prev.filter((r) => r.id !== roadmapId));
-        setMessage({ type: "success", text: "Roadmap deleted successfully" });
+        setMessage({ type: "success", text: t("Roadmap deleted successfully") });
       } else {
-        setMessage({ type: "error", text: "Failed to delete roadmap" });
+        setMessage({ type: "error", text: t("Failed to delete roadmap") });
       }
     } catch (error) {
       console.error("Error deleting roadmap:", error);
-      setMessage({ type: "error", text: "Failed to delete roadmap" });
+      setMessage({ type: "error", text: t("Failed to delete roadmap") });
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setMessage({ type: "success", text: "Copied to clipboard!" });
+    setMessage({ type: "success", text: t("Copied to clipboard!") });
     setTimeout(() => setMessage(null), 2000);
   };
 
@@ -282,17 +285,17 @@ export default function RoadmapsPage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Product roadmaps</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("Product roadmaps")}</h1>
               <p className="text-muted-foreground mt-1">
-                Create and manage public roadmaps with voting and comments
+                {t("Create and manage public roadmaps with voting and comments")}
               </p>
             </div>
             <Button
               onClick={() => setShowCreateRoadmap(true)}
               disabled={!hasLinearToken}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              New roadmap
+              <Plus className="h-4 w-4 me-2" />
+              {t("New roadmap")}
             </Button>
           </div>
 
@@ -314,11 +317,11 @@ export default function RoadmapsPage() {
             <Card className="mb-6 border-amber-200 bg-amber-50">
               <CardContent className="pt-6">
                 <p className="text-amber-800">
-                  To create roadmaps, please{" "}
+                  {t("To create roadmaps, please")}{" "}
                   <Link href="/profile" className="underline font-medium">
-                    add your Linear API token
+                    {t("add your Linear API token")}
                   </Link>{" "}
-                  first.
+                  {t("first.")}
                 </p>
               </CardContent>
             </Card>
@@ -328,66 +331,66 @@ export default function RoadmapsPage() {
           {showCreateRoadmap && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Create new roadmap</CardTitle>
+                <CardTitle>{t("Create new roadmap")}</CardTitle>
                 <CardDescription>
-                  Set up a public product roadmap from your Linear projects
+                  {t("Set up a public product roadmap from your Linear projects")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateRoadmap} className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Roadmap name</Label>
+                      <Label htmlFor="name">{t("Roadmap name")}</Label>
                       <Input
                         id="name"
                         value={roadmapName}
                         onChange={(e) => handleNameChange(e.target.value)}
-                        placeholder="My product roadmap"
+                        placeholder={t("My product roadmap")}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="slug">URL slug</Label>
+                      <Label htmlFor="slug">{t("URL slug")}</Label>
                       <Input
-                        id="slug"
+                        id="slug" dir="ltr"
                         value={roadmapSlug}
                         onChange={(e) => setRoadmapSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                        placeholder="my-roadmap"
+                        placeholder={t("my-roadmap")}
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        {typeof window !== "undefined" ? window.location.origin : ""}/roadmap/{roadmapSlug || "..."}
+                        {typeof window !== "undefined" ? window.location.origin : ""}{t("/roadmap/")}{roadmapSlug || "..."}
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="title">Display title</Label>
+                    <Label htmlFor="title">{t("Display title")}</Label>
                     <Input
                       id="title"
                       value={roadmapTitle}
                       onChange={(e) => setRoadmapTitle(e.target.value)}
-                      placeholder="Product roadmap"
+                      placeholder={t("Product roadmap")}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description (optional)</Label>
+                    <Label htmlFor="description">{t("Description (optional)")}</Label>
                     <Textarea
                       id="description"
                       value={roadmapDescription}
                       onChange={(e) => setRoadmapDescription(e.target.value)}
-                      placeholder="See what we're working on..."
+                      placeholder={t("See what we're working on...")}
                       rows={2}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Projects to include</Label>
+                    <Label>{t("Projects to include")}</Label>
                     <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
                       {projects.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No projects found</p>
+                        <p className="text-sm text-muted-foreground">{t("No projects found")}</p>
                       ) : (
                         projects.map((project) => (
                           <div key={project.id} className="flex items-center space-x-2">
@@ -409,14 +412,14 @@ export default function RoadmapsPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Default layout</Label>
+                      <Label>{t("Default layout")}</Label>
                       <Select value={layoutType} onValueChange={(v) => setLayoutType(v as "kanban" | "timeline")}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="kanban">Kanban (Planned → In progress → Shipped)</SelectItem>
-                          <SelectItem value="timeline">Timeline (months/quarters)</SelectItem>
+                          <SelectItem value="kanban">{t("Kanban (Planned → In progress → Shipped)")}</SelectItem>
+                          <SelectItem value="timeline">{t("Timeline (months/quarters)")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -429,7 +432,7 @@ export default function RoadmapsPage() {
                         onChange={() => setAllowVoting(!allowVoting)}
                       />
                       <label className="text-sm cursor-pointer" onClick={() => setAllowVoting(!allowVoting)}>
-                        Allow visitors to upvote items
+                        {t("Allow visitors to upvote items")}
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -438,7 +441,7 @@ export default function RoadmapsPage() {
                         onChange={() => setAllowComments(!allowComments)}
                       />
                       <label className="text-sm cursor-pointer" onClick={() => setAllowComments(!allowComments)}>
-                        Allow visitors to comment on items
+                        {t("Allow visitors to comment on items")}
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -447,20 +450,20 @@ export default function RoadmapsPage() {
                         onChange={() => setPasswordProtected(!passwordProtected)}
                       />
                       <label className="text-sm cursor-pointer" onClick={() => setPasswordProtected(!passwordProtected)}>
-                        Password protect this roadmap
+                        {t("Password protect this roadmap")}
                       </label>
                     </div>
                   </div>
 
                   {passwordProtected && (
                     <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t("Password")}</Label>
                       <Input
                         id="password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
+                        placeholder={t("Enter password")}
                         required={passwordProtected}
                       />
                     </div>
@@ -468,7 +471,7 @@ export default function RoadmapsPage() {
 
                   <div className="flex gap-2 pt-4">
                     <Button type="submit" disabled={submitting}>
-                      {submitting ? "Creating..." : "Create roadmap"}
+                      {submitting ? t("Creating...") : t("Create roadmap")}
                     </Button>
                     <Button
                       type="button"
@@ -478,7 +481,7 @@ export default function RoadmapsPage() {
                         resetForm();
                       }}
                     >
-                      Cancel
+                      {t("Cancel")}
                     </Button>
                   </div>
                 </form>
@@ -492,14 +495,14 @@ export default function RoadmapsPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Map className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">No roadmaps yet</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("No roadmaps yet")}</h3>
                   <p className="text-muted-foreground mb-4">
-                    Create your first public product roadmap
+                    {t("Create your first public product roadmap")}
                   </p>
                   {hasLinearToken && (
                     <Button onClick={() => setShowCreateRoadmap(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create roadmap
+                      <Plus className="h-4 w-4 me-2" />
+                      {t("Create roadmap")}
                     </Button>
                   )}
                 </CardContent>
@@ -519,21 +522,21 @@ export default function RoadmapsPage() {
                           )}
                           {!roadmap.is_active && (
                             <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                              Inactive
+                              {t("Inactive")}
                             </span>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">
-                          {typeof window !== "undefined" ? window.location.origin : ""}/roadmap/{roadmap.slug}
+                          {typeof window !== "undefined" ? window.location.origin : ""}{t("/roadmap/")}{roadmap.slug}
                         </p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          <span>{roadmap.project_ids?.length || 0} project{(roadmap.project_ids?.length || 0) !== 1 ? "s" : ""}</span>
+                          <span>{roadmap.project_ids?.length || 0} {t("project")}{(roadmap.project_ids?.length || 0) !== 1 ? "s" : ""}</span>
                           <span>•</span>
-                          <span>{roadmap.layout_type} view</span>
+                          <span>{roadmap.layout_type} {t("view")}</span>
                           {roadmap.allow_voting && (
                             <>
                               <span>•</span>
-                              <span>Voting enabled</span>
+                              <span>{t("Voting enabled")}</span>
                             </>
                           )}
                         </div>
