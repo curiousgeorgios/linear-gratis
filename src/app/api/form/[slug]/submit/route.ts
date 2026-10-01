@@ -13,19 +13,7 @@ import {
   createIssueForLinearSource,
   type LinearCreatedIssue,
 } from '@/lib/public-view-issue-creation'
-import * as z from 'zod'
-
-const submitSchema = z.object({
-  customerName: z.string().min(1).max(200),
-  customerEmail: z.string().email(),
-  externalId: z.string().max(200).optional(),
-  issueTitle: z.string().min(1).max(300),
-  issueBody: z.string().min(1).max(10000),
-  attachmentUrl: z.string().url().optional().or(z.literal('')),
-  templateId: z.string().max(100).optional().or(z.literal('')),
-})
-
-type SubmitValues = z.infer<typeof submitSchema>
+import { publicFormSchema as submitSchema, type PublicFormValues as SubmitValues } from '@/lib/public-form-schema'
 
 type ParsedSubmitPayload = {
   values: SubmitValues

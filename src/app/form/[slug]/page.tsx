@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { publicFormSchema as formSchema, type PublicFormValues as FormValues } from '@/lib/public-form-schema'
 import { Paperclip } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -26,20 +26,8 @@ import {
   validateFormAttachmentFile,
 } from '@/lib/form-attachment'
 
-const formSchema = z.object({
-  customerName: z.string().min(1, 'Your name is required'),
-  customerEmail: z.string().email('Valid email is required'),
-  externalId: z.string().optional(),
-  issueTitle: z.string().min(1, 'Issue title is required'),
-  issueBody: z.string().min(1, 'Issue description is required'),
-  attachmentUrl: z.string().url().optional().or(z.literal('')),
-  templateId: z.string().optional(),
-})
-
 const PUBLIC_FORM_TOASTER_ID = 'public-form-submit'
 const PUBLIC_FORM_SUBMIT_TOAST_ID = 'public-form-submit-status'
-
-type FormValues = z.infer<typeof formSchema>
 
 const fileKey = (file: File) => `${file.name}-${file.lastModified}-${file.size}`
 
@@ -338,6 +326,7 @@ export default function PublicFormPage() {
       const data = (await response.json()) as {
         success: boolean
         error?: string
+        issues?: Array<{ path: Array<string | number>; message: string }>
         data?: {
           customer?: { id: string }
           request?: { id: string }
@@ -370,10 +359,19 @@ export default function PublicFormPage() {
         setSelectedTemplateId(defaultTemplateId)
         clearAttachmentFiles()
       } else {
+        const validationMessages = data.issues?.flatMap((issue) => {
+          const field = issue.path.at(0)
+          if (typeof field !== 'string' || !(field in formSchema.shape)) return []
+          const fieldName = field as keyof FormValues
+          form.setError(fieldName, { type: 'server', message: issue.message })
+          return [issue.message]
+        })
         toast.error('Could not submit request', {
           id: PUBLIC_FORM_SUBMIT_TOAST_ID,
           toasterId: PUBLIC_FORM_TOASTER_ID,
-          description: data.error || 'Failed to submit request. Please try again.',
+          description: validationMessages?.length
+            ? validationMessages.join(' ')
+            : data.error || 'Failed to submit request. Please try again.',
           duration: 8000,
         })
       }
