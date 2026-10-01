@@ -10,6 +10,15 @@ if [ "${1:-}" = "gen-env" ]; then
   exec node docker/generate-env.mjs "$@"
 fi
 
+# `export-migrations <dir>` copies the database migrations out of the image so
+# the one-shot migrate job can apply them without any bind mount.
+if [ "${1:-}" = "export-migrations" ]; then
+  mkdir -p "${2:?target directory required}"
+  cp supabase/migrations/*.sql "$2"/
+  echo "exported $(ls "$2" | wc -l) migrations to $2"
+  exit 0
+fi
+
 # Escape a value for use on the right-hand side of a sed s||| expression.
 escape() {
   printf '%s' "$1" | sed -e 's/[\\&|]/\\&/g'

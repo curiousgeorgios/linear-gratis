@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+//   --proxy  the platform's reverse proxy (Dokploy/Traefik) terminates TLS: gateway serves plain HTTP
 // Generates a ready-to-use .env for docker-compose.yml: random secrets plus the
 // anon / service_role JWTs signed with the generated JWT secret (HS256).
 //
@@ -15,6 +16,7 @@ const flag = (name, fallback) => {
 }
 
 const out = flag('--out', '.env')
+const behindProxy = args.includes('--proxy') // Dokploy/Traefik terminates TLS
 const url = (flag('--url', 'http://localhost:3000') ?? '').replace(/\/+$/, '')
 
 if (!/^https?:\/\/[^/\s]+$/.test(url)) {
@@ -47,7 +49,7 @@ const lines = [
   `# Hostname of APP_URL; requests for any other host are treated as customer custom domains.`,
   `APP_DOMAIN=${new URL(url).hostname}`,
   `# Caddy site address. ":80" serves plain HTTP; a bare domain enables automatic HTTPS.`,
-  `SITE_ADDRESS=${isLocal ? ':80' : host}`,
+  `SITE_ADDRESS=${isLocal || behindProxy ? ':80' : host}`,
   `HTTP_PORT=${isLocal ? new URL(url).port || '80' : '80'}`,
   `HTTPS_PORT=443`,
   '',
@@ -84,8 +86,8 @@ const lines = [
   'CLOUDFLARE_ACCOUNT_ID=',
   'CLOUDFLARE_ZONE_ID=',
   '',
-  '# Image to run (change to your Docker Hub namespace).',
-  'LINEAR_GRATIS_IMAGE=linear-gratis:local',
+  '# Image to run. Unset: docker-compose.yml builds linear-gratis:local, the Dokploy file pulls the published image.',
+  '# LINEAR_GRATIS_IMAGE=<your-dockerhub-user>/linear-gratis:latest',
   '',
 ]
 

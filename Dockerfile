@@ -56,6 +56,8 @@ COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --chown=node:node docker/entrypoint.sh docker/generate-env.mjs ./docker/
+# Shipped so a compose file needs no bind mounts (Dokploy, raw compose sources).
+COPY --chown=node:node supabase/migrations ./supabase/migrations
 RUN chmod +x docker/entrypoint.sh
 
 USER node

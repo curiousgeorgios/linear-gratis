@@ -276,7 +276,7 @@ The image is built once and configured at start-up, so the same
 `<user>/linear-gratis` image can be pushed to Docker Hub and run anywhere. The
 `Docker image` GitHub workflow publishes multi-architecture images when the
 `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set. Full guide:
-[docs/self-hosting.md](docs/self-hosting.md) ([العربية](docs/self-hosting.ar.md)).
+[docs/self-hosting.md](docs/self-hosting.md) ([العربية](docs/self-hosting.ar.md)). On Dokploy use `docker-compose.dokploy.yml`: [docs/dokploy.md](docs/dokploy.md).
 
 ## MCP Server for Claude Code
 
