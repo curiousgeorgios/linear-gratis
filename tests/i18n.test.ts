@@ -111,3 +111,23 @@ describe('auth methods', () => {
     assert.deepEqual(parseAuthMethods('Password, github,password,bogus'), ['password', 'github'])
   })
 })
+
+describe('React bindings', () => {
+  test('useT and useI18n follow the provider locale, with English as the default', async () => {
+    const { createElement } = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { I18nProvider, useI18n, useT } = await import('../src/lib/i18n/client')
+
+    function Probe() {
+      const t = useT()
+      const { dir, locale, intlLocale } = useI18n()
+      return createElement('p', null, `${t('Sign in')}|${dir}|${locale}|${intlLocale}`)
+    }
+
+    assert.equal(renderToStaticMarkup(createElement(Probe)), '<p>Sign in|ltr|en|en-US</p>')
+    assert.equal(
+      renderToStaticMarkup(createElement(I18nProvider, { locale: 'ar', children: createElement(Probe) })),
+      `<p>${ar['Sign in']}|rtl|ar|ar-u-nu-latn</p>`,
+    )
+  })
+})

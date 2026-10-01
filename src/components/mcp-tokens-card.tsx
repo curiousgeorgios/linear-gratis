@@ -31,10 +31,8 @@ function CopyBlock({ value, label }: { value: string; label: string }) {
   }
 
   return (
-    <div className="relative rounded-md border border-border/60 bg-muted/40">
-      <pre
-        dir="ltr"
-        className="overflow-x-auto p-3 pe-12 text-start text-xs font-mono leading-relaxed whitespace-pre-wrap break-all"
+    <div dir="ltr" className="relative rounded-md border border-border/60 bg-muted/40">
+      <pre className="overflow-x-auto p-3 pe-12 text-start text-xs font-mono leading-relaxed whitespace-pre-wrap break-all"
       >
         {value}
       </pre>

@@ -423,7 +423,7 @@ export default function BrandingPage() {
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-2">
                     <Label htmlFor={key} className="text-sm">
-                      {label}
+                      {t(label)}
                     </Label>
                     <div className="flex gap-2">
                       <Input
@@ -437,6 +437,7 @@ export default function BrandingPage() {
                       />
                       <Input
                         type="text"
+                        dir="ltr"
                         value={branding[key as keyof BrandingSettings] as string || DEFAULT_COLORS[key as keyof typeof DEFAULT_COLORS]}
                         onChange={(e) =>
                           setBranding({ ...branding, [key]: e.target.value })

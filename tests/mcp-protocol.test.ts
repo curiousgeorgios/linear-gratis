@@ -194,3 +194,156 @@ describe('API tokens', () => {
     assert.equal(looksLikeApiToken('sb-token'), false)
   })
 })
+
+describe('MCP Linear tools', () => {
+  const realFetch = globalThis.fetch
+  const calls: Array<{ query: string; variables: Record<string, unknown> }> = []
+
+  function ctx(overrides: Partial<Parameters<(typeof mcpTools)[number]['handler']>[1]> = {}) {
+    return {
+      organisationId: 'org-1',
+      baseUrl: 'https://feedback.example.com',
+      getLinearToken: async () => 'lin_api_token',
+      listOrgRows: async () => [] as Array<Record<string, unknown>>,
+      ...overrides,
+    }
+  }
+
+  function tool(name: string) {
+    const found = mcpTools.find((candidate) => candidate.name === name)
+    assert.ok(found, `missing tool ${name}`)
+    return found
+  }
+
+  function mockLinear(handler: (query: string, variables: Record<string, unknown>) => unknown, status = 200) {
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { query: string; variables: Record<string, unknown> }
+      calls.push(body)
+      assert.equal((init?.headers as Record<string, string>).Authorization, 'lin_api_token')
+      return new Response(JSON.stringify(handler(body.query, body.variables)), { status })
+    }) as typeof fetch
+  }
+
+  const issue = {
+    id: 'i1', identifier: 'ENG-1', title: 'Bug', description: 'd', priority: 2, priorityLabel: 'High',
+    url: 'https://linear.app/x/issue/ENG-1', createdAt: 'c', updatedAt: 'u',
+    state: { id: 's', name: 'Todo', type: 'unstarted' },
+    assignee: { id: 'a', name: 'Sam' }, team: { id: 't', key: 'ENG', name: 'Eng' }, project: null,
+    labels: { nodes: [{ id: 'l', name: 'bug' }] },
+  }
+
+  test('reads teams and projects', async () => {
+    calls.length = 0
+    mockLinear((query) => ({ data: query.includes('teams') ? { teams: { nodes: [{ id: 't1' }] } } : { projects: { nodes: [{ id: 'p1' }] } } }))
+    try {
+      assert.deepEqual(await tool('linear_list_teams').handler({}, ctx()), [{ id: 't1' }])
+      assert.deepEqual(await tool('linear_list_projects').handler({}, ctx()), [{ id: 'p1' }])
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('lists issues with a bounded, flattened shape', async () => {
+    mockLinear(() => ({
+      data: {
+        issues: {
+          nodes: [
+            { ...issue, estimate: null, cycle: null, labels: { nodes: [{ id: 'l', name: 'bug', color: '#f00' }] }, state: { id: 's', name: 'Todo', color: '#fff', type: 'unstarted' } },
+            { ...issue, id: 'i2', identifier: 'ENG-2' },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    }))
+    try {
+      const rows = (await tool('linear_list_issues').handler({ teamId: 't1', limit: 1 }, ctx())) as Array<Record<string, unknown>>
+      assert.equal(rows.length, 1)
+      assert.deepEqual(rows[0].labels, ['bug'])
+      assert.equal(rows[0].state, 'Todo')
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('gets one issue with comments', async () => {
+    mockLinear(() => ({ data: { issue: { ...issue, comments: { nodes: [{ body: 'hi', createdAt: 'c', user: { name: 'Sam' } }] } } } }))
+    try {
+      const result = (await tool('linear_get_issue').handler({ id: 'ENG-1' }, ctx())) as Record<string, unknown>
+      assert.equal(result.identifier, 'ENG-1')
+      assert.deepEqual(result.labels, ['bug'])
+      assert.equal((result.comments as unknown[]).length, 1)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+    mockLinear(() => ({ data: { issue: null } }))
+    try {
+      await assert.rejects(tool('linear_get_issue').handler({ id: 'NOPE-1' }, ctx()), /not found/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('creates, updates and comments, sending only provided fields', async () => {
+    calls.length = 0
+    mockLinear((query) => {
+      if (query.includes('issueCreate')) return { data: { issueCreate: { success: true, issue } } }
+      if (query.includes('issueUpdate')) return { data: { issueUpdate: { success: true, issue } } }
+      return { data: { commentCreate: { success: true, comment: { id: 'c1', url: 'u' } } } }
+    })
+    try {
+      const created = (await tool('linear_create_issue').handler({ teamId: 't1', title: ' Bug ', priority: 2, labelIds: ['l'] }, ctx())) as Record<string, unknown>
+      assert.equal(created.identifier, 'ENG-1')
+      assert.deepEqual(calls[0].variables.input, { teamId: 't1', title: 'Bug', priority: 2, labelIds: ['l'] })
+
+      await tool('linear_update_issue').handler({ id: 'ENG-1', stateId: 's2' }, ctx())
+      assert.equal(calls[1].variables.id, 'ENG-1')
+
+      await assert.rejects(tool('linear_update_issue').handler({ id: 'ENG-1' }, ctx()), /Nothing to update/)
+
+      assert.deepEqual(await tool('linear_add_comment').handler({ issueId: 'i1', body: 'ok' }, ctx()), { id: 'c1', url: 'u' })
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('reports unsuccessful mutations', async () => {
+    mockLinear(() => ({ data: { issueCreate: { success: false, issue: null }, issueUpdate: { success: false, issue: null }, commentCreate: { success: false, comment: null } } }))
+    try {
+      await assert.rejects(tool('linear_create_issue').handler({ teamId: 't', title: 'x' }, ctx()), /did not create the issue/)
+      await assert.rejects(tool('linear_update_issue').handler({ id: 'i', title: 'x' }, ctx()), /did not update the issue/)
+      await assert.rejects(tool('linear_add_comment').handler({ issueId: 'i', body: 'x' }, ctx()), /did not create the comment/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('maps Linear failures to readable tool errors', async () => {
+    mockLinear(() => ({}), 401)
+    try {
+      await assert.rejects(tool('linear_list_teams').handler({}, ctx()), /rejected the stored API token/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+    mockLinear(() => ({ errors: [{ message: 'Boom' }] }))
+    try {
+      await assert.rejects(tool('linear_list_teams').handler({}, ctx()), /Linear API error: Boom/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+    globalThis.fetch = (async () => {
+      throw new Error('offline')
+    }) as typeof fetch
+    try {
+      await assert.rejects(tool('linear_list_teams').handler({}, ctx()), /Could not reach the Linear API/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('forms, views and roadmaps expose public URLs', async () => {
+    const rows = [{ slug: 'abc', name: 'N' }]
+    const c = ctx({ listOrgRows: async () => rows })
+    assert.deepEqual(await tool('list_request_forms').handler({}, c), [{ slug: 'abc', name: 'N', url: 'https://feedback.example.com/form/abc' }])
+    assert.deepEqual(await tool('list_public_views').handler({}, c), [{ slug: 'abc', name: 'N', url: 'https://feedback.example.com/view/abc' }])
+  })
+})

@@ -352,7 +352,7 @@ export default function RoadmapsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="slug">{t("URL slug")}</Label>
                       <Input
-                        id="slug"
+                        id="slug" dir="ltr"
                         value={roadmapSlug}
                         onChange={(e) => setRoadmapSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                         placeholder={t("my-roadmap")}

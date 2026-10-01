@@ -1011,7 +1011,7 @@ export default function PublicViewsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="view-slug">{tr("URL slug *")}</Label>
                     <Input
-                      id="view-slug"
+                      id="view-slug" dir="ltr"
                       placeholder={tr("client-project-progress")}
                       value={viewSlug}
                       onChange={(e) => setViewSlug(e.target.value)}

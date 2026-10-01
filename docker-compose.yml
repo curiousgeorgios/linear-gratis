@@ -1,7 +1,8 @@
 # Self-hosted linear.gratis: the app plus a minimal Supabase stack
 # (Postgres, GoTrue, PostgREST, Storage) behind one Caddy gateway.
 #
-#   docker run --rm -v "$PWD:/out" ghcr.io/OWNER/linear-gratis gen-env --out /out/.env   # or: node docker/generate-env.mjs
+#   node docker/generate-env.mjs --url http://localhost:3000     # writes .env with fresh secrets
+#   (or, without Node: docker run --rm -v "$PWD:/out" <image> gen-env --out /out/.env --url http://localhost:3000)
 #   docker compose up -d
 #
 # Then open APP_URL, create an account on /login, save your Linear API token in
@@ -71,10 +72,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      # Both services must finish their own schema migrations first: our
+      # migrations add policies on storage.objects, which storage-api would
+      # otherwise trip over while it is still upgrading its schema.
       auth:
-        condition: service_started
+        condition: service_healthy
       storage:
-        condition: service_started
+        condition: service_healthy
     restart: "no"
 
   db:
@@ -128,6 +132,11 @@ services:
       GOTRUE_EXTERNAL_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GOTRUE_EXTERNAL_GITHUB_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI: ${APP_URL}/auth/v1/callback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   rest:
     <<: *restart
@@ -165,6 +174,11 @@ services:
       ENABLE_IMAGE_TRANSFORMATION: "false"
     volumes:
       - storage-data:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
   db-data:

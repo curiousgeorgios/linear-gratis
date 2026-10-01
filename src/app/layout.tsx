@@ -129,6 +129,7 @@ export default async function RootLayout({
             {children}
           </AuthProvider>
           <Toaster
+            dir={directionOf(locale)}
             richColors
             position="bottom-center"
             offset={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}

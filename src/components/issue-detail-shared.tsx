@@ -216,19 +216,19 @@ export function LinearMarkdown({
             <ol {...props} className="list-decimal list-outside space-y-1 my-2 ms-5" />
           ),
           li: ({ ...props }) => (
-            <li {...props} className="leading-7 marker:text-muted-foreground" />
+            <li dir="auto" {...props} className="leading-7 marker:text-muted-foreground" />
           ),
           p: ({ ...props }) => (
-            <p {...props} className="my-2 leading-relaxed" />
+            <p dir="auto" {...props} className="my-2 leading-relaxed" />
           ),
           h1: ({ ...props }) => (
-            <h1 {...props} className="text-xl font-semibold mt-6 mb-3" />
+            <h1 dir="auto" {...props} className="text-xl font-semibold mt-6 mb-3" />
           ),
           h2: ({ ...props }) => (
-            <h2 {...props} className="text-lg font-semibold mt-5 mb-2" />
+            <h2 dir="auto" {...props} className="text-lg font-semibold mt-5 mb-2" />
           ),
           h3: ({ ...props }) => (
-            <h3 {...props} className="text-base font-semibold mt-4 mb-2" />
+            <h3 dir="auto" {...props} className="text-base font-semibold mt-4 mb-2" />
           ),
           img: ({ alt, ...props }) => (
             // eslint-disable-next-line @next/next/no-img-element

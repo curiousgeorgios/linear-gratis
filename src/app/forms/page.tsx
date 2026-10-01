@@ -686,7 +686,7 @@ export default function FormsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="form-slug">{t("URL slug *")}</Label>
                     <Input
-                      id="form-slug"
+                      id="form-slug" dir="ltr"
                       placeholder={t("support-requests")}
                       value={formSlug}
                       onChange={(e) => setFormSlug(e.target.value)}

@@ -2,6 +2,12 @@
 // Missing keys fall back to English, so partial coverage is always safe.
 
 export const ar: Record<string, string> = {
+  "Primary colour": "اللون الأساسي",
+  "Secondary colour": "اللون الثانوي",
+  "Accent colour": "لون التمييز",
+  "Background colour": "لون الخلفية",
+  "Text colour": "لون النص",
+  "Border colour": "لون الحدود",
   "vs linear.gratis": "مقابل linear.gratis",
   "Compare": "قارن",
   "and linear.gratis for Linear customer feedback collection.": "وlinear.gratis لجمع ملاحظات العملاء في Linear.",
@@ -389,7 +395,7 @@ export const ar: Record<string, string> = {
   "Set up your Linear API token": "أعدّ رمز Linear API",
   "This is the first step to connect your Linear workspace with our integration.": "هذه الخطوة الأولى لربط مساحة عمل Linear بهذا التكامل.",
   "How to get your Linear API token:": "كيف تحصل على رمز Linear API:",
-  "Go to Linear → Settings → API": "انتقل إلى Linear ← Settings ← API",
+  "Go to Linear → Settings → API": "افتح Linear ثم Settings ثم API",
   "Click \"Create personal API key\"": "انقر على \"Create personal API key\"",
   "Give it a name like \"Linear Integration\"": "سمِّه باسم مثل \"Linear Integration\"",
   "Copy the generated token": "انسخ الرمز المُنشأ",
@@ -518,7 +524,6 @@ export const ar: Record<string, string> = {
   "Loading profile...": "جارٍ تحميل الملف الشخصي...",
   "Open Linear": "افتح Linear",
   "and go to": "وانتقل إلى",
-  "Settings → API": "Settings ← API",
   "Give it a name": "سمِّه باسم",
   "like \"Linear Integration\" or \"Customer Feedback\"": "مثل \"Linear Integration\" أو \"Customer Feedback\"",
   "and paste it below": "والصقه أدناه",
@@ -865,7 +870,7 @@ export const ar: Record<string, string> = {
   "Copy {label}": "نسخ {label}",
   "Failed to create token. Please try again.": "فشل إنشاء الرمز. يرجى المحاولة مرة أخرى.",
   "Failed to revoke token. Please try again.": "فشل إلغاء الرمز. يرجى المحاولة مرة أخرى.",
-  "MCP access for Claude Code": "وصول MCP لـ Claude Code",
+  "MCP access for Claude Code": "ربط Claude Code عبر MCP",
   "Let Claude Code and other MCP clients work with your Linear workspace through this server. Works the same on self-hosted installs.": "دع Claude Code وعملاء MCP الآخرين يعملون مع مساحة عمل Linear الخاصة بك عبر هذا الخادم. يعمل بالطريقة نفسها في التثبيتات ذاتية الاستضافة.",
   "Token name": "اسم الرمز",
   "For example: Claude Code on my laptop": "مثال: Claude Code على حاسوبي المحمول",

@@ -446,7 +446,7 @@ export default function CustomDomainsPage() {
               <div className="space-y-2">
                 <Label htmlFor="domain">{t("Domain name")}</Label>
                 <Input
-                  id="domain"
+                  id="domain" dir="ltr"
                   placeholder={t("e.g., support.yourdomain.com or feedback.example.com")}
                   value={newDomain}
                   onChange={(e) => setNewDomain(e.target.value.toLowerCase())}
