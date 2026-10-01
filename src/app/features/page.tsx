@@ -498,7 +498,7 @@ export default function FeaturesPage() {
                   <div className="bg-gradient-to-r from-muted to-muted/50 rounded-lg p-4 mb-4 border-s-4 border-primary">
                     <h4 className="text-lg font-bold capitalize text-foreground flex items-center gap-2">
                       <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      {category.category}
+                      {t(category.category)}
                     </h4>
                   </div>
 
@@ -510,7 +510,7 @@ export default function FeaturesPage() {
                         className={`grid grid-cols-4 gap-0 ${itemIndex !== category.items.length - 1 ? 'border-b border-border' : ''} hover:bg-muted/30 transition-colors`}
                       >
                         <div className="p-4 border-e border-border bg-card/50">
-                          <span className="font-medium text-foreground">{item.feature}</span>
+                          <span className="font-medium text-foreground">{t(item.feature)}</span>
                         </div>
                         <div className="p-4 text-center border-e border-border bg-gradient-to-br from-primary/5 to-primary/10">
                           <div className="flex items-center justify-center gap-2">

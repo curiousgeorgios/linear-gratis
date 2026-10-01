@@ -168,7 +168,7 @@ export function DisplayPopover({
                       : 'border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {PROPERTY_LABELS[p]}
+                  {t(PROPERTY_LABELS[p])}
                 </button>
               )
             })}

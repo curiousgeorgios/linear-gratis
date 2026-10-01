@@ -147,7 +147,6 @@ function LoginForm() {
                 <Input
                   id="email"
                   type="email"
-                  dir="ltr"
                   placeholder={t("Enter your email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -160,7 +159,6 @@ function LoginForm() {
                 <Input
                   id="password"
                   type="password"
-                  dir="ltr"
                   placeholder={t("Enter your password")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -217,7 +215,6 @@ function LoginForm() {
                   <Input
                     id="email"
                     type="email"
-                    dir="ltr"
                     placeholder={t("Enter your email")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

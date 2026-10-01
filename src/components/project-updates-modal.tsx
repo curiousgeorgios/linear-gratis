@@ -226,7 +226,7 @@ export function ProjectUpdatesModal({ isOpen, onClose, viewSlug }: ProjectUpdate
                               <path fillRule="evenodd" clipRule="evenodd" d="M12.6807 5.7029C12.9925 5.97566 13.0241 6.44948 12.7513 6.76121L9.71942 10.2263C9.56569 10.402 9.33892 10.4961 9.10596 10.4808C8.873 10.4656 8.66044 10.3427 8.53094 10.1485L6.76432 7.49855L4.37742 10.2263C4.10466 10.5381 3.63083 10.5696 3.31911 10.2969C3.00739 10.0241 2.97581 9.55028 3.24857 9.23856L6.28056 5.77356C6.43429 5.59788 6.66106 5.50379 6.89401 5.51905C7.12696 5.53432 7.33952 5.65718 7.46902 5.85142L9.23562 8.50133L11.6224 5.77347C11.8952 5.46174 12.369 5.43015 12.6807 5.7029Z"></path>
                             </svg>
                             <span className="text-sm font-medium" style={{ color: getHealthColor(update.health) }}>
-                              {getHealthLabel(update.health)}
+                              {t(getHealthLabel(update.health))}
                             </span>
                           </div>
 
