@@ -4,7 +4,8 @@ import { NextRequest } from 'next/server';
 import { createWebhookSignature } from '../src/lib/webhook-signature';
 import { CYCLE_ID, ASSIGNEE_ID, TEAM_ID, integrationConfig } from './helpers/review-integration';
 
-const view = { team_id: TEAM_ID, expires_at: null };
+let view: { team_id: string; expires_at: string | null } | null = { team_id: TEAM_ID, expires_at: null };
+let token: string | null = 'test-token';
 const { mock } = require('bun:test') as { mock: { module: (path: string, factory: () => Record<string, unknown>) => void } };
 const query = {
   select: () => query,
@@ -12,7 +13,7 @@ const query = {
   single: async () => ({ data: view }),
 };
 mock.module('@/lib/supabase', () => ({ supabaseAdmin: { from: () => query } }));
-mock.module('@/lib/public-view-issue-creation', () => ({ resolveLinearTokenForPublicView: async () => 'test-token' }));
+mock.module('@/lib/public-view-issue-creation', () => ({ resolveLinearTokenForPublicView: async () => token }));
 
 const { POST } = await import('../src/app/api/public-view/[slug]/showcase-review/route');
 const originalFetch = globalThis.fetch;
@@ -112,12 +113,30 @@ describe('review boundaries and configurable workflows', () => {
       process.env.REVIEW_INTEGRATIONS_JSON = saved;
       assert.equal((await postReview({ submittedAt: '2000-01-01T00:00:00.000Z' })).status, 400);
       assert.equal((await postReview({ action: 'reject' })).status, 400);
-      assert.equal((await postReview({ comment: 'あ'.repeat(3000) })).status, 413);
+      assert.equal((await postReview({ comment: 'x'.repeat(8000) })).status, 413);
       const raw = '{';
       assert.equal((await POST(new NextRequest('https://example.test', { method: 'POST', body: raw,
         headers: { 'x-linear-gratis-signature': createWebhookSignature(raw, 'test-secret') } }), { params: Promise.resolve({ slug: 'demo' }) })).status, 400);
       assert.equal(calls, 0);
     } finally { process.env.REVIEW_INTEGRATIONS_JSON = saved; globalThis.fetch = originalFetch; }
+  });
+
+  test('accepts a maximum-length Unicode comment allowed by the existing producer', async () => {
+    const comment = 'あ'.repeat(5000);
+    let savedComment = '';
+    globalThis.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      if (body.query.includes('query ShowcaseReviewIssue')) return Response.json({ data: { issue: issue() } });
+      if (body.query.includes('Comment')) {
+        savedComment = body.variables.input.body;
+        return Response.json({ data: { commentCreate: { success: true } } });
+      }
+      return Response.json({ data: { issueUpdate: { success: true, issue: { state: { name: 'Done' } } } } });
+    }) as typeof fetch;
+    try {
+      assert.equal((await postReview({ comment })).status, 200);
+      assert.equal(savedComment, `**Showcase review: Accepted** by Alex.\n\n${comment}`);
+    } finally { globalThis.fetch = originalFetch; }
   });
 
   test('a producer signature cannot authorize another configured view', async () => {
@@ -126,6 +145,50 @@ describe('review boundaries and configurable workflows', () => {
     process.env.OTHER_REVIEW_SECRET = 'different-secret';
     try { assert.equal((await postReview({}, 'other')).status, 401); }
     finally { process.env.REVIEW_INTEGRATIONS_JSON = saved; delete process.env.OTHER_REVIEW_SECRET; }
+  });
+
+  test('rejects unavailable views and connections before Linear access', async () => {
+    const savedView = view;
+    let calls = 0;
+    globalThis.fetch = (async () => { calls++; throw new Error('Unexpected Linear call'); }) as typeof fetch;
+    try {
+      for (const candidate of [null, { team_id: 'another-team', expires_at: null }, { team_id: TEAM_ID, expires_at: '2000-01-01T00:00:00.000Z' }]) {
+        view = candidate;
+        assert.equal((await postReview()).status, 404);
+      }
+      view = savedView;
+      token = null;
+      assert.equal((await postReview()).status, 503);
+      assert.equal(calls, 0);
+    } finally { view = savedView; token = 'test-token'; globalThis.fetch = originalFetch; }
+  });
+
+  test('preserves each decision’s comment and target state', async () => {
+    const outcomes = [
+      ['accept', 'Accepted', 'Done', 'done-id'],
+      ['changes', 'Changes requested', 'In Progress', 'progress-id'],
+      ['reject', 'Rejected', 'Canceled', 'cancelled-id'],
+      ['no-longer-needed', 'No longer needed', 'Canceled', 'cancelled-id'],
+    ];
+    try {
+      for (const [action, label, state, stateId] of outcomes) {
+        const operations: string[] = [];
+        globalThis.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+          const body = JSON.parse(String(init?.body));
+          operations.push(body.query);
+          if (body.query.includes('query ShowcaseReviewIssue')) return Response.json({ data: { issue: issue() } });
+          if (body.query.includes('Comment')) {
+            assert.equal(body.variables.input.body, `**Showcase review: ${label}** by Alex.\n\nDecision explanation.`);
+            return Response.json({ data: { commentCreate: { success: true } } });
+          }
+          assert.equal(body.variables.stateId, stateId);
+          return Response.json({ data: { issueUpdate: { success: true, issue: { state: { name: state } } } } });
+        }) as typeof fetch;
+        const response = await postReview({ action, comment: 'Decision explanation.' });
+        assert.deepEqual(await response.json(), { success: true, state });
+        assert.equal(operations.length, 3);
+      }
+    } finally { globalThis.fetch = originalFetch; }
   });
 
   test('checks live identity, state and release scope before writing, and records approved provenance', async () => {

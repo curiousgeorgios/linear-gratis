@@ -27,7 +27,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const workflow = policy.answers;
   if (!workflow) return new NextResponse(null, { status: 404 });
   const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > 65_000) return NextResponse.json({ error: 'Answers are too long.' }, { status: 413 });
+  // Preserve the existing character limit for valid Unicode submissions.
+  if (raw.length > 65_000) return NextResponse.json({ error: 'Answers are too long.' }, { status: 413 });
   if (!verifyWebhookSignature(raw, secret, request.headers.get('x-linear-gratis-signature') ?? request.headers.get('x-feedback-signature'))) {
     return NextResponse.json({ error: 'Invalid signature.' }, { status: 401 });
   }
