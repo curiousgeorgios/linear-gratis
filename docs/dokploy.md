@@ -36,3 +36,12 @@ Migrations ship inside the app image and are applied by a one-shot job.
 - Back up the `db-data` and `storage-data` volumes (Dokploy → Volume backups).
 - Set `DISABLE_SIGNUP=true` once your accounts exist; configure `SMTP_*` and
   `AUTH_AUTOCONFIRM=false` for e-mail confirmation.
+
+## Troubleshooting
+
+- **`storage` / `auth` unhealthy after a failed first deploy** – the database
+  volume keeps the password it was first created with. If you changed
+  `POSTGRES_PASSWORD` afterwards, delete the `db-data` volume (Dokploy → the
+  compose service → Volumes, or `docker volume rm <project>_db-data`) and
+  redeploy. Passwords must be hex/alphanumeric; `generate-env.mjs` does this.
+- Check `docker logs <project>-storage-1` – the first error line names the cause.

@@ -93,19 +93,42 @@ services:
       JWT_SECRET: ${JWT_SECRET:?}
     volumes:
       - db-data:/var/lib/postgresql/data
-    configs:
-      - source: roles_sql
-        target: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+  # Sets the service-role passwords on every start (idempotent). Doing it here
+  # instead of an init script also works when the data volume already exists.
+  db-init:
+    image: supabase/postgres:15.8.1.060
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      JWT_SECRET: ${JWT_SECRET:?}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -h db -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -X -q \
+          -v pgpass="$$POSTGRES_PASSWORD" -v jwt="$$JWT_SECRET" <<'SQL'
+        ALTER USER authenticator WITH PASSWORD :'pgpass';
+        ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
+        ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
+        ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt';
+        ALTER DATABASE postgres SET "app.settings.jwt_exp" TO '3600';
+        SQL
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   auth:
     <<: *restart
     image: supabase/gotrue:v2.174.0
     depends_on:
+      db-init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
     environment:
@@ -147,6 +170,8 @@ services:
     <<: *restart
     image: postgrest/postgrest:v12.2.12
     depends_on:
+      db-init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
     environment:
@@ -160,6 +185,8 @@ services:
     <<: *restart
     image: supabase/storage-api:v1.24.7
     depends_on:
+      db-init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       rest:
@@ -225,22 +252,6 @@ configs:
       		reverse_proxy app:3000
       	}
       }
-  roles_sql:
-    content: |
-      -- Runs once on first database start (mounted into docker-entrypoint-initdb.d).
-      -- The supabase/postgres image creates the service roles without usable
-      -- passwords; give them the shared POSTGRES_PASSWORD and expose the JWT secret
-      -- to SQL helpers such as auth.uid().
-      \set pgpass `echo "$$POSTGRES_PASSWORD"`
-      \set jwt_secret `echo "$$JWT_SECRET"`
-
-      ALTER USER authenticator WITH PASSWORD :'pgpass';
-      ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
-      ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
-      ALTER USER supabase_admin WITH PASSWORD :'pgpass';
-
-      ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
-      ALTER DATABASE postgres SET "app.settings.jwt_exp" TO '3600';
   migrate_script:
     content: |
       #!/bin/sh
