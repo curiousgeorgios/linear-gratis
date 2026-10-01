@@ -44,7 +44,7 @@ The schema is intentionally tool-agnostic. Use `items` for generic tools, or `an
 ```json
 {
   "version": 1,
-  "title": "Feedback from Budget app",
+  "title": "Feedback from Example app",
   "summary": "Optional short summary",
   "source": {
     "tool": "agentation",
