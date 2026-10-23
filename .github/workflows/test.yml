@@ -32,7 +32,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.21
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -55,7 +55,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.21
+          bun-version-file: package.json
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3

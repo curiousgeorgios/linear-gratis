@@ -2,6 +2,7 @@
 	"name": "integrations-worker-app",
 	"version": "0.1.0",
 	"private": true,
+	"packageManager": "bun@1.2.21",
 	"scripts": {
 		"dev": "next dev --turbopack",
 		"build": "next build --webpack",
@@ -20,7 +21,7 @@
 		"release:cloudflare:build": "node_modules/@infisical/cli/bin/infisical run --silent --domain=https://infisical.onestack.cloud/api --token=\"$INFISICAL_TOKEN\" --projectId=15892171-18cf-4a7f-b0c3-ad4291a4b395 --env=prod -- bun scripts/run-test-suite.mjs --skip-browser-smoke",
 		"release:cloudflare:deploy": "node_modules/@infisical/cli/bin/infisical run --silent --domain=https://infisical.onestack.cloud/api --token=\"$INFISICAL_TOKEN\" --projectId=15892171-18cf-4a7f-b0c3-ad4291a4b395 --env=prod --command 'bun scripts/wait-for-github-release-gate.mjs && bun run release:deploy'",
 		"lint": "eslint .",
-		"preview": "npm run build:worker && wrangler dev",
+		"preview": "bun run build:worker && wrangler dev",
 		"deploy": "infisical run --env=prod --command 'bun run release:build && bun run release:deploy'",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts",
 		"generate-og": "node scripts/generate-og.js"

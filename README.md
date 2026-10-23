@@ -63,8 +63,8 @@ connection rows before API calls are made.
 
 ### Prerequisites
 
-- Node.js 20 or newer
-- npm
+- Node.js 20.9 or newer
+- Bun 1.2.21 (pinned in `package.json`)
 - Docker, if you want to run Supabase locally
 - Supabase CLI, for local database resets and migration work
 - Wrangler, installed through project dependencies
@@ -73,10 +73,12 @@ connection rows before API calls are made.
 
 ### Install
 
+Use Bun for dependency changes. `bun.lock` is the only project lockfile; CI and Renovate use the Bun version pinned in `package.json`.
+
 ```bash
 git clone https://github.com/curiousgeorgios/linear-gratis.git
 cd linear-gratis
-npm install
+bun install --frozen-lockfile
 cp .env.example .env.local
 ```
 
@@ -89,7 +91,7 @@ openssl rand -base64 32
 Fill out `.env.local`, then start the app:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -204,13 +206,13 @@ request and every push to `main`.
 | `bun run db:migrate:production` | Lock, preflight, apply, and verify production migrations using Infisical-injected database settings. |
 | `bun run release:build` | Run the complete production release gate. |
 | `bun run release:deploy` | Apply migrations and deploy the already-built Worker, in that order. |
-| `npm run dev` | Start the Next.js development server. |
-| `npm run build` | Build the Next.js app. |
-| `npm run build:worker` | Build the Cloudflare Worker bundle through OpenNext. |
-| `npm run preview` | Build the Worker and run it locally with Wrangler. |
-| `npm run deploy` | Build and deploy the Worker with Wrangler. |
-| `npm run cf-typegen` | Generate Cloudflare environment types. |
-| `npm run generate-og` | Generate Open Graph assets. |
+| `bun run dev` | Start the Next.js development server. |
+| `bun run build` | Build the Next.js app. |
+| `bun run build:worker` | Build the Cloudflare Worker bundle through OpenNext. |
+| `bun run preview` | Build the Worker and run it locally with Wrangler. |
+| `bun run deploy` | Build and deploy the Worker with Wrangler. |
+| `bun run cf-typegen` | Generate Cloudflare environment types. |
+| `bun run generate-og` | Generate Open Graph assets. |
 
 ## Deployment
 
