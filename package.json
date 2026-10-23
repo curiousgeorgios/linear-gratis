@@ -76,7 +76,7 @@
 		"next": "~16.2.12",
 		"postgres": "3.4.7",
 		"puppeteer": "^24.22.0",
-		"supabase": "2.101.0",
+		"supabase": "2.122.0",
 		"tailwindcss": "^4",
 		"tw-animate-css": "^1.3.8",
 		"typescript": "5.9.3",
