@@ -48,7 +48,7 @@
 		"cmdk": "^1.1.1",
 		"crypto-js": "^4.2.0",
 		"encoding": "^0.1.13",
-		"framer-motion": "^12.23.13",
+		"motion": "^12.23.13",
 		"lucide-react": "^0.544.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
