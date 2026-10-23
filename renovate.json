@@ -5,12 +5,8 @@
   "schedule": ["at any time"],
   "prConcurrentLimit": 3,
   "prHourlyLimit": 2,
-  "automerge": true,
-  "platformAutomerge": true,
-  "automergeType": "pr",
   "vulnerabilityAlerts": {
     "enabled": true,
-    "schedule": ["at any time"],
-    "automerge": true
+    "schedule": ["at any time"]
   }
 }
