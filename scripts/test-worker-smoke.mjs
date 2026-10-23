@@ -53,6 +53,7 @@ try {
     child = spawn('bunx', ['wrangler', 'dev', '--config', configPath, '--local', '--ip', '127.0.0.1', '--port', String(port)], {
       env: { ...process.env, CI: 'true', WRANGLER_SEND_METRICS: 'false' },
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: process.platform !== 'win32',
     })
     child.on('error', (error) => { output += error.message })
     for (const stream of [child.stdout, child.stderr]) {
@@ -83,14 +84,31 @@ try {
     console.log(`[worker-smoke] ${route}: ${response.status}`)
   }
 } finally {
-  if (child && child.exitCode === null) {
-    child.kill('SIGTERM')
-    await Promise.race([
-      new Promise((resolve) => child.once('exit', resolve)),
-      new Promise((resolve) => setTimeout(resolve, 3000)),
-    ])
-    if (child.exitCode === null) child.kill('SIGKILL')
+  if (child) {
+    const terminate = (signal) => {
+      try {
+        if (process.platform !== 'win32' && child.pid) process.kill(-child.pid, signal)
+        else child.kill(signal)
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error
+      }
+    }
+    // Wrangler can spawn workerd grandchildren that retain stdout and sockets.
+    terminate('SIGTERM')
+    if (child.exitCode === null) {
+      await Promise.race([
+        new Promise((resolve) => child.once('exit', resolve)),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ])
+    }
+    terminate('SIGKILL')
+    child.stdout?.destroy()
+    child.stderr?.destroy()
+    child.unref()
   }
-  if (stub) await new Promise((resolve) => stub.close(resolve))
+  if (stub) {
+    stub.closeAllConnections()
+    await new Promise((resolve) => stub.close(resolve))
+  }
   if (directory) rmSync(directory, { recursive: true, force: true })
 }
