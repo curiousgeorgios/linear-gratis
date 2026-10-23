@@ -60,7 +60,7 @@ jobs:
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
         with:
-          version: 2.101.0
+          version: 2.122.0
 
       - name: Build disposable local database
         run: |
