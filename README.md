@@ -233,13 +233,15 @@ production releases. Its production build command is
 `bun run release:cloudflare:build` and its deploy command is
 `bun run release:cloudflare:deploy`; both fetch their environment from Infisical
 before invoking the underlying release stages. Cloudflare's build image runs
-coverage, types, lint, and the Worker build; its deploy stage then waits for the
+coverage, types, lint, the Worker build and isolated workerd runtime smoke checks; its deploy stage then waits for the
 same commit's required GitHub application/browser and database checks. A failed,
 cancelled, missing, or timed-out GitHub check prevents migrations and deployment.
 The only Cloudflare build secret is a read-only, production-scoped
 `INFISICAL_TOKEN`; application and database secrets remain in Infisical. Preview
 builds are disabled so pull requests and forks cannot receive production
 credentials or run production migrations.
+After deployment, public HTTP probes verify the dynamic API, homepage, login and 404 response.
+Next.js remains on patched 16.2 releases until OpenNext supports the newer preview-props manifest.
 The production trigger pins `BUN_VERSION=1.2.21` to match the repository and
 GitHub Actions coverage runtime.
 The self-hosted Infisical API domain is public configuration and is pinned in

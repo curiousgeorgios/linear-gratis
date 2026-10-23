@@ -177,8 +177,8 @@ describe('secret-management contracts', () => {
 
     assert.equal(packageJson.scripts?.['release:build'], 'bun run test:all')
     assert.match(packageJson.scripts?.['release:deploy'] ?? '',
-      /^bun run db:migrate:production && wrangler deploy$/,
-      'pending migrations must complete before Worker deployment')
+      /^bun run db:migrate:production && wrangler deploy && bun scripts\/test-worker-smoke\.mjs --live$/,
+      'migrations must precede deployment and public runtime probes must follow it')
 
     for (const script of ['release:cloudflare:build', 'release:cloudflare:deploy']) {
       const command = packageJson.scripts?.[script] ?? ''

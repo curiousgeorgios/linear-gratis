@@ -9,5 +9,15 @@
   },
   "npm": {
     "enabled": false
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Keep Next on OpenNext-compatible 16.2 patches until preview-props support is released: opennextjs/opennextjs-cloudflare#1355",
+      "matchPackageNames": [
+        "next",
+        "eslint-config-next"
+      ],
+      "allowedVersions": ">=16.2.3 <16.3.0"
+    }
+  ]
 }

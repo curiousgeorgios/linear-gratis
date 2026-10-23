@@ -27,6 +27,7 @@ if (!process.argv.includes('--coverage-only')) {
   run('TypeScript', 'bunx', ['tsc', '--noEmit'])
   run('lint', 'bun', ['run', 'lint'])
   run('production Cloudflare Worker build', 'bun', ['run', 'build:worker'])
+  run('Cloudflare Worker runtime smoke tests', 'bun', ['scripts/test-worker-smoke.mjs'])
   if (process.argv.includes('--skip-browser-smoke')) {
     console.log('\n[tests] browser smoke delegated to the required GitHub release check')
   } else {
