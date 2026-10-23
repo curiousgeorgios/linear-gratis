@@ -2,5 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
-  ]
+  ],
+  "automerge": false,
+  "bun": {
+    "enabled": true
+  },
+  "npm": {
+    "enabled": false
+  }
 }
