@@ -74,7 +74,7 @@
 		"eslint": "^9",
 		"eslint-config-next": "~16.2.12",
 		"next": "~16.2.12",
-		"postgres": "3.4.7",
+		"postgres": "3.4.9",
 		"puppeteer": "^24.22.0",
 		"supabase": "2.122.0",
 		"tailwindcss": "^4",
