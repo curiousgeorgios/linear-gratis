@@ -29,7 +29,7 @@
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.2.2",
-		"@linear/sdk": "^60.0.0",
+		"@linear/sdk": "^100.0.0",
 		"@radix-ui/react-avatar": "^1.1.10",
 		"@radix-ui/react-dialog": "^1.1.17",
 		"@radix-ui/react-label": "^2.1.7",
