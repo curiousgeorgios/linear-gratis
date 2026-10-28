@@ -123,8 +123,7 @@ describe('token encryption', () => {
     assert.equal(await decryptToken(legacy), 'legacy-linear-token')
   })
 
-  test('rejects empty legacy plaintext and a missing legacy key', async (context) => {
-    context.mock.method(console, 'error', () => {})
+  test('rejects empty legacy plaintext and a missing legacy key', async () => {
     const empty = CryptoJS.AES.encrypt('', TEST_ENCRYPTION_SECRET).toString()
     await assert.rejects(() => decryptToken(empty), /Failed to decrypt token/)
 
