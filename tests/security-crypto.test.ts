@@ -122,6 +122,22 @@ describe('token encryption', () => {
     assert.equal(isLegacyCiphertext(legacy), true)
     assert.equal(await decryptToken(legacy), 'legacy-linear-token')
   })
+
+  test('rejects empty legacy plaintext and a missing legacy key', async (context) => {
+    context.mock.method(console, 'error', () => {})
+    const empty = CryptoJS.AES.encrypt('', TEST_ENCRYPTION_SECRET).toString()
+    await assert.rejects(() => decryptToken(empty), /Failed to decrypt token/)
+
+    const legacy = CryptoJS.AES.encrypt('legacy-linear-token', TEST_ENCRYPTION_SECRET).toString()
+    const key = process.env.ENCRYPTION_KEY
+    try {
+      delete process.env.ENCRYPTION_KEY
+      await assert.rejects(() => decryptToken(legacy), /Failed to decrypt token/)
+    } finally {
+      if (key === undefined) delete process.env.ENCRYPTION_KEY
+      else process.env.ENCRYPTION_KEY = key
+    }
+  })
 })
 
 describe('webhook signatures', () => {
