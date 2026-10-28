@@ -18,6 +18,27 @@
         "eslint-config-next"
       ],
       "allowedVersions": ">=16.2.3 <16.3.0"
+    },
+    {
+      "description": "The current typescript-eslint checker rejects TypeScript 7.",
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
+      "description": "The current Next lint preset uses react rules incompatible with ESLint 10.",
+      "matchPackageNames": [
+        "eslint"
+      ],
+      "allowedVersions": "<10"
+    },
+    {
+      "description": "Lucide 1 removes the existing GitHub brand export; retain the current icon contract until a reviewed design replacement is available.",
+      "matchPackageNames": [
+        "lucide-react"
+      ],
+      "allowedVersions": "<1"
     }
   ]
 }
