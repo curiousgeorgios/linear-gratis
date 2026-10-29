@@ -1,5 +1,7 @@
 'use client'
 
+import { Github } from "@/components/icons/github";
+
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Check,
   Heart,
-  Github,
   Users,
   DollarSign,
   Lock,
