@@ -187,7 +187,7 @@ export function VoteButton({
       aria-pressed={voteState.hasVoted}
       aria-label={title}
       className={`
-        inline-flex min-h-11 min-w-11 items-center justify-center rounded-md touch-manipulation
+        relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-md touch-manipulation
         text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out
         motion-reduce:transform-none motion-reduce:transition-none
         ${compact ? 'flex-row gap-0.5 px-2' : 'flex-col gap-0.5'}

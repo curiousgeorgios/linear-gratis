@@ -5,19 +5,18 @@ import http from 'node:http'
 import net from 'node:net'
 import puppeteer from 'puppeteer'
 import { checkRoadmapSorting } from './roadmap-sorting-smoke.mjs'
+import { assertNoPageOverflow } from './page-overflow-smoke.mjs'
+import { comparisonTools } from '../src/data/comparisons.ts'
+import { useCases } from '../src/data/use-cases.ts'
+import { templates } from '../src/data/templates.ts'
+import { integrations } from '../src/data/integrations.ts'
 
 const ROUTES = [
-  '/',
-  '/features',
-  '/comparison',
-  '/comparison/steelsync',
-  '/use-cases',
-  '/use-cases/saas',
-  '/templates',
-  '/templates/bug-reports',
-  '/integrations',
-  '/integrations/slack',
-  '/login',
+  '/', '/features', '/comparison', '/use-cases', '/templates', '/integrations', '/login',
+  ...Object.keys(comparisonTools).map((slug) => `/comparison/${slug}`),
+  ...Object.keys(useCases).map((slug) => `/use-cases/${slug}`),
+  ...Object.keys(templates).map((slug) => `/templates/${slug}`),
+  ...Object.keys(integrations).map((slug) => `/integrations/${slug}`),
 ]
 
 function availablePort() {
@@ -163,6 +162,11 @@ try {
       throw new Error(`${route} contains an internal link with whitespace`)
     }
     if (errors.length > 0) throw new Error(`${route} emitted browser errors:\n${errors.join('\n')}`)
+
+    await assertNoPageOverflow(page, `${route} desktop`)
+    await page.setViewport({ width: 390, height: 844 })
+    await assertNoPageOverflow(page, `${route} mobile`)
+    await page.setViewport({ width: 1280, height: 900 })
 
     page.off('console', onConsole)
     page.off('pageerror', onPageError)
