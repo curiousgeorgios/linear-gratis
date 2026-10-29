@@ -24,6 +24,7 @@ const EXPECTED_PRODUCTION_FILES = [
   'src/lib/public-redaction.ts',
   'src/lib/request-security-core.ts',
   'src/lib/roadmap-vote-lifecycle.ts',
+  'src/lib/roadmap-sorting.ts',
   'src/lib/structured-data.tsx',
   'src/lib/supabase-errors.ts',
   'src/lib/utils.ts',

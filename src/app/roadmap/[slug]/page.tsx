@@ -9,6 +9,8 @@ import { RefreshCw, Lock, LayoutGrid, Calendar } from 'lucide-react'
 import { useBrandingSettings, applyBrandingToPage, getBrandingStyles } from '@/hooks/use-branding'
 import type { RoadmapIssue } from '@/lib/linear'
 import type { KanbanColumn } from '@/lib/supabase'
+import type { RoadmapSort } from '@/lib/roadmap-sorting'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface RoadmapPageProps {
   params: Promise<{
@@ -81,6 +83,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
   const [slug, setSlug] = useState<string>('')
   const [fingerprint, setFingerprint] = useState<string | null>(null)
   const [layoutType, setLayoutType] = useState<'kanban' | 'timeline'>('kanban')
+  const [sort, setSort] = useState<RoadmapSort>('votes')
   const [selectedIssue, setSelectedIssue] = useState<RoadmapIssue | null>(null)
   const [showItemDetail, setShowItemDetail] = useState(false)
 
@@ -385,6 +388,21 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
             </button>
           </div>
 
+          <Select value={sort} onValueChange={(value) => setSort(value as RoadmapSort)}>
+            <SelectTrigger
+              aria-label="Sort roadmap issues"
+              title="Chronological order uses the issue creation date"
+              className="min-h-11 shrink-0 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="votes">Most votes</SelectItem>
+              <SelectItem value="newest">Created: newest first</SelectItem>
+              <SelectItem value="oldest">Created: oldest first</SelectItem>
+            </SelectContent>
+          </Select>
+
           {projects.length > 1 && (
             <>
               <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
@@ -435,6 +453,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
             {layoutType === 'kanban' ? (
               <KanbanView
                 issues={issues}
+                sort={sort}
                 columns={roadmap.kanban_columns}
                 roadmapSlug={slug}
                 voteCounts={voteCounts}
@@ -452,6 +471,7 @@ export default function RoadmapPage({ params }: RoadmapPageProps) {
             ) : (
               <TimelineView
                 issues={issues}
+                sort={sort}
                 granularity={roadmap.timeline_granularity}
                 roadmapSlug={slug}
                 voteCounts={voteCounts}
