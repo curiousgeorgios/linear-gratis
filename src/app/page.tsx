@@ -1,5 +1,7 @@
 "use client";
 
+import { Github } from "@/components/icons/github";
+
 import { useAuth } from "@/contexts/auth-context";
 import { LinearIssueForm } from "@/components/linear-issue-form";
 import { Navigation } from "@/components/navigation";
@@ -14,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
-  Github,
   Users,
   MessageSquare,
   Share2,

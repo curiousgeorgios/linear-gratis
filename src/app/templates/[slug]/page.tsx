@@ -1,3 +1,4 @@
+import { Github } from "@/components/icons/github";
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Check, ArrowRight, Github, Settings, Zap, Users, Target } from 'lucide-react'
+import { Check, ArrowRight, Settings, Zap, Users, Target } from 'lucide-react'
 
 interface TemplatePageProps {
   params: Promise<{

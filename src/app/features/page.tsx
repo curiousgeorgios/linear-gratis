@@ -1,5 +1,7 @@
 'use client'
 
+import { Github } from "@/components/icons/github";
+
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +11,6 @@ import {
   X,
   Clock,
   Heart,
-  Github,
   ArrowRight,
   Star
 } from "lucide-react"

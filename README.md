@@ -75,6 +75,11 @@ connection rows before API calls are made.
 
 Use Bun for dependency changes. `bun.lock` is the only project lockfile; CI and Renovate use the Bun version pinned in `package.json`.
 
+Type checking uses TypeScript 7 through `@typescript/native` (`tsc`). Next.js and
+typescript-eslint use the TypeScript 6 compiler API through the `typescript`
+alias, following [Microsoft's side-by-side setup](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0).
+The Next lint presets use `@eslint/compat` to retain their rules on ESLint 10.
+
 ```bash
 git clone https://github.com/curiousgeorgios/linear-gratis.git
 cd linear-gratis

@@ -1,3 +1,4 @@
+import { Github } from "@/components/icons/github";
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -10,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, X, ArrowRight, Star, Github, Clock, Zap, AlertTriangle, Code2, Lightbulb, HelpCircle } from 'lucide-react'
+import { Check, X, ArrowRight, Star, Clock, Zap, AlertTriangle, Code2, Lightbulb, HelpCircle } from 'lucide-react'
 
 interface IntegrationPageProps {
   params: Promise<{
