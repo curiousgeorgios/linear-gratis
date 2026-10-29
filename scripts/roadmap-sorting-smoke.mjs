@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { assertNoPageOverflow } from './page-overflow-smoke.mjs'
 
 // Synthetic data keeps public-roadmap regression checks independent of Linear and Supabase.
 export async function checkRoadmapSorting(page, baseUrl) {
@@ -33,10 +34,11 @@ export async function checkRoadmapSorting(page, baseUrl) {
     commentCounts: {},
     projects: [{ id: 'sort-project', name: 'Sorting test' }],
   }
+  let responseData = data
   const intercept = (request) => {
     const pathname = new URL(request.url()).pathname
     if (pathname === '/api/roadmap/sorting-test') {
-      void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
+      void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(responseData) })
     } else if (pathname === '/api/branding/sorting-owner') {
       void request.respond({ status: 200, contentType: 'application/json', body: '{"branding":null}' })
     } else {
@@ -82,6 +84,27 @@ export async function checkRoadmapSorting(page, baseUrl) {
     await choose(2)
     assert.deepEqual(await titles(), expectedBoard([1, 2, 3]))
     await page.setViewport({ width: 1280, height: 900 })
+    responseData = {
+      ...data,
+      roadmap: { ...data.roadmap, allow_voting: true },
+      issues: Array.from({ length: 120 }, (_, index) => {
+        const issue = issues[index % issues.length]
+        return { ...issue, id: `overflow-${index}`, identifier: `OVERFLOW-${index}`, title: `Overflow issue ${index}` }
+      }),
+      voteCounts: {},
+    }
+    await page.reload({ waitUntil: 'networkidle0' })
+    await page.waitForSelector('button[aria-label="Upvote this item"]')
+    await assertNoPageOverflow(page, 'long roadmap board desktop')
+    const columnsScrollable = await page.$$eval('[aria-label="Roadmap board"] > div > div:last-child', (elements) =>
+      elements.every((element) => element.scrollHeight > element.clientHeight))
+    assert.equal(columnsScrollable, true, 'long roadmap columns must retain their own scrolling')
+    await page.setViewport({ width: 390, height: 844 })
+    await assertNoPageOverflow(page, 'long roadmap board mobile')
+    await page.setViewport({ width: 1280, height: 900 })
+    await page.click('button[title="Timeline view"]')
+    await assertNoPageOverflow(page, 'long roadmap timeline')
+    console.log('[smoke] long roadmap board/timeline stop at the footer; column scrolling remains available.')
     console.log('[smoke] roadmap sorting passed in all three columns, timeline, refresh and mobile keyboard selection.')
   } finally {
     page.off('request', intercept)
