@@ -4,11 +4,13 @@ import { useMemo } from 'react'
 import { RoadmapCard } from './roadmap-card'
 import { StateIcon } from '@/components/state-icon'
 import type { RoadmapIssue } from '@/lib/linear'
+import { sortRoadmapIssues, type RoadmapSort } from '@/lib/roadmap-sorting'
 import type { KanbanColumn } from '@/lib/supabase'
 
 interface KanbanViewProps {
   issues: RoadmapIssue[]
   columns: KanbanColumn[]
+  sort?: RoadmapSort
   roadmapSlug: string
   voteCounts: Record<string, number>
   commentCounts: Record<string, number>
@@ -41,6 +43,7 @@ const ColumnIcon = ({ columnKey }: { columnKey: string }) => {
 export function KanbanView({
   issues,
   columns,
+  sort = 'votes',
   roadmapSlug,
   voteCounts,
   commentCounts,
@@ -72,17 +75,12 @@ export function KanbanView({
       }
     })
 
-    // Sort issues within each column by vote count (descending)
-    Object.keys(groups).forEach((key) => {
-      groups[key].sort((a, b) => {
-        const aVotes = voteCounts[a.id] || 0
-        const bVotes = voteCounts[b.id] || 0
-        return bVotes - aVotes
-      })
-    })
+    for (const key of Object.keys(groups)) {
+      groups[key] = sortRoadmapIssues(groups[key], sort, voteCounts)
+    }
 
     return groups
-  }, [issues, columns, voteCounts])
+  }, [issues, columns, voteCounts, sort])
 
   return (
     <div

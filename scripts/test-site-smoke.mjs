@@ -4,6 +4,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import http from 'node:http'
 import net from 'node:net'
 import puppeteer from 'puppeteer'
+import { checkRoadmapSorting } from './roadmap-sorting-smoke.mjs'
 
 const ROUTES = [
   '/',
@@ -167,6 +168,8 @@ try {
     page.off('pageerror', onPageError)
     console.log(`[smoke] ${route} — ${pageState.heading}`)
   }
+
+  await checkRoadmapSorting(page, baseUrl)
 
   console.log(`[smoke] ${ROUTES.length} production pages passed.`)
 } finally {

@@ -8,10 +8,12 @@ import {
   isShippedRoadmapIssue,
 } from '@/lib/roadmap-issue-policy'
 import type { RoadmapIssue } from '@/lib/linear'
+import { sortRoadmapIssues, type RoadmapSort } from '@/lib/roadmap-sorting'
 
 interface TimelineViewProps {
   issues: RoadmapIssue[]
   granularity: 'month' | 'quarter'
+  sort?: RoadmapSort
   roadmapSlug: string
   voteCounts: Record<string, number>
   commentCounts: Record<string, number>
@@ -115,6 +117,7 @@ function getIssuePeriodKey(issue: RoadmapIssue, periods: TimelinePeriod[]): stri
 export function TimelineView({
   issues,
   granularity,
+  sort = 'votes',
   roadmapSlug,
   voteCounts,
   commentCounts,
@@ -158,24 +161,12 @@ export function TimelineView({
       }
     })
 
-    // Sort issues within each period by vote count (descending)
-    Object.keys(groups).forEach((key) => {
-      groups[key].sort((a, b) => {
-        const aVotes = voteCounts[a.id] || 0
-        const bVotes = voteCounts[b.id] || 0
-        return bVotes - aVotes
-      })
-    })
+    for (const key of Object.keys(groups)) {
+      groups[key] = sortRoadmapIssues(groups[key], sort, voteCounts)
+    }
 
-    // Sort unscheduled by vote count too
-    unscheduled.sort((a, b) => {
-      const aVotes = voteCounts[a.id] || 0
-      const bVotes = voteCounts[b.id] || 0
-      return bVotes - aVotes
-    })
-
-    return { groupedIssues: groups, unscheduledIssues: unscheduled }
-  }, [visibleIssues, periods, voteCounts])
+    return { groupedIssues: groups, unscheduledIssues: sortRoadmapIssues(unscheduled, sort, voteCounts) }
+  }, [visibleIssues, periods, voteCounts, sort])
 
   // Get unique projects for row grouping
   const projects = useMemo(() => {
