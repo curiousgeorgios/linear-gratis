@@ -6,7 +6,7 @@
       "name": "integrations-worker-app",
       "dependencies": {
         "@hookform/resolvers": "^7.0.0",
-        "@linear/sdk": "^101.0.0",
+        "@linear/sdk": "^102.0.0",
         "@radix-ui/react-avatar": "^1.1.10",
         "@radix-ui/react-dialog": "^1.1.17",
         "@radix-ui/react-label": "^2.1.7",
@@ -411,7 +411,7 @@
 
     "@keyv/serialize": ["@keyv/serialize@1.1.1", "", {}, "sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA=="],
 
-    "@linear/sdk": ["@linear/sdk@101.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.2.0" } }, "sha512-sDlYKMoTiOQU1C6+B2451qMbrR6zdKbBZfqIGp/dpZdVeOzYQSmp8e4uUHlCdMuFM7sRhQFMIl82AtwoaKYW5g=="],
+    "@linear/sdk": ["@linear/sdk@102.0.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.2.0" } }, "sha512-tdw/7ujH2/83HI8LUJHAfqHjq1OUnljEQcC0djS54qM6cPE3fbIg9s784W/djdCovj2ZPClWtMJLlf08C0BQkQ=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@0.2.12", "", { "dependencies": { "@emnapi/core": "^1.4.3", "@emnapi/runtime": "^1.4.3", "@tybys/wasm-util": "^0.10.0" } }, "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ=="],
 
